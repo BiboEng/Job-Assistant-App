@@ -1,0 +1,56 @@
+.row {
+  display: flex;
+}
+.left {
+  justify-content: flex-start;
+}
+.right {
+  justify-content: flex-end;
+}
+
+.bubbleWrap {
+  max-width: 78%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+.right .label {
+  text-align: right;
+}
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.interviewer {
+  background: var(--accent-soft);
+  color: var(--text);
+  border-bottom-left-radius: 3px;
+}
+
+.candidate {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 3px;
+}
+
+.typing {
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+
+.system {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 4px 0;
+}

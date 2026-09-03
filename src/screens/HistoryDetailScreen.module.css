@@ -1,0 +1,39 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.back {
+  align-self: flex-start;
+}
+
+.state {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.jdCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+}
+
+.date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.jdHeading {
+  margin: 6px 0 8px;
+  font-size: 1rem;
+}
+
+.jd {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.92rem;
+  color: var(--text);
+}

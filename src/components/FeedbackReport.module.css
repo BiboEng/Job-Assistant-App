@@ -1,0 +1,122 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.heading {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+}
+
+.summary {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 42ch;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 560px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+.subheading {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.qBlock {
+  border-top: 1px solid var(--border);
+  padding: 14px 0;
+}
+.qBlock:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.qHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.qNum {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.qMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qTime {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.qScore {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.qText {
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+
+.aText {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  white-space: pre-wrap;
+}
+
+.aLabel {
+  color: var(--text-muted);
+}
+
+.comment {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
