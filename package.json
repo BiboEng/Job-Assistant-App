@@ -1,19 +1,15 @@
 {
-  "name": "mock-interview-client",
+  "name": "mock-interview",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "description": "AI-powered mock interview web app (React + Express + OpenRouter)",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "dev": "concurrently -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^6.0.7"
+    "concurrently": "^9.1.0"
   }
 }

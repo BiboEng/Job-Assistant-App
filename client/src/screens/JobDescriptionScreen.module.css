@@ -1,0 +1,148 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.back {
+  align-self: flex-start;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.heading {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+}
+
+.sub {
+  margin: 0 0 18px;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 180px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.textarea:focus {
+  border-color: var(--accent);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.count {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.options {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 16px;
+  margin: 18px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.options:disabled {
+  opacity: 0.6;
+}
+
+.optionsLegend {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 0 6px;
+}
+
+.optionRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.optionField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.optionLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+.select:focus {
+  border-color: var(--accent);
+}
+
+.resumeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resumeArea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 110px;
+  outline: none;
+}
+.resumeArea:focus {
+  border-color: var(--accent);
+}
+
+.resumeFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.linkBtn {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: underline;
+}
+.linkBtn:hover {
+  color: var(--accent-hover);
+}
