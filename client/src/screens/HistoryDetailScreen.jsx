@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import FeedbackReport from "../components/FeedbackReport.jsx";
+import Icon from "../components/Icon.jsx";
 import { getInterview } from "../api/historyApi.js";
 import styles from "./HistoryDetailScreen.module.css";
 
@@ -13,6 +14,7 @@ function formatDateTime(ts) {
 export default function HistoryDetailScreen({ interviewId, onBack }) {
   const [record, setRecord] = useState(null);
   const [error, setError] = useState("");
+  const [jdOpen, setJdOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,24 +34,59 @@ export default function HistoryDetailScreen({ interviewId, onBack }) {
 
   return (
     <div className={styles.wrap}>
-      <button type="button" className={`btn-ghost ${styles.back}`} onClick={onBack}>
-        ← Back to home
-      </button>
+      <div className={`${styles.topBar} no-print`}>
+        <button type="button" className="btn-ghost btn-sm" onClick={onBack}>
+          <Icon name="arrowLeft" size={15} />
+          Back to home
+        </button>
+        {record && (
+          <button className="btn-ghost btn-sm" onClick={() => window.print()}>
+            <Icon name="printer" size={15} />
+            Print / save PDF
+          </button>
+        )}
+      </div>
 
       {error && (
         <div className="error-banner" role="alert">
-          {error}
+          <Icon name="alert" size={16} />
+          <span>{error}</span>
         </div>
       )}
 
-      {!record && !error && <p className={styles.state}>Loading…</p>}
+      {!record && !error && (
+        <>
+          <div className={`skeleton ${styles.skelCard}`} aria-hidden="true" />
+          <div className={`skeleton ${styles.skelReport}`} aria-hidden="true" />
+          <p className="sr-only">Loading this interview…</p>
+        </>
+      )}
 
       {record && (
         <>
+          {/* The job description is context, not the point of the page — it
+              opens on demand instead of pushing the report below the fold. */}
           <div className={styles.jdCard}>
-            <span className={styles.date}>{formatDateTime(record.createdAt)}</span>
-            <h2 className={styles.jdHeading}>Job description</h2>
-            <p className={styles.jd}>{record.jobDescription}</p>
+            <button
+              type="button"
+              className={styles.jdToggle}
+              onClick={() => setJdOpen((o) => !o)}
+              aria-expanded={jdOpen}
+              aria-controls="jd-body"
+            >
+              <span className={styles.jdHeadText}>
+                <span className={styles.jdHeading}>Job description</span>
+                <span className={styles.date}>{formatDateTime(record.createdAt)}</span>
+              </span>
+              <Icon
+                name="chevronDown"
+                size={16}
+                className={`${styles.chevron} ${jdOpen ? styles.chevronOpen : ""}`}
+              />
+            </button>
+            <div id="jd-body" className={styles.jdBody} hidden={!jdOpen}>
+              <p className={styles.jd}>{record.jobDescription}</p>
+            </div>
           </div>
 
           <FeedbackReport feedback={record.feedback} title="Interview review" />

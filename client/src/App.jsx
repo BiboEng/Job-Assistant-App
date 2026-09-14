@@ -6,17 +6,34 @@ import ChatScreen from "./screens/ChatScreen.jsx";
 import ResultsScreen from "./screens/ResultsScreen.jsx";
 import HistoryDetailScreen from "./screens/HistoryDetailScreen.jsx";
 import JobMatchesScreen from "./screens/JobMatchesScreen.jsx";
+import ResumeBuilderScreen from "./screens/ResumeBuilderScreen.jsx";
 import { saveInterview } from "./api/historyApi.js";
 import { STORAGE_KEY, nextId } from "./constants.js";
 
 /**
- * Screens: 'home' -> 'setup' -> 'chat' -> 'results', plus 'historyDetail'.
+ * Screens: 'home' -> 'setup' -> 'chat' -> 'results', plus 'historyDetail',
+ * 'jobMatches' and 'resume'.
  * App owns the active session + transcript. An in-progress interview ('chat' /
  * 'results') is mirrored to sessionStorage so a refresh resumes it; other
  * screens always start from 'home'.
  */
 
 const RESUMABLE = new Set(["chat", "results"]);
+
+// Screens that need more than the standard reading-width column. The Resume
+// Builder is a side-by-side workspace, not a document.
+const WIDE_SCREENS = new Set(["resume"]);
+
+// Which header nav item is lit for a given screen. The nav addresses sections,
+// not screens: everything in the interview flow belongs to "practice".
+const SECTION_OF = {
+  setup: "practice",
+  chat: "practice",
+  results: "practice",
+  historyDetail: "practice",
+  jobMatches: "jobs",
+  resume: "resume",
+};
 
 function loadPersisted() {
   try {
@@ -139,64 +156,90 @@ export default function App() {
     setScreen("jobMatches");
   }
 
+  function openResumeBuilder() {
+    setScreen("resume");
+  }
+
+  /** Header nav. Disabled during a live interview, so no guard is needed here. */
+  function navigate(section) {
+    if (section === "practice") {
+      if (screen !== "setup") startNew();
+    } else if (section === "jobs") {
+      openJobMatches();
+    } else if (section === "resume") {
+      openResumeBuilder();
+    }
+  }
+
   const chatReady = screen === "chat" && session?.sessionId;
 
   return (
-    <div className="app-shell">
-      <AppHeader onHome={goHome} interactive={screen !== "chat"} />
+    <div className={`app-shell ${WIDE_SCREENS.has(screen) ? "app-shell--wide" : ""}`}>
+      <AppHeader
+        onHome={goHome}
+        onNavigate={navigate}
+        active={SECTION_OF[screen]}
+        interactive={screen !== "chat"}
+      />
 
-      {screen === "home" && (
-        <HomeScreen
-          onStartNew={startNew}
-          onOpenInterview={openInterview}
-          onFindJobs={openJobMatches}
-        />
-      )}
+      {/* Keyed so each navigation replays the enter animation. */}
+      <div key={screen} className="screen-slot screen-enter">
+        {screen === "home" && (
+          <HomeScreen
+            onStartNew={startNew}
+            onOpenInterview={openInterview}
+            onFindJobs={openJobMatches}
+            onBuildResume={openResumeBuilder}
+          />
+        )}
 
-      {screen === "jobMatches" && (
-        <JobMatchesScreen
-          onBack={goHome}
-          cachedResult={jobsResult}
-          onResult={setJobsResult}
-        />
-      )}
+        {screen === "resume" && <ResumeBuilderScreen onBack={goHome} />}
 
-      {screen === "setup" && (
-        <JobDescriptionScreen onStarted={handleStarted} onBack={goHome} />
-      )}
+        {screen === "jobMatches" && (
+          <JobMatchesScreen
+            onBack={goHome}
+            cachedResult={jobsResult}
+            onResult={setJobsResult}
+          />
+        )}
 
-      {chatReady && (
-        <ChatScreen
-          session={session}
-          messages={messages}
-          setMessages={setMessages}
-          onFinished={handleFinished}
-          onRestart={goHome}
-        />
-      )}
+        {screen === "setup" && (
+          <JobDescriptionScreen onStarted={handleStarted} onBack={goHome} />
+        )}
 
-      {screen === "chat" && !chatReady && (
-        <div className="error-banner" role="alert">
-          Your session could not be restored.{" "}
-          <button className="btn-ghost" onClick={goHome}>
-            Start over
-          </button>
-        </div>
-      )}
+        {chatReady && (
+          <ChatScreen
+            session={session}
+            messages={messages}
+            setMessages={setMessages}
+            onFinished={handleFinished}
+            onRestart={goHome}
+          />
+        )}
 
-      {screen === "results" && (
-        <ResultsScreen
-          feedback={feedback}
-          saveState={saveState}
-          onRetrySave={retrySave}
-          onRestart={startNew}
-          onHome={goHome}
-        />
-      )}
+        {screen === "chat" && !chatReady && (
+          <div className="error-banner" role="alert">
+            Your session could not be restored.{" "}
+            <button className="btn-ghost" onClick={goHome}>
+              Start over
+            </button>
+          </div>
+        )}
 
-      {screen === "historyDetail" && (
-        <HistoryDetailScreen interviewId={detailId} onBack={goHome} />
-      )}
+        {screen === "results" && (
+          <ResultsScreen
+            feedback={feedback}
+            saveState={saveState}
+            onRetrySave={retrySave}
+            onRestart={startNew}
+            onHome={goHome}
+          />
+        )}
+
+        {screen === "historyDetail" && (
+          <HistoryDetailScreen interviewId={detailId} onBack={goHome} />
+        )}
+      </div>
     </div>
   );
 }

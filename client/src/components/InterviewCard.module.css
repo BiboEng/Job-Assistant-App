@@ -2,30 +2,31 @@
   position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
 }
 .card:hover {
   border-color: var(--accent);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 14px 30px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .open {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--sp-4);
   width: 100%;
   text-align: left;
   font: inherit;
   color: inherit;
   background: none;
   border: none;
-  padding: 16px 18px;
-  padding-right: 52px; /* room for the delete button */
+  padding: var(--sp-4) var(--sp-5);
+  padding-right: 56px; /* room for the delete button */
   cursor: pointer;
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
 }
 .open:focus-visible {
   outline: 2px solid var(--accent);
@@ -38,17 +39,17 @@
 }
 
 .title {
-  margin: 0 0 4px;
-  font-size: 1rem;
-  font-weight: 600;
+  margin: 0 0 2px;
+  font-size: var(--fs-base);
+  font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .snippet {
-  margin: 0 0 8px;
-  font-size: 0.88rem;
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-md);
   color: var(--text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -58,9 +59,9 @@
 
 .meta {
   display: flex;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
 }
 
 .scorePill {
@@ -69,22 +70,22 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  width: 76px;
-  height: 76px;
-  border-radius: 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  gap: 1px;
+  width: 78px;
+  height: 78px;
+  border-radius: var(--radius-md);
+  border: 1px solid;
 }
 
 .scoreNum {
-  font-size: 1.5rem;
+  font-size: var(--fs-2xl);
   font-weight: 700;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .scoreLabel {
-  font-size: 0.62rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -92,80 +93,67 @@
 
 .deleteBtn {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: var(--sp-3);
+  right: var(--sp-3);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 30px;
   height: 30px;
   padding: 0;
-  font-size: 0.9rem;
-  line-height: 1;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text-subtle);
   cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
 }
-.deleteBtn:hover {
-  opacity: 1;
-  background: var(--bg);
-  border-color: var(--border);
-}
+.card:hover .deleteBtn,
 .deleteBtn:focus-visible {
   opacity: 1;
+}
+.deleteBtn:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+.deleteBtn:focus-visible {
   outline: 2px solid var(--danger);
   outline-offset: 2px;
 }
 
+/* Touch devices have no hover, so the control must always be visible there. */
+@media (hover: none) {
+  .deleteBtn {
+    opacity: 0.6;
+  }
+}
+
 .confirm {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  z-index: 2;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 10px;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-md);
+  padding: var(--sp-2) var(--sp-3);
+  box-shadow: var(--shadow-lg);
 }
 
 .confirmText {
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: var(--text);
-}
-
-.confirmYes,
-.confirmNo {
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 7px;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-.confirmYes {
-  background: var(--danger);
-  color: #fff;
-}
-.confirmYes:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.confirmNo {
-  background: transparent;
-  color: var(--text-muted);
-  border-color: var(--border);
 }
 
 @media (max-width: 480px) {
   .confirm {
     flex-wrap: wrap;
-    max-width: 200px;
+    max-width: 220px;
   }
 }

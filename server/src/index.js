@@ -4,6 +4,7 @@ import { config } from "./config.js";
 import { interviewRouter } from "./routes/interview.routes.js";
 import { interviewsRouter } from "./routes/interviews.routes.js";
 import { jobsRouter } from "./routes/jobs.routes.js";
+import { resumeRouter } from "./routes/resume.routes.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { requireApiToken, attachClientId } from "./middleware/auth.js";
 import { ensureHistoryReady } from "./services/history.service.js";
@@ -85,6 +86,19 @@ app.use(
   requireApiToken,
   attachClientId,
   jobsRouter
+);
+
+// Resume Builder chat. One model call per turn, in the separate "resume" budget
+// pool, behind the same auth + per-IP rate limit as everything else.
+app.use(
+  "/api/resume",
+  rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.resume.rateLimitMax,
+  }),
+  requireApiToken,
+  attachClientId,
+  resumeRouter
 );
 
 // 404

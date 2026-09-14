@@ -1,54 +1,74 @@
 .wrap {
   display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--sp-2);
 }
 
+/* The composer is one surface — textarea and controls share a border, so the
+   whole thing reads as a single input rather than a box with buttons near it. */
 .field {
-  flex: 1;
-  min-width: 0;
-  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .input {
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--sp-4) var(--sp-4) var(--sp-2);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
   resize: none;
   outline: none;
-  transition: border-color 0.15s ease;
-}
-.input:focus {
-  border-color: var(--accent);
 }
 .input:disabled {
-  background: var(--surface-sunken);
+  color: var(--text-subtle);
 }
 .input:read-only:not(:disabled) {
-  background: var(--surface-sunken);
   cursor: default;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  flex-wrap: wrap;
 }
 
 .status {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  gap: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--text-subtle);
+  min-height: 22px;
+  padding-left: var(--sp-1);
+}
+
+.hint {
+  color: var(--text-subtle);
 }
 
 .listening {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-2);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--danger);
 }
 
 .pulse {
@@ -71,25 +91,24 @@
   }
 }
 
-.hint {
-  color: var(--text-muted);
-}
-
-.clear,
-.modeToggle {
-  align-self: flex-start;
+.textBtn {
   background: transparent;
   border: none;
   padding: 0;
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-subtle);
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
-.clear:hover,
-.modeToggle:hover {
+.textBtn:hover {
   color: var(--text);
 }
-.modeToggle {
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   margin-left: auto;
 }
 
@@ -97,58 +116,102 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 38px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text-muted);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
 }
 .mic:hover:not(:disabled) {
   color: var(--text);
-  border-color: var(--text-muted);
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
 }
 .mic:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .micOn {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
   animation: micGlow 1.4s ease-in-out infinite;
 }
 
 @keyframes micGlow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(47, 111, 237, 0.35);
+    box-shadow: 0 0 0 0 var(--danger-soft);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(47, 111, 237, 0);
+    box-shadow: 0 0 0 6px transparent;
   }
+}
+
+/* --- notes / errors -------------------------------------------------------- */
+
+.error,
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
 }
 
 .error {
-  flex-basis: 100%;
-  margin: 0;
   color: var(--danger);
-  font-size: 0.85rem;
 }
 
-.voiceNote {
-  flex-basis: 100%;
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  line-height: 1.4;
+.note {
+  color: var(--text-subtle);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.noteClose {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-subtle);
+}
+.noteClose:hover {
+  background: var(--border);
+  color: var(--text);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pulse,
   .micOn {
     animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .bar {
+    align-items: stretch;
+  }
+  .actions {
+    width: 100%;
+  }
+  .actions .mic {
+    flex-shrink: 0;
+  }
+  .actions > button:not(.mic) {
+    flex: 1;
   }
 }

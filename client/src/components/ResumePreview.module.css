@@ -1,0 +1,275 @@
+/*
+ * The resume sheet is paper. It is intentionally the ONE place in the app that
+ * does not follow the light/dark theme tokens: the user is looking at the
+ * document they are about to hand to an employer, and it must look the same on
+ * screen as it does in the exported PDF regardless of their OS theme. So the
+ * colors below are literal, not var(--...). Everything *around* the sheet
+ * (panels, toolbar, chat) uses the tokens as normal.
+ *
+ * Width is fixed at 816px = 8.5in at 96dpi, so what's on screen is a true
+ * letter-page preview. The parent scales it to fit; the exporter clones it at
+ * this natural size.
+ */
+
+.sheet {
+  width: 816px;
+  min-height: 1056px; /* 11in */
+  padding: 56px 64px;
+  background: #ffffff;
+  color: #1a1a1a;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 12px 32px rgba(0, 0, 0, 0.14);
+}
+
+/* --- header ------------------------------------------------------------ */
+
+.header {
+  border-bottom: 2px solid #1a1a1a;
+  padding-bottom: 12px;
+  margin-bottom: 18px;
+}
+
+.name {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.headline {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: #3d4450;
+  font-weight: 500;
+}
+
+.contactLine {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: #3d4450;
+}
+
+.link {
+  display: inline;
+}
+
+.sep {
+  margin: 0 6px;
+  color: #9aa1ad;
+}
+
+.dash {
+  margin: 0 4px;
+}
+
+/* --- sections ---------------------------------------------------------- */
+
+.section {
+  margin-top: 20px;
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  border-bottom: 1px solid #c9cdd4;
+  padding-bottom: 3px;
+}
+
+.summary {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+/* --- entries ----------------------------------------------------------- */
+
+.entry {
+  position: relative;
+  margin-bottom: 14px;
+}
+.entry:last-of-type {
+  margin-bottom: 0;
+}
+
+.entryHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.entryTitle {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.entryDates {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  color: #3d4450;
+  white-space: nowrap;
+}
+
+.entrySub {
+  margin: 1px 0 0;
+  font-size: 13px;
+  color: #3d4450;
+  font-style: italic;
+}
+
+.details {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: #3d4450;
+}
+
+/* --- bullets ----------------------------------------------------------- */
+
+.bullets {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.bullet {
+  position: relative;
+  margin-bottom: 3px;
+  font-size: 13px;
+}
+
+/* The editable field has to be block-level inside the <li>: as an inline-block
+   it forms a single inline box, so the list marker aligns to its baseline —
+   i.e. the LAST line of a wrapped bullet — instead of the first. */
+.bullet [role="textbox"] {
+  display: block;
+}
+
+/* Pulled out of flow: a 20px inline button inflates every bullet's line box,
+   which both over-spaces the list and drags the marker down with it. */
+.bullet .iconBtn {
+  position: absolute;
+  top: 0;
+  right: -26px;
+  margin-left: 0;
+}
+
+/* --- skills / certifications ------------------------------------------- */
+
+.skillRow,
+.certRow {
+  position: relative;
+  margin: 0 0 5px;
+  font-size: 13px;
+}
+.skillRow:last-child,
+.certRow:last-child {
+  margin-bottom: 0;
+}
+
+.skillCategory {
+  font-weight: 700;
+}
+
+/* --- editing chrome (never exported) ------------------------------------ */
+
+.entryControls {
+  position: absolute;
+  top: 0;
+  right: -46px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.entryControlsInline {
+  flex-direction: row;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.entry:hover .entryControls,
+.entry:focus-within .entryControls,
+.skillRow:hover .entryControls,
+.skillRow:focus-within .entryControls,
+.certRow:hover .entryControls,
+.certRow:focus-within .entryControls,
+.entryControls:focus-within {
+  opacity: 1;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #d5d9e0;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #565b66;
+  font-size: 12px;
+  line-height: 1;
+}
+.iconBtn:hover:not(:disabled) {
+  background: #eef0f3;
+  color: #1a1a1a;
+  border-color: #9aa1ad;
+}
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Inline × buttons that sit next to a field rather than in a control cluster. */
+.bullet .iconBtn,
+.link .iconBtn {
+  opacity: 0;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.bullet:hover .iconBtn,
+.bullet:focus-within .iconBtn,
+.link:hover .iconBtn,
+.link:focus-within .iconBtn,
+.iconBtn:focus-visible {
+  opacity: 1;
+}
+
+.addBtn,
+.addInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 6px;
+  padding: 3px 9px;
+  border: 1px dashed #c9cdd4;
+  border-radius: 5px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 11.5px;
+  font-weight: 500;
+  font-family: inherit;
+}
+.addBtn:hover,
+.addInline:hover {
+  border-color: #2f6fed;
+  border-style: solid;
+  color: #2f6fed;
+  background: rgba(47, 111, 237, 0.05);
+}
+
+.addInline {
+  margin-top: 0;
+  margin-left: 6px;
+  vertical-align: middle;
+}

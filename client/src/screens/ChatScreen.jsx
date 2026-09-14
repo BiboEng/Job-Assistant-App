@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { submitAnswer, getFeedback } from "../api/interviewApi.js";
 import ChatMessage from "../components/ChatMessage.jsx";
 import ChatInput from "../components/ChatInput.jsx";
+import Icon from "../components/Icon.jsx";
 import { nextId } from "../constants.js";
 import { formatDuration } from "../utils/time.js";
 import styles from "./ChatScreen.module.css";
@@ -21,6 +22,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
   const [draft, setDraft] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(null);
   const [announce, setAnnounce] = useState("");
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   // Derive progress from the transcript so it survives a refresh.
   const answeredCount = countBy(messages, "candidate");
@@ -126,7 +128,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
             role: "system",
             text: skipped
               ? "Skipped — moving on to the next question."
-              : "⏱ Time's up — moving on with no answer for this question.",
+              : "Time's up — moving on with no answer for this question.",
           },
     ]);
     setDraft("");
@@ -186,9 +188,11 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
   }
 
   // "End interview": score the answers so far, or — if nothing's been answered
-  // yet — just abandon back to the start.
+  // yet — just abandon back to the start. Confirmed first: it's one click away
+  // from throwing away a part-finished interview.
   function handleEndInterview() {
     if (busy || scoring || interviewDone) return;
+    setConfirmEnd(false);
     if (answeredCount > 0) runFeedback();
     else onRestart();
   }
@@ -217,55 +221,91 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
   const canEndNow = !interviewDone && !busy && !scoring;
   const sessionLost = /not found or expired/i.test(error);
 
-  const timerState =
+  const urgency =
     secondsLeft == null
       ? ""
       : secondsLeft <= 20
-      ? styles.timerUrgent
+      ? styles.urgent
       : secondsLeft <= 60
-      ? styles.timerWarn
+      ? styles.warn
       : "";
+  const timeFraction =
+    secondsLeft != null && currentLimit
+      ? Math.max(0, Math.min(1, secondsLeft / currentLimit))
+      : 1;
 
   return (
     <div className={styles.wrap}>
+      {/* Progress reads as progress: a segment per question, filled as you go. */}
       <div className={styles.statusBar}>
-        <span>
-          Question {currentQuestion} of {total}
-        </span>
-        <button
-          className="btn-ghost"
-          onClick={handleEndInterview}
-          disabled={!canEndNow}
-          title={
-            answeredCount > 0
-              ? "End now and score the answers so far"
-              : "End now and start over (nothing to score yet)"
-          }
-        >
-          End interview
-        </button>
+        <div className={styles.progress}>
+          <span className={styles.progressLabel}>
+            Question <strong>{currentQuestion}</strong> of {total}
+          </span>
+          <span
+            className={styles.segments}
+            role="img"
+            aria-label={`Question ${currentQuestion} of ${total}, ${answeredCount} answered`}
+          >
+            {Array.from({ length: total }, (_, i) => (
+              <span
+                key={i}
+                className={`${styles.segment} ${
+                  i < answeredCount
+                    ? styles.segmentDone
+                    : i === answeredCount && !interviewDone
+                    ? styles.segmentCurrent
+                    : ""
+                }`}
+              />
+            ))}
+          </span>
+        </div>
+
+        {confirmEnd ? (
+          <div className={styles.confirmEnd} role="group" aria-label="Confirm ending">
+            <span className={styles.confirmText}>
+              {answeredCount > 0
+                ? `Score the ${answeredCount} answer${answeredCount === 1 ? "" : "s"} so far?`
+                : "Nothing answered yet — discard this interview?"}
+            </span>
+            <button className="btn-danger btn-sm" onClick={handleEndInterview}>
+              {answeredCount > 0 ? "End & score" : "Discard"}
+            </button>
+            <button className="btn-ghost btn-sm" onClick={() => setConfirmEnd(false)}>
+              Keep going
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn-ghost btn-sm"
+            onClick={() => setConfirmEnd(true)}
+            disabled={!canEndNow}
+          >
+            End interview
+          </button>
+        )}
       </div>
 
       {error && (
         <div className="error-banner" role="alert">
-          {error}
+          <Icon name="alert" size={16} />
+          <span>{error}</span>
           {sessionLost && (
-            <>
-              {" "}
-              <button className="btn-ghost" onClick={onRestart}>
-                Start over
-              </button>
-            </>
+            <button className="btn-ghost" onClick={onRestart}>
+              Start over
+            </button>
           )}
         </div>
       )}
 
       {feedbackError && (
         <div className="error-banner" role="alert">
-          Couldn't generate feedback: {feedbackError}{" "}
+          <Icon name="alert" size={16} />
+          <span>Couldn't generate feedback: {feedbackError}</span>
           <button className="btn-ghost" onClick={runFeedback} disabled={scoring}>
             Try again
-          </button>{" "}
+          </button>
           <button className="btn-ghost" onClick={onRestart}>
             Start over
           </button>
@@ -282,7 +322,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
         {messages.map((m) => (
           <ChatMessage key={m.id} role={m.role} text={m.text} />
         ))}
-        {busy && <ChatMessage role="interviewer" text="…" typing />}
+        {busy && <ChatMessage role="interviewer" typing />}
         {scoring && <ChatMessage role="system" text="Scoring your interview…" />}
       </div>
 
@@ -291,9 +331,19 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
       </p>
 
       {awaitingAnswer && secondsLeft != null && (
-        <div className={`${styles.timer} ${timerState}`} role="timer">
-          <span aria-hidden="true">⏱</span>
-          <span>{formatDuration(secondsLeft)} left for this answer</span>
+        <div className={`${styles.timer} ${urgency}`} role="timer">
+          <div className={styles.timerHead}>
+            <Icon name="clock" size={15} />
+            <span className={styles.timerValue}>{formatDuration(secondsLeft)}</span>
+            <span className={styles.timerNote}>left for this answer</span>
+          </div>
+          {/* A depleting track: the number says how long, the bar says how far. */}
+          <div className={styles.timerTrack} aria-hidden="true">
+            <div
+              className={styles.timerFill}
+              style={{ transform: `scaleX(${timeFraction})` }}
+            />
+          </div>
         </div>
       )}
 

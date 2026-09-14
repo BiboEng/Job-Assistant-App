@@ -1,31 +1,118 @@
 .bar {
   display: flex;
   align-items: center;
-  padding-bottom: 16px;
-  margin-bottom: 24px;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-4);
+  margin-bottom: var(--sp-6);
   border-bottom: 1px solid var(--border);
 }
+
+/* --- wordmark ------------------------------------------------------------- */
 
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   background: none;
   border: none;
   padding: 0;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text);
+  flex-shrink: 0;
 }
 
 button.wordmark {
   cursor: pointer;
 }
-button.wordmark:hover {
+button.wordmark:hover .wordmarkText {
   color: var(--accent);
 }
-button.wordmark:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 4px;
+
+.wordmarkText {
+  transition: color var(--dur) var(--ease);
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-accent);
+  color: #fff;
+  box-shadow: var(--shadow-xs);
+}
+
+/* --- nav ------------------------------------------------------------------ */
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.navItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.navItem:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+.navItem:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.navActive {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.navActive:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tail {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Narrow: the nav drops its labels to icons and the tail stays put, so the bar
+   never wraps into two rows on a phone. */
+@media (max-width: 620px) {
+  .bar {
+    gap: var(--sp-2);
+  }
+  .navLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .navItem {
+    padding: 7px var(--sp-2);
+  }
+  .wordmarkText {
+    display: none;
+  }
 }

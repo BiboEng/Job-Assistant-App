@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "./Icon.jsx";
 import styles from "./InterviewCard.module.css";
 import { scoreBand } from "../utils/score.js";
 
@@ -44,7 +45,12 @@ export default function InterviewCard({ interview, onOpen, onDelete }) {
           </div>
         </div>
 
-        <div className={styles.scorePill} style={{ color: band.color }}>
+        {/* Tinted per band so the list is scannable at a glance instead of
+            needing each number read. */}
+        <div
+          className={styles.scorePill}
+          style={{ color: band.color, background: band.soft, borderColor: band.color }}
+        >
           <span className={styles.scoreNum}>{overallScore}</span>
           <span className={styles.scoreLabel}>{band.label}</span>
         </div>
@@ -55,7 +61,7 @@ export default function InterviewCard({ interview, onOpen, onDelete }) {
           <span className={styles.confirmText}>Delete this interview?</span>
           <button
             type="button"
-            className={styles.confirmYes}
+            className="btn-danger btn-sm"
             onClick={confirmDelete}
             disabled={deleting}
           >
@@ -63,7 +69,7 @@ export default function InterviewCard({ interview, onOpen, onDelete }) {
           </button>
           <button
             type="button"
-            className={styles.confirmNo}
+            className="btn-ghost btn-sm"
             onClick={() => setConfirming(false)}
             disabled={deleting}
           >
@@ -78,7 +84,7 @@ export default function InterviewCard({ interview, onOpen, onDelete }) {
           aria-label={`Delete interview: ${title || "Untitled role"}`}
           title="Delete"
         >
-          <span aria-hidden="true">🗑</span>
+          <Icon name="trash" size={15} />
         </button>
       )}
     </div>

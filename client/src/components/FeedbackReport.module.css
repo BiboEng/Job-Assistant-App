@@ -1,122 +1,287 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--sp-4);
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 20px 22px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--sp-5) var(--sp-6);
+}
+
+/* --- header --------------------------------------------------------------- */
+
+.headerCard {
+  background: linear-gradient(180deg, var(--accent-softer), var(--surface) 70%);
 }
 
 .headerRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--sp-6);
   flex-wrap: wrap;
 }
 
+.headerText {
+  flex: 1;
+  min-width: 240px;
+}
+
 .heading {
-  margin: 0 0 6px;
-  font-size: 1.25rem;
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.02em;
 }
 
 .summary {
   margin: 0;
   color: var(--text-muted);
-  max-width: 42ch;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  max-width: 48ch;
 }
+
+/* --- strengths / weaknesses ------------------------------------------------ */
 
 .twoCol {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: var(--sp-4);
 }
-@media (max-width: 560px) {
+@media (max-width: 620px) {
   .twoCol {
     grid-template-columns: 1fr;
   }
 }
 
+/* Tone is carried by a left rule + icon color, not by the whole card ground —
+   a fully tinted card would read as an alert. */
+.strong {
+  border-left: 3px solid var(--band-strong);
+}
+.strong .pointIcon {
+  background: var(--band-strong-soft);
+  color: var(--band-strong);
+}
+.strong .bullet {
+  background: var(--band-strong);
+}
+
+.weak {
+  border-left: 3px solid var(--band-mixed);
+}
+.weak .pointIcon {
+  background: var(--band-mixed-soft);
+  color: var(--band-mixed);
+}
+.weak .bullet {
+  background: var(--band-mixed);
+}
+
 .subheading {
-  margin: 0 0 12px;
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-base);
+}
+
+.pointIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
 }
 
 .list {
   margin: 0;
-  padding-left: 18px;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+}
+
+.list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+
+.bullet {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  margin-top: 9px;
+  border-radius: 50%;
+  background: var(--text-subtle);
 }
 
 .muted {
-  color: var(--text-muted);
+  color: var(--text-subtle);
+}
+
+/* --- breakdown ------------------------------------------------------------- */
+
+.breakdownHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+.breakdownHead .subheading {
+  margin: 0;
+}
+
+.qList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
 }
 
 .qBlock {
-  border-top: 1px solid var(--border);
-  padding: 14px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+  transition: border-color var(--dur) var(--ease);
 }
-.qBlock:first-of-type {
-  border-top: none;
-  padding-top: 0;
+.qBlock:hover {
+  border-color: var(--border-strong);
 }
 
-.qHead {
+.qToggle {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  gap: var(--sp-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-3) var(--sp-4);
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+}
+.qToggle:hover {
+  background: var(--surface-hover);
 }
 
 .qNum {
+  flex-shrink: 0;
   font-weight: 700;
   color: var(--accent);
-  font-size: 0.85rem;
-}
-
-.qMeta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.qTime {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.qScore {
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.03em;
 }
 
 .qText {
-  margin: 0 0 8px;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-md);
   font-weight: 500;
+  line-height: var(--lh-snug);
+}
+
+.qRight {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.qTime {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.qScore {
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  padding: 3px var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
+}
+
+.qChevron {
+  color: var(--text-subtle);
+  transition: transform var(--dur) var(--ease);
+}
+.qChevronOpen {
+  transform: rotate(180deg);
+}
+
+.qBar {
+  height: 3px;
+  background: var(--surface-sunken);
+}
+
+.qBarFill {
+  height: 100%;
+  transition: width 0.6s var(--ease);
+}
+
+.qBody {
+  padding: var(--sp-4);
+  border-top: 1px solid var(--border);
+  background: var(--surface-hover);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
 }
 
 .aText {
-  margin: 0 0 8px;
-  font-size: 0.92rem;
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
   white-space: pre-wrap;
 }
 
 .aLabel {
-  color: var(--text-muted);
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-subtle);
 }
 
 .comment {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  background: var(--bg);
-  border-radius: 8px;
-  padding: 8px 10px;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  color: var(--text);
+  background: var(--accent-soft);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+}
+.comment svg {
+  color: var(--accent);
+  margin-top: 3px;
+}
+
+/* Printing a report should print the whole report, not whatever happened to be
+   expanded when the user hit print. */
+@media print {
+  .qBody[hidden] {
+    display: block !important;
+  }
+  .qChevron {
+    display: none;
+  }
 }

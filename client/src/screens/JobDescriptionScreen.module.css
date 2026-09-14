@@ -1,7 +1,8 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--sp-3);
+  align-items: stretch;
 }
 
 .back {
@@ -11,121 +12,201 @@
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 24px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--sp-6);
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  flex-wrap: wrap;
 }
 
 .heading {
-  margin: 0 0 4px;
-  font-size: 1.25rem;
+  margin: var(--sp-1) 0 var(--sp-1);
+  font-size: var(--fs-xl);
 }
 
 .sub {
-  margin: 0 0 18px;
+  margin: 0;
   color: var(--text-muted);
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
 }
+
+/* --- job description ------------------------------------------------------ */
 
 .textarea {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
   resize: vertical;
-  min-height: 180px;
+  min-height: 200px;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .textarea:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.textarea:disabled {
+  background: var(--surface-sunken);
 }
 
-.footer {
+/* Validation is shown, not just announced: aria-invalid alone left a sighted
+   user with a grey hint and no idea the field was the problem. */
+.textareaInvalid {
+  border-color: var(--danger);
+}
+.textareaInvalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.hintRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 16px;
-  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
 }
 
 .count {
-  font-size: 0.82rem;
-  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
 }
+
+.countInvalid {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.clearBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-subtle);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.clearBtn:hover {
+  color: var(--text);
+}
+
+/* --- options -------------------------------------------------------------- */
 
 .options {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px 16px;
-  margin: 18px 0 0;
+  border-radius: var(--radius-md);
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+  margin: var(--sp-5) 0 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--sp-5);
+  background: var(--surface-hover);
 }
 .options:disabled {
   opacity: 0.6;
 }
 
 .optionsLegend {
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  padding: 0 6px;
+  padding: 0 var(--sp-2);
 }
 
 .optionRow {
   display: flex;
-  gap: 12px;
+  gap: var(--sp-5);
   flex-wrap: wrap;
 }
 
 .optionField {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 160px;
+  align-items: flex-start;
+  gap: var(--sp-2);
 }
 
 .optionLabel {
-  font-size: 0.85rem;
+  font-size: var(--fs-md);
   font-weight: 600;
 }
 
-.select {
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 9px 12px;
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
+.optional {
+  font-weight: 400;
+  color: var(--text-subtle);
 }
-.select:focus {
+
+.focusHint {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  max-width: 62ch;
+  min-height: 2.4em; /* reserve the line so switching focus doesn't jump */
+}
+
+/* --- optional resume ------------------------------------------------------ */
+
+.addResume {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.addResume:hover {
   border-color: var(--accent);
+  border-style: solid;
+  color: var(--accent);
+  background: var(--accent-softer);
 }
 
 .resumeBlock {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-2);
+}
+
+.resumeNote {
+  margin: -4px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
 }
 
 .resumeArea {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-md);
   resize: vertical;
-  min-height: 110px;
+  min-height: 120px;
   outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .resumeArea:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .resumeFoot {
@@ -134,15 +215,18 @@
   justify-content: space-between;
 }
 
-.linkBtn {
-  align-self: flex-start;
-  background: transparent;
-  border: none;
-  padding: 0;
-  font-size: 0.85rem;
-  color: var(--accent);
-  text-decoration: underline;
+/* --- footer --------------------------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  flex-wrap: wrap;
 }
-.linkBtn:hover {
-  color: var(--accent-hover);
+
+.summary {
+  font-size: var(--fs-md);
+  color: var(--text-muted);
 }

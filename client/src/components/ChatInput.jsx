@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import Icon from "./Icon.jsx";
 import { MAX_ANSWER_LENGTH } from "../constants.js";
 import useSpeechRecognition from "../hooks/useSpeechRecognition.js";
 import styles from "./ChatInput.module.css";
+
+const VOICE_NOTE_KEY = "mockInterview:voiceNoteSeen:v1";
 
 // Join spoken text onto whatever was already in the box, with sensible spacing.
 function appendSegment(existing, segment) {
@@ -9,6 +12,14 @@ function appendSegment(existing, segment) {
   if (!segment) return existing;
   const sep = /\s$/.test(existing) ? "" : " ";
   return `${existing}${sep}${segment}`;
+}
+
+function readNoteSeen() {
+  try {
+    return localStorage.getItem(VOICE_NOTE_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export default function ChatInput({ value, onChange, onSend, onSkip, disabled, placeholder }) {
@@ -39,6 +50,19 @@ export default function ChatInput({ value, onChange, onSend, onSkip, disabled, p
   const [preferType, setPreferType] = useState(false);
   const voiceMode = canVoice && !preferType;
   const hasText = value.trim().length > 0;
+
+  // The speech-provider disclosure used to sit permanently under the composer,
+  // two lines of grey text on every single question. It's important the first
+  // time and noise thereafter, so it's dismissible and remembered.
+  const [noteSeen, setNoteSeen] = useState(readNoteSeen);
+  function dismissNote() {
+    setNoteSeen(true);
+    try {
+      localStorage.setItem(VOICE_NOTE_KEY, "1");
+    } catch {
+      // ignore — it'll just show again next session
+    }
+  }
 
   // Stop the mic the moment the input locks (question sent / interview over), or
   // when the user switches to typing.
@@ -79,12 +103,6 @@ export default function ChatInput({ value, onChange, onSend, onSkip, disabled, p
     onSkip();
   }
 
-  // One action button: send the answer if there is one, otherwise skip ahead.
-  function primaryAction() {
-    if (hasText) send();
-    else skip();
-  }
-
   function handleKeyDown(e) {
     // Enter sends, Shift+Enter makes a newline. Ignore Enter while an IME
     // composition is active (Japanese/Chinese/Korean input etc.).
@@ -100,14 +118,12 @@ export default function ChatInput({ value, onChange, onSend, onSkip, disabled, p
     onChange("");
   }
 
-  const textareaPlaceholder = voiceMode
-    ? disabled
-      ? placeholder
-      : listening
+  const textareaPlaceholder = disabled
+    ? placeholder
+    : voiceMode
+    ? listening
       ? "Listening… speak your answer"
-      : value
-      ? "Tap the mic to add more, or press Send"
-      : "Tap the mic and speak your answer — or switch to typing"
+      : "Tap the mic and speak, or just start typing"
     : placeholder;
 
   return (
@@ -124,109 +140,121 @@ export default function ChatInput({ value, onChange, onSend, onSkip, disabled, p
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={textareaPlaceholder}
-          rows={2}
+          rows={3}
           maxLength={MAX_ANSWER_LENGTH}
           disabled={disabled}
           // Editable whenever the mic isn't actively capturing — so a
           // transcription typo can be fixed without leaving voice mode.
           readOnly={voiceMode && listening}
           aria-readonly={voiceMode && listening}
+          aria-describedby={voiceMode && !noteSeen ? "voice-note" : undefined}
         />
 
-        {!disabled && (voiceMode || value || canVoice) && (
-        <div className={styles.status}>
-          {voiceMode && !disabled && listening && (
-            <span className={styles.listening} role="status">
-              <span className={styles.pulse} aria-hidden="true" />
-              Listening…
-            </span>
-          )}
-          {voiceMode && !disabled && !listening && (
-            <span className={styles.hint}>
-              {hasText
-                ? "Done? Press Send to go to the next question."
-                : "Tap the mic to answer, or Skip to move on."}
-            </span>
-          )}
-          {value && !disabled && (
-            <button type="button" className={styles.clear} onClick={clearAnswer}>
-              Clear
-            </button>
-          )}
-          {canVoice && !disabled && (
+        <div className={styles.bar}>
+          {/* One status line, not three: the placeholder covers "how", this
+              covers "what's happening now". */}
+          <div className={styles.status}>
+            {!disabled && voiceMode && listening && (
+              <span className={styles.listening} role="status">
+                <span className={styles.pulse} aria-hidden="true" />
+                Listening…
+              </span>
+            )}
+            {!disabled && !listening && (
+              <span className={styles.hint}>
+                {hasText ? "Enter to send · Shift+Enter for a new line" : " "}
+              </span>
+            )}
+            {!disabled && value && (
+              <button type="button" className={styles.textBtn} onClick={clearAnswer}>
+                Clear
+              </button>
+            )}
+            {!disabled && canVoice && (
+              <button
+                type="button"
+                className={styles.textBtn}
+                onClick={voiceMode ? switchToTyping : switchToVoice}
+              >
+                {voiceMode ? "Type instead" : "Use voice"}
+              </button>
+            )}
+          </div>
+
+          <div className={styles.actions}>
+            {voiceMode && (
+              <button
+                type="button"
+                className={`${styles.mic} ${listening ? styles.micOn : ""}`}
+                onClick={handleMicClick}
+                disabled={disabled}
+                aria-pressed={listening}
+                aria-label={listening ? "Stop recording" : "Start recording your answer"}
+                title={listening ? "Stop recording" : "Speak your answer"}
+              >
+                <Icon name="mic" size={19} />
+              </button>
+            )}
+
+            {/* Skip is secondary. It used to inherit the primary button
+                whenever the box was empty, which made "give up on this
+                question" the loudest control on the screen. */}
             <button
               type="button"
-              className={styles.modeToggle}
-              onClick={voiceMode ? switchToTyping : switchToVoice}
+              className="btn-ghost"
+              onClick={skip}
+              disabled={disabled}
+              title="Move on without answering"
             >
-              {voiceMode ? "Type instead" : "Use voice"}
+              <Icon name="skipForward" size={15} />
+              Skip
             </button>
-          )}
+
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={send}
+              disabled={disabled || !hasText}
+              title="Submit this answer"
+            >
+              <Icon name="send" size={15} />
+              Send
+            </button>
+          </div>
         </div>
-        )}
       </div>
-
-      {voiceMode && (
-        <button
-          type="button"
-          className={`${styles.mic} ${listening ? styles.micOn : ""}`}
-          onClick={handleMicClick}
-          disabled={disabled}
-          aria-pressed={listening}
-          aria-label={listening ? "Stop recording" : "Start recording your answer"}
-          title={listening ? "Stop recording" : "Speak your answer"}
-        >
-          <MicIcon />
-        </button>
-      )}
-
-      <button
-        className="btn-primary"
-        onClick={primaryAction}
-        disabled={disabled}
-        title={hasText ? "Submit this answer" : "Move on without answering"}
-      >
-        {hasText ? "Send" : "Skip"}
-      </button>
 
       {error && (
         <p className={styles.error} role="alert">
+          <Icon name="alert" size={15} />
           {error}
         </p>
       )}
 
       {!disabled && !supported && (
-        <p className={styles.voiceNote}>
+        <p className={styles.note}>
           Voice answers need Chrome or Edge — type your answer here instead.
         </p>
       )}
-      {!disabled && voiceMode && (
-        <p className={styles.voiceNote}>
-          Voice uses your browser's speech recognition, which sends audio to its
-          provider (Google, in Chrome) to transcribe. Switch to typing to keep
-          it local.
+
+      {!disabled && voiceMode && !noteSeen && (
+        <p className={styles.note} id="voice-note">
+          <Icon name="alert" size={14} />
+          <span>
+            Voice uses your browser's speech recognition, which sends audio to its
+            provider (Google, in Chrome) to transcribe. Switch to typing to keep it
+            local.
+          </span>
+          <button
+            type="button"
+            className={styles.noteClose}
+            onClick={dismissNote}
+            aria-label="Dismiss voice privacy note"
+          >
+            <Icon name="x" size={14} />
+          </button>
         </p>
       )}
     </div>
-  );
-}
-
-function MicIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="22" />
-    </svg>
   );
 }

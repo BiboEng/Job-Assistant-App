@@ -1,0 +1,321 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  flex: 1;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+/* A dismissible tip, not a permanent paragraph. It repeated what the chat's
+   own greeting already says, on every visit. */
+.blurb {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  flex: 1;
+  min-width: 280px;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  background: var(--accent-softer);
+  border: 1px solid var(--accent-soft);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-muted);
+}
+.blurb svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.blurbClose {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-subtle);
+}
+.blurbClose:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* --- split layout ------------------------------------------------------- */
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(320px, 5fr) minmax(380px, 7fr);
+  gap: var(--sp-4);
+  flex: 1;
+  min-height: 0; /* let the panes scroll internally instead of growing the page */
+}
+
+.chatPane {
+  display: flex;
+  min-height: 0;
+}
+
+.chatPane > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.previewPane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  gap: var(--sp-3);
+}
+
+/* Below the split threshold the panes become tabs (see the SegmentedControl in
+   the screen) — one at a time, rather than squeezing an 816px page onto a phone
+   or making the user scroll past a whole chat to reach the resume. */
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+  .chatPane {
+    min-height: 60vh;
+  }
+  .sheetScroll {
+    max-height: 72vh;
+  }
+}
+
+/* --- toolbar ------------------------------------------------------------ */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.paneTitle {
+  margin: 0;
+  font-size: var(--fs-base);
+}
+
+.editHint {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.lockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 3px var(--sp-3);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.lockDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* --- first-run hint ----------------------------------------------------- */
+
+/* The sheet is editable, but the only signal was a hover wash and a 12px line
+   of toolbar text. This says so plainly until there's something on the page. */
+.startHint {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+.startHint svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* --- download menu ------------------------------------------------------ */
+
+.menuWrap {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: 300px;
+  padding: var(--sp-1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: menuIn var(--dur) var(--ease) both;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.menuItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+}
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: var(--accent-soft);
+}
+
+.menuLabel {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.menuHint {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+/* --- the sheet + its lock overlay --------------------------------------- */
+
+.sheetScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  /* Always reserve the vertical scrollbar: the fit-to-width measurement holds
+     back a fixed SCROLLBAR_RESERVE, and keeping the gutter permanent stops the
+     sheet jumping sideways as content grows past one page. */
+  overflow-y: scroll;
+  padding: 20px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Sized to the SCALED sheet so the scroll container measures it correctly —
+   a CSS transform doesn't affect layout box size on its own. */
+.sheetFit {
+  position: relative;
+  margin: 0 auto;
+}
+
+.sheetScale {
+  transform-origin: top left;
+}
+
+.lockOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: var(--sp-6);
+  border-radius: 2px;
+  background: rgba(20, 22, 26, 0.16);
+  backdrop-filter: saturate(0.85);
+  cursor: not-allowed;
+}
+
+.lockPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 7px var(--sp-4);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  position: sticky;
+  top: var(--sp-6);
+}
+
+/* --- fullscreen --------------------------------------------------------- */
+
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  background: var(--bg);
+}
+.fullscreen:focus {
+  outline: none;
+}
+
+.fullscreen .previewPane {
+  flex: 1;
+  min-height: 0;
+}

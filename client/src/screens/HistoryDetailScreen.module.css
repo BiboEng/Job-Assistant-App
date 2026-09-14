@@ -1,39 +1,99 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--sp-4);
 }
 
-.back {
-  align-self: flex-start;
-}
-
-.state {
-  color: var(--text-muted);
-  margin: 0;
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
 }
 
 .jdCard {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 20px 22px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.date {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+.jdToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.jdToggle:hover {
+  background: var(--surface-hover);
+}
+
+.jdHeadText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .jdHeading {
-  margin: 6px 0 8px;
-  font-size: 1rem;
+  font-size: var(--fs-base);
+  font-weight: 650;
+}
+
+.date {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.chevron {
+  color: var(--text-subtle);
+  flex-shrink: 0;
+  transition: transform var(--dur) var(--ease);
+}
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.jdBody {
+  padding: 0 var(--sp-5) var(--sp-5);
+  border-top: 1px solid var(--border);
 }
 
 .jd {
-  margin: 0;
+  margin: var(--sp-4) 0 0;
   white-space: pre-wrap;
-  font-size: 0.92rem;
-  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  color: var(--text-muted);
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.skelCard {
+  height: 72px;
+  border-radius: var(--radius-lg);
+}
+
+.skelReport {
+  height: 280px;
+  border-radius: var(--radius-lg);
+}
+
+@media print {
+  .jdBody[hidden] {
+    display: block !important;
+  }
+  .jd {
+    max-height: none;
+    overflow: visible;
+  }
 }

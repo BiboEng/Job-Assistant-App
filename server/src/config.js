@@ -127,6 +127,24 @@ export const config = {
     modelConcurrency: num(process.env.JOB_MATCH_MODEL_CONCURRENCY, 4),
   },
 
+  // Resume Builder. The chat is stateless — the client re-sends the history and
+  // the live resume document on every turn — so these caps bound both the
+  // request body (express.json is 64kb) and the per-call token cost.
+  // maxHistoryMessages * maxMessageLength + maxResumeJsonLength must stay under
+  // that 64kb ceiling with room to spare.
+  resume: {
+    // Chat turns re-sent to the model (oldest are dropped past this).
+    maxHistoryMessages: num(process.env.RESUME_MAX_HISTORY, 14),
+    // Per-message cap on the chat text.
+    maxMessageLength: num(process.env.RESUME_MAX_MESSAGE_LENGTH, 2_000),
+    // Serialized resume JSON accepted from the client.
+    maxResumeJsonLength: num(process.env.RESUME_MAX_JSON_LENGTH, 20_000),
+    // Per-IP requests/minute for /api/resume.
+    rateLimitMax: num(process.env.RESUME_RATE_LIMIT_MAX, 30),
+    // Its own model-call pool, so resume chatter can't starve live interviews.
+    modelConcurrency: num(process.env.RESUME_MODEL_CONCURRENCY, 4),
+  },
+
   // Per-question answer time budget (seconds). The exact value for each question
   // is estimated from its text; these are the clamps.
   answerSeconds: { min: 60, max: 300 },

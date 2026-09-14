@@ -1,0 +1,47 @@
+.group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.option {
+  /* `flex: 1` (basis 0) makes every option the same width, which clips the
+     longest label out of the group's own shrink-to-fit width. Auto basis keeps
+     each label intact and still lets the row share leftover space. */
+  flex: 1 1 auto;
+  min-width: 40px;
+  padding: 7px var(--sp-4);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+.option:hover:not(:disabled):not(.active) {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.active {
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 650;
+  box-shadow: var(--shadow-xs);
+}
+
+.sm .option {
+  padding: 5px var(--sp-3);
+  font-size: var(--fs-sm);
+}

@@ -1,0 +1,61 @@
+/*
+ * These fields live inside the resume sheet, which is deliberately "paper" —
+ * always light, in both themes — so the colors here are literal rather than
+ * theme tokens. See ResumePreview.module.css for the reasoning.
+ */
+
+.field {
+  display: inline-block;
+  min-width: 1ch;
+  outline: none;
+  border-radius: 3px;
+  /* Keeps a long unbroken URL or email from blowing out the page width. */
+  overflow-wrap: anywhere;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.multiline {
+  display: block;
+  white-space: pre-wrap;
+}
+
+/* Editable affordance: a faint wash on hover, a real focus ring when active. */
+.field[contenteditable="true"]:hover {
+  background: rgba(47, 111, 237, 0.07);
+}
+
+.field[contenteditable="true"]:focus {
+  background: rgba(47, 111, 237, 0.1);
+  box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.45);
+}
+
+.field[contenteditable="false"] {
+  cursor: default;
+}
+
+/* Placeholder for an empty field. `:empty` is exact — the node has no child
+   nodes at all — which is what an emptied contentEditable leaves behind. */
+.field:empty::before {
+  content: attr(data-placeholder);
+  color: #9aa1ad;
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* An empty field carries a faint dashed rule so the sheet reads as a form you
+   can fill in. Hover and focus states alone were only discoverable by accident:
+   nothing on the page said "this is editable" until the pointer was already
+   over the right words. The rule is dropped on hover/focus (those have their
+   own treatment) and never appears on a locked field. */
+.field[contenteditable="true"]:empty {
+  border-bottom: 1px dashed #c9cdd4;
+}
+.field[contenteditable="true"]:empty:hover,
+.field[contenteditable="true"]:empty:focus {
+  border-bottom-color: transparent;
+}
+
+/* An empty editable still needs a click target once the placeholder is gone. */
+.field[contenteditable="true"]:empty {
+  min-width: 4ch;
+}

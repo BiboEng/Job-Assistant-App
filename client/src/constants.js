@@ -13,13 +13,35 @@ export const QUESTION_COUNT_MIN = 2;
 export const QUESTION_COUNT_MAX = 6;
 export const QUESTION_COUNT_DEFAULT = 3;
 
-// Interview focus presets — keep in sync with `interviewFocuses` in
-// server/src/config.js.
+// Interview focus presets. `value` and `label` must stay in sync with
+// `interviewFocuses` in server/src/config.js; `short` and `hint` are UI-only —
+// `short` labels the segmented control, `hint` explains the choice underneath
+// it, because "System design" alone doesn't tell you what you'll be asked.
 export const INTERVIEW_FOCUSES = [
-  { value: "mixed", label: "Mixed (behavioral + technical)" },
-  { value: "behavioral", label: "Behavioral" },
-  { value: "technical", label: "Technical / role-specific" },
-  { value: "system-design", label: "System design" },
+  {
+    value: "mixed",
+    label: "Mixed (behavioral + technical)",
+    short: "Mixed",
+    hint: "A realistic blend — some “tell me about a time”, some role-specific depth.",
+  },
+  {
+    value: "behavioral",
+    label: "Behavioral",
+    short: "Behavioral",
+    hint: "Past situations, teamwork, conflict and impact. Answer in STAR form.",
+  },
+  {
+    value: "technical",
+    label: "Technical / role-specific",
+    short: "Technical",
+    hint: "Craft questions drawn from the tools and responsibilities in the posting.",
+  },
+  {
+    value: "system-design",
+    label: "System design",
+    short: "System design",
+    hint: "Open-ended architecture problems — trade-offs, scale and failure modes.",
+  },
 ];
 
 // Client-side request timeout. Kept comfortably above the server's worst case
@@ -71,6 +93,32 @@ export const ADZUNA_COUNTRIES = [
 ];
 
 export const DEFAULT_ADZUNA_COUNTRY = "us";
+
+// Resume Builder. Keep in sync with the `resume` block in server/src/config.js.
+export const RESUME_REQUEST_TIMEOUT_MS = 60000;
+export const RESUME_MAX_MESSAGE_LENGTH = 2000;
+// Turns kept client-side; the server independently caps what it forwards to the
+// model, this just stops the request body growing without bound.
+export const RESUME_MAX_HISTORY_MESSAGES = 14;
+
+// Resume document caps. Keep in sync with RESUME_LIMITS in
+// server/src/services/resume.service.js — the server re-validates everything, so
+// these exist to keep the UI from letting you build something it will reject.
+export const RESUME_LIMITS = {
+  short: 120,
+  line: 200,
+  bullet: 400,
+  summary: 1500,
+  details: 600,
+  maxLinks: 6,
+  maxExperience: 12,
+  maxEducation: 8,
+  maxSkillGroups: 8,
+  maxSkillItems: 30,
+  maxProjects: 8,
+  maxCertifications: 10,
+  maxBullets: 12,
+};
 
 // Where the in-progress interview is cached so a refresh doesn't lose it.
 export const STORAGE_KEY = "mockInterview:v1";

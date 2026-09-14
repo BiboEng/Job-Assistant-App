@@ -3,7 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mock Interview</title>
+    <title>Mock Interview — practice, match, and build</title>
+    <meta
+      name="description"
+      content="Practise interviews tailored to a real job description, find open roles that match your resume, and build an ATS-friendly resume with an AI assistant."
+    />
+    <meta name="theme-color" content="#f4f6f9" />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232f6fed'/%3E%3Cstop offset='1' stop-color='%236d5cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cg fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 8a2.6 2.6 0 0 0-2.6 2.6v5.2a2.6 2.6 0 0 0 5.2 0v-5.2A2.6 2.6 0 0 0 16 8z'/%3E%3Cpath d='M21.5 15v.8a5.5 5.5 0 0 1-11 0V15'/%3E%3Cline x1='16' y1='21.3' x2='16' y2='24'/%3E%3C/g%3E%3C/svg%3E"
+    />
+    <script>
+      /* Apply the saved theme before first paint so a dark-theme user never sees
+         a white flash. Mirrors utils/theme.js — keep the storage key in step. */
+      (function () {
+        try {
+          var t = localStorage.getItem("mockInterview:theme:v1");
+          if (t === "light" || t === "dark") {
+            document.documentElement.setAttribute("data-theme", t);
+          }
+          var dark =
+            t === "dark" ||
+            (t !== "light" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document
+            .querySelector('meta[name="theme-color"]')
+            .setAttribute("content", dark ? "#101318" : "#f4f6f9");
+        } catch (e) {
+          /* storage blocked — fall back to prefers-color-scheme */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

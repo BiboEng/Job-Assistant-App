@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import JobCard from "../components/JobCard.jsx";
+import Icon from "../components/Icon.jsx";
 import { searchJobs, scoreJobs } from "../api/jobsApi.js";
 import { extractResumeText } from "../utils/parseResume.js";
 import {
@@ -69,6 +70,26 @@ const SORTS = {
 };
 const scoreOf = (j) => (Number.isFinite(j.matchScore) ? j.matchScore : -1);
 
+const POSTED_WINDOWS = [
+  { value: "any", label: "Any time" },
+  { value: "3", label: "Past 3 days" },
+  { value: "7", label: "Past week" },
+  { value: "30", label: "Past month" },
+];
+
+const SCORE_FLOORS = [
+  { value: "0", label: "Any score" },
+  { value: "50", label: "50+" },
+  { value: "75", label: "75+" },
+];
+
+const DEFAULT_FILTERS = {
+  minScore: "0",
+  posted: "any",
+  salaryOnly: false,
+  remoteOnly: false,
+};
+
 export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
   const saved = useRef(null);
   if (saved.current === null) saved.current = loadSaved();
@@ -79,6 +100,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
   const [country, setCountry] = useState(saved.current.country);
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
+  const [dragging, setDragging] = useState(false);
 
   // idle | searching | scoring | done | error
   const [status, setStatus] = useState(cachedResult ? "done" : "idle");
@@ -86,6 +108,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
   const [result, setResult] = useState(cachedResult ?? null);
   const [scoreProgress, setScoreProgress] = useState({ done: 0, total: 0 });
   const [sortKey, setSortKey] = useState("match");
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
 
   const fileInputRef = useRef(null);
   // Bumped on every new search so a stale batch loop from a previous run (or one
@@ -115,11 +138,13 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
     persist("", "", city, country);
   }
 
-  async function handleFile(e) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  /**
+   * Reads one resume file. Note what is NOT here: the extracted text never
+   * reaches a rendered field. The only visible trace is the filename and a
+   * character count — see the note in CLAUDE.md.
+   */
+  async function ingestFile(file) {
     if (!file) return;
-
     setParsing(true);
     setParseError("");
     try {
@@ -139,6 +164,19 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
     } finally {
       setParsing(false);
     }
+  }
+
+  function handleFileInput(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    ingestFile(file);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    if (parsing) return;
+    ingestFile(e.dataTransfer?.files?.[0]);
   }
 
   function mergeScores(scores) {
@@ -202,6 +240,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
     setError("");
     setResult(null);
     setSortKey("match");
+    setFilters(DEFAULT_FILTERS);
     onResult?.(null);
 
     try {
@@ -212,6 +251,8 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
         profile: data.profile,
         warnings: data.warnings || [],
         message: data.message || null,
+        city: city.trim(),
+        country,
         jobs: (data.jobs || []).map((j) => ({ ...j, matchScore: null })),
       };
       setResult(base);
@@ -243,33 +284,68 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
 
   const jobs = result?.jobs ?? [];
   const unscoredCount = jobs.filter((j) => !Number.isFinite(j.matchScore)).length;
+  const filtersActive =
+    filters.minScore !== "0" ||
+    filters.posted !== "any" ||
+    filters.salaryOnly ||
+    filters.remoteOnly;
 
   const sortedJobs = useMemo(() => {
     // Hold Adzuna's relevance order while scores are still streaming in so cards
-    // don't jump around; only apply the chosen sort once scoring has settled.
+    // don't jump around; only filter and sort once scoring has settled.
     if (status !== "done") return jobs;
-    return [...jobs].sort(SORTS[sortKey].fn);
-  }, [jobs, sortKey, status]);
+
+    const floor = Number(filters.minScore);
+    const days = filters.posted === "any" ? null : Number(filters.posted);
+    const cutoff = days ? Date.now() - days * 24 * 60 * 60 * 1000 : null;
+
+    const filtered = jobs.filter((j) => {
+      if (floor > 0 && !(Number.isFinite(j.matchScore) && j.matchScore >= floor)) {
+        return false;
+      }
+      if (cutoff && !(j.postedAt && new Date(j.postedAt).getTime() >= cutoff)) {
+        return false;
+      }
+      if (filters.salaryOnly && !j.salary) return false;
+      // Filters what came back rather than changing the search — Adzuna's query
+      // is city-scoped server-side.
+      if (filters.remoteOnly) {
+        const hay = `${j.location || ""} ${j.title || ""}`.toLowerCase();
+        if (!hay.includes("remote") && !hay.includes("work from home")) return false;
+      }
+      return true;
+    });
+
+    return [...filtered].sort(SORTS[sortKey].fn);
+  }, [jobs, sortKey, status, filters]);
+
+  const countryLabel = ADZUNA_COUNTRIES.find((c) => c.code === result?.country)?.label;
+  const scorePct = scoreProgress.total
+    ? Math.round((scoreProgress.done / scoreProgress.total) * 100)
+    : 0;
 
   return (
     <div className={styles.wrap}>
       {onBack && (
-        <button type="button" className={`btn-ghost ${styles.back}`} onClick={onBack}>
-          ← Back to home
+        <button type="button" className={`btn-ghost btn-sm ${styles.back}`} onClick={onBack}>
+          <Icon name="arrowLeft" size={15} />
+          Back to home
         </button>
       )}
 
       <div className={styles.card}>
-        <h2 className={styles.heading}>Job Matches</h2>
+        <p className="eyebrow">Powered by live listings</p>
+        <h2 className={styles.heading}>Job matches</h2>
         <p className={styles.sub}>
-          Add your resume and a city — we'll search current job listings and
-          score each role against your resume. Your resume is used only for the
-          search; it's never shown or saved to your history.
+          Add your resume and a city — we'll search current job listings and score each
+          role against your resume. Your resume is used only for the search; it's never
+          shown or saved to your history.
         </p>
 
         {parseError && (
           <div className="error-banner" role="alert">
-            {parseError}
+            <Icon name="alert" size={16} />
+            <span>{parseError}</span>
           </div>
         )}
 
@@ -280,33 +356,55 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
             accept=".pdf,.txt,.md,application/pdf,text/plain"
             className="sr-only"
             id="resume-file"
-            onChange={handleFile}
+            onChange={handleFileInput}
           />
 
           {fileName ? (
             <div className={styles.confirm}>
-              <span className={styles.check} aria-hidden="true">✓</span>
+              <span className={styles.check} aria-hidden="true">
+                <Icon name="check" size={14} />
+              </span>
               <span className={styles.confirmText}>
-                <strong>{fileName}</strong> uploaded
+                <strong>{fileName}</strong>
                 <span className={styles.confirmCount}>
-                  {" "}· {resumeLen.toLocaleString()} characters
+                  {resumeLen.toLocaleString()} characters read
                 </span>
               </span>
-              <button type="button" className="btn-ghost" onClick={clearResume}>
-                Remove
+              <button type="button" className="btn-ghost btn-sm" onClick={clearResume}>
+                Replace
               </button>
             </div>
           ) : (
-            <div className={styles.uploadRow}>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={parsing}
-              >
-                {parsing ? "Reading…" : "Upload resume"}
-              </button>
-              <span className={styles.count}>PDF or .txt</span>
+            /* A real drop target. The old version was a button labelled
+               "Upload resume", which gave no hint that dragging worked. */
+            <div
+              className={`${styles.dropzone} ${dragging ? styles.dropzoneActive : ""}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={handleDrop}
+              onClick={() => !parsing && fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              aria-label="Upload your resume — PDF or plain text"
+            >
+              <span className={styles.dropIcon} aria-hidden="true">
+                <Icon name={parsing ? "refresh" : "upload"} size={20} />
+              </span>
+              <span className={styles.dropTitle}>
+                {parsing ? "Reading your resume…" : "Drop your resume here"}
+              </span>
+              <span className={styles.dropHint}>
+                {parsing ? "This happens in your browser" : "or click to browse · PDF or .txt"}
+              </span>
             </div>
           )}
 
@@ -347,58 +445,100 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
 
           <button
             type="button"
-            className="btn-primary"
+            className={`btn-primary ${styles.searchBtn}`}
             onClick={handleSearch}
             disabled={!canSearch}
           >
+            <Icon name="search" size={16} />
             {running ? "Finding matches…" : "Find job matches"}
           </button>
         </div>
       </div>
 
       {status === "searching" && (
-        <p className={styles.state}>Searching job listings…</p>
+        <div className={styles.progressCard} role="status">
+          <span className={styles.progressLabel}>Searching job listings…</span>
+          <div className={`${styles.track} ${styles.trackIndeterminate}`} aria-hidden="true">
+            <div className={styles.trackBlip} />
+          </div>
+        </div>
       )}
 
       {status === "scoring" && (
-        <p className={styles.state} role="status">
-          Scoring roles against your resume — {scoreProgress.done} of{" "}
-          {scoreProgress.total} done. Results appear as they're scored.
-        </p>
+        <div className={styles.progressCard} role="status">
+          <span className={styles.progressLabel}>
+            Scoring roles against your resume — {scoreProgress.done} of{" "}
+            {scoreProgress.total}. Results appear as they're scored.
+          </span>
+          <div
+            className={styles.track}
+            role="progressbar"
+            aria-valuenow={scorePct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div className={styles.trackFill} style={{ width: `${scorePct}%` }} />
+          </div>
+        </div>
       )}
 
       {status === "error" && (
         <div className="error-banner" role="alert">
-          {error}
+          <Icon name="alert" size={16} />
+          <span>{error}</span>
         </div>
       )}
 
       {result && (status === "scoring" || status === "done") && (
         <div className={styles.results}>
-          {result.profile?.field && (
-            <p className={styles.profile}>
-              Matched as{" "}
-              <strong>
-                {[result.profile.seniority, result.profile.field]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </strong>
-              {result.profile.keywords?.length > 0 &&
-                ` — ${result.profile.keywords.slice(0, 6).join(", ")}`}
-            </p>
-          )}
+          {/* Keeps the search visible once you've scrolled past the form. */}
+          <div className={styles.context}>
+            <span className={styles.contextItem}>
+              <Icon name="mapPin" size={14} />
+              {result.city}
+              {countryLabel ? `, ${countryLabel}` : ""}
+            </span>
+            {result.profile?.field && (
+              <span className={styles.contextItem}>
+                <Icon name="target" size={14} />
+                Matched as{" "}
+                <strong>
+                  {[result.profile.seniority, result.profile.field]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </strong>
+              </span>
+            )}
+            {result.profile?.keywords?.length > 0 && (
+              <span className={styles.keywords}>
+                {result.profile.keywords.slice(0, 6).map((k) => (
+                  <span key={k} className={styles.keyword}>
+                    {k}
+                  </span>
+                ))}
+              </span>
+            )}
+          </div>
 
           {result.warnings?.length > 0 && (
-            <div className={styles.warn} role="status">
-              {result.warnings.map((w, i) => (
-                <div key={i}>{w}</div>
-              ))}
+            <div className="warn-banner" role="status">
+              <Icon name="alert" size={16} />
+              <div>
+                {result.warnings.map((w, i) => (
+                  <div key={i}>{w}</div>
+                ))}
+              </div>
             </div>
           )}
 
           {jobs.length === 0 ? (
             <div className={styles.empty}>
-              <p>{result.message || "No matching jobs found."}</p>
+              <span className={styles.emptyIcon} aria-hidden="true">
+                <Icon name="briefcase" size={22} />
+              </span>
+              <p className={styles.emptyTitle}>
+                {result.message || "No matching jobs found."}
+              </p>
               <p className={styles.emptyHint}>
                 Try a larger nearby city, or broaden the wording in your resume.
               </p>
@@ -406,50 +546,136 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
           ) : (
             <>
               <div className={styles.resultsBar}>
-                <span className={styles.count}>
-                  {jobs.length} role{jobs.length === 1 ? "" : "s"}
+                <span className={styles.resultCount}>
+                  <strong>{sortedJobs.length}</strong>
+                  {filtersActive && ` of ${jobs.length}`} role
+                  {sortedJobs.length === 1 ? "" : "s"}
                 </span>
+
                 {status === "done" && (
-                  <label className={styles.sortField}>
-                    <span className="sr-only">Sort roles</span>
-                    <select
-                      className={styles.sortSelect}
-                      value={sortKey}
-                      onChange={(e) => setSortKey(e.target.value)}
+                  <div className={styles.filters}>
+                    <label className={styles.filterField}>
+                      <span className="sr-only">Minimum match score</span>
+                      <select
+                        className={styles.filterSelect}
+                        value={filters.minScore}
+                        onChange={(e) =>
+                          setFilters((f) => ({ ...f, minScore: e.target.value }))
+                        }
+                      >
+                        {SCORE_FLOORS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className={styles.filterField}>
+                      <span className="sr-only">Posted within</span>
+                      <select
+                        className={styles.filterSelect}
+                        value={filters.posted}
+                        onChange={(e) =>
+                          setFilters((f) => ({ ...f, posted: e.target.value }))
+                        }
+                      >
+                        {POSTED_WINDOWS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <FilterToggle
+                      active={filters.salaryOnly}
+                      onClick={() =>
+                        setFilters((f) => ({ ...f, salaryOnly: !f.salaryOnly }))
+                      }
                     >
-                      {Object.entries(SORTS).map(([k, v]) => (
-                        <option key={k} value={k}>
-                          {v.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      Has salary
+                    </FilterToggle>
+
+                    <FilterToggle
+                      active={filters.remoteOnly}
+                      onClick={() =>
+                        setFilters((f) => ({ ...f, remoteOnly: !f.remoteOnly }))
+                      }
+                    >
+                      Remote
+                    </FilterToggle>
+
+                    <label className={styles.filterField}>
+                      <span className="sr-only">Sort roles</span>
+                      <select
+                        className={styles.filterSelect}
+                        value={sortKey}
+                        onChange={(e) => setSortKey(e.target.value)}
+                      >
+                        {Object.entries(SORTS).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
                 )}
               </div>
 
               {status === "done" && unscoredCount > 0 && (
-                <div className={styles.warn} role="status">
-                  {unscoredCount} role{unscoredCount === 1 ? " couldn't" : "s couldn't"} be
-                  scored (the AI service was rate limited).{" "}
-                  <button type="button" className={styles.linkBtn} onClick={scoreRemaining}>
+                <div className="warn-banner" role="status">
+                  <Icon name="alert" size={16} />
+                  <span>
+                    {unscoredCount} role{unscoredCount === 1 ? " couldn't" : "s couldn't"} be
+                    scored (the AI service was rate limited).
+                  </span>
+                  <button type="button" className="link-btn" onClick={scoreRemaining}>
                     Score remaining
                   </button>
                 </div>
               )}
 
-              <div className={styles.list}>
-                {sortedJobs.map((job) => (
-                  <JobCard
-                    key={job.id}
-                    job={job}
-                    scoring={status === "scoring" && !Number.isFinite(job.matchScore)}
-                  />
-                ))}
-              </div>
+              {sortedJobs.length === 0 ? (
+                <div className={styles.empty}>
+                  <p className={styles.emptyTitle}>No roles match these filters.</p>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => setFilters(DEFAULT_FILTERS)}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.list}>
+                  {sortedJobs.map((job) => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      scoring={status === "scoring" && !Number.isFinite(job.matchScore)}
+                    />
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+function FilterToggle({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      className={`${styles.filterToggle} ${active ? styles.filterToggleOn : ""}`}
+      onClick={onClick}
+      aria-pressed={active}
+    >
+      {children}
+    </button>
   );
 }
