@@ -5,6 +5,7 @@ import { searchJobs, scoreJobs } from "../api/jobsApi.js";
 import { extractResumeText } from "../utils/parseResume.js";
 import {
   JOBS_STORAGE_KEY,
+  JOBS_RESULT_KEY,
   JOBS_SCORE_BATCH_SIZE,
   MIN_RESUME_LENGTH,
   MAX_RESUME_LENGTH,
@@ -55,20 +56,52 @@ function persist(resumeText, fileName, city, country) {
   }
 }
 
+/**
+ * The scored results, mirrored to sessionStorage. A search is ~13 model calls,
+ * so losing them to a refresh was expensive — especially on the free tier,
+ * where the re-run comes back with more `null` scores than the first one did.
+ */
+function loadCachedResult() {
+  try {
+    const raw = sessionStorage.getItem(JOBS_RESULT_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && Array.isArray(parsed.jobs) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistResult(result) {
+  try {
+    if (result) sessionStorage.setItem(JOBS_RESULT_KEY, JSON.stringify(result));
+    else sessionStorage.removeItem(JOBS_RESULT_KEY);
+  } catch {
+    // storage blocked / quota — the in-memory copy still works for this visit
+  }
+}
+
 function chunk(arr, size) {
   const out = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
 }
 
+const scoreOf = (j) => (Number.isFinite(j.matchScore) ? j.matchScore : -1);
+const postedAtOf = (j) => (j.postedAt ? new Date(j.postedAt).getTime() || 0 : 0);
+
 const SORTS = {
-  match: { label: "Best match", fn: (a, b) => scoreOf(b) - scoreOf(a) },
+  match: {
+    label: "Best match",
+    // Recency breaks the tie. Match score alone happily floats a year-old
+    // listing to the top of the page, and a role that isn't open any more is
+    // worth nothing however well it fits.
+    fn: (a, b) => scoreOf(b) - scoreOf(a) || postedAtOf(b) - postedAtOf(a),
+  },
   recent: {
     label: "Most recent",
-    fn: (a, b) => new Date(b.postedAt || 0) - new Date(a.postedAt || 0),
+    fn: (a, b) => postedAtOf(b) - postedAtOf(a),
   },
 };
-const scoreOf = (j) => (Number.isFinite(j.matchScore) ? j.matchScore : -1);
 
 const POSTED_WINDOWS = [
   { value: "any", label: "Any time" },
@@ -102,13 +135,24 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
   const [parseError, setParseError] = useState("");
   const [dragging, setDragging] = useState(false);
 
+  // The workspace keeps the result across in-app navigation; sessionStorage
+  // covers the case the workspace can't — a full page reload.
+  const initialResult = useRef(null);
+  if (initialResult.current === null) {
+    initialResult.current = cachedResult ?? loadCachedResult() ?? false;
+  }
+  const restored = initialResult.current || null;
+
   // idle | searching | scoring | done | error
-  const [status, setStatus] = useState(cachedResult ? "done" : "idle");
+  const [status, setStatus] = useState(restored ? "done" : "idle");
   const [error, setError] = useState("");
-  const [result, setResult] = useState(cachedResult ?? null);
-  const [scoreProgress, setScoreProgress] = useState({ done: 0, total: 0 });
+  const [result, setResult] = useState(restored);
+  const [scoreProgress, setScoreProgress] = useState({ done: 0, total: 0, inFlight: 0 });
   const [sortKey, setSortKey] = useState("match");
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  // The search form stays expanded until there's something to show; after that
+  // "Change search" brings it back.
+  const [formOpen, setFormOpen] = useState(!restored);
 
   const fileInputRef = useRef(null);
   // Bumped on every new search so a stale batch loop from a previous run (or one
@@ -179,6 +223,12 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
     ingestFile(e.dataTransfer?.files?.[0]);
   }
 
+  /**
+   * `settled` records that a scoring attempt came back for this job, whether it
+   * produced a number or not. The card's spinner keys off that rather than off
+   * the run status: a role the model declined mid-run used to show "Scoring…"
+   * next to "Couldn't score this role" until the whole run finished.
+   */
   function mergeScores(scores) {
     setResult((prev) => {
       if (!prev) return prev;
@@ -187,11 +237,29 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
         ...prev,
         jobs: prev.jobs.map((j) =>
           byId.has(j.id)
-            ? { ...j, matchScore: byId.get(j.id).matchScore, reason: byId.get(j.id).reason }
+            ? {
+                ...j,
+                matchScore: byId.get(j.id).matchScore,
+                reason: byId.get(j.id).reason,
+                settled: true,
+              }
             : j
         ),
       };
     });
+  }
+
+  /** Put the jobs about to be re-scored back into the pending state. */
+  function markPending(pending) {
+    const ids = new Set(pending.map((j) => j.id));
+    setResult((prev) =>
+      prev
+        ? {
+            ...prev,
+            jobs: prev.jobs.map((j) => (ids.has(j.id) ? { ...j, settled: false } : j)),
+          }
+        : prev
+    );
   }
 
   async function scoreAll(jobs, resume, runId) {
@@ -200,13 +268,18 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
       setStatus("done");
       return;
     }
+    markPending(pending);
     setStatus("scoring");
-    setScoreProgress({ done: 0, total: pending.length });
+    setScoreProgress({ done: 0, total: pending.length, inFlight: 0 });
 
     const batches = chunk(pending, JOBS_SCORE_BATCH_SIZE);
     let completed = 0;
     for (const batch of batches) {
       if (runIdRef.current !== runId) return; // superseded / unmounted
+      // The server answers a whole batch at once, so "done" can only move in
+      // steps of JOBS_SCORE_BATCH_SIZE. Naming the batch in flight keeps the
+      // panel from sitting on "0 of 12" for twenty seconds.
+      setScoreProgress({ done: completed, total: pending.length, inFlight: batch.length });
       try {
         const { scores } = await scoreJobs({
           resumeText: resume,
@@ -226,7 +299,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
         mergeScores(batch.map((j) => ({ id: j.id, matchScore: null, reason: "" })));
       }
       completed += batch.length;
-      setScoreProgress({ done: completed, total: pending.length });
+      setScoreProgress({ done: completed, total: pending.length, inFlight: 0 });
     }
     if (runIdRef.current === runId) setStatus("done");
   }
@@ -242,6 +315,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
     setSortKey("match");
     setFilters(DEFAULT_FILTERS);
     onResult?.(null);
+    persistResult(null);
 
     try {
       const data = await searchJobs({ resumeText: resume, city: city.trim(), country });
@@ -262,6 +336,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
         onResult?.(base);
         return;
       }
+      setFormOpen(false); // results are the page now
       await scoreAll(base.jobs, resume, runId);
     } catch (err) {
       if (runIdRef.current !== runId) return;
@@ -276,9 +351,13 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
     await scoreAll(result.jobs, resumeText.trim(), runId);
   }
 
-  // Cache the finished result up to the app once scoring settles.
+  // Cache the finished result — up to the workspace (survives navigation) and
+  // into sessionStorage (survives a reload).
   useEffect(() => {
-    if (status === "done" && result) onResult?.(result);
+    if (status === "done" && result) {
+      onResult?.(result);
+      persistResult(result);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
@@ -323,6 +402,9 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
   const scorePct = scoreProgress.total
     ? Math.round((scoreProgress.done / scoreProgress.total) * 100)
     : 0;
+  // Collapse only once there is something below to look at — never while the
+  // search is still running, where the button is the thing giving feedback.
+  const collapsed = !formOpen && !!result && !running;
 
   return (
     <div className={styles.wrap}>
@@ -333,13 +415,29 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
         </button>
       )}
 
+      {/* Once results are on screen the form is no longer the point of the page,
+          so it folds into a one-line summary instead of holding ~450px above
+          every result. */}
+      {collapsed ? (
+        <div className={styles.searchSummary}>
+          <span className={styles.summaryText}>
+            <Icon name="fileText" size={14} />
+            <strong>{fileName || "Your resume"}</strong>
+            <span aria-hidden="true">·</span>
+            <Icon name="mapPin" size={14} />
+            {result?.city || city}
+            {countryLabel ? `, ${countryLabel}` : ""}
+          </span>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setFormOpen(true)}>
+            Change search
+          </button>
+        </div>
+      ) : (
       <div className={styles.card}>
         <p className="eyebrow">Powered by live listings</p>
         <h2 className={styles.heading}>Job matches</h2>
         <p className={styles.sub}>
-          Add your resume and a city — we'll search current job listings and score each
-          role against your resume. Your resume is used only for the search; it's never
-          shown or saved to your history.
+          Your resume becomes the search. It is never shown on screen or saved.
         </p>
 
         {parseError && (
@@ -454,6 +552,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
           </button>
         </div>
       </div>
+      )}
 
       {status === "searching" && (
         <div className={styles.progressCard} role="status">
@@ -467,8 +566,11 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
       {status === "scoring" && (
         <div className={styles.progressCard} role="status">
           <span className={styles.progressLabel}>
-            Scoring roles against your resume — {scoreProgress.done} of{" "}
-            {scoreProgress.total}. Results appear as they're scored.
+            Scored {scoreProgress.done} of {scoreProgress.total}
+            {scoreProgress.inFlight > 0
+              ? ` — scoring ${scoreProgress.inFlight} more now.`
+              : "."}{" "}
+            Results appear as they land.
           </span>
           <div
             className={styles.track}
@@ -478,6 +580,21 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
             aria-valuemax={100}
           >
             <div className={styles.trackFill} style={{ width: `${scorePct}%` }} />
+            {/* The batch in flight, shimmering ahead of the solid fill — so the
+                bar isn't frozen for the twenty seconds a batch takes. */}
+            {scoreProgress.inFlight > 0 && scoreProgress.total > 0 && (
+              <div
+                className={styles.trackPending}
+                style={{
+                  left: `${scorePct}%`,
+                  width: `${Math.min(
+                    100 - scorePct,
+                    (scoreProgress.inFlight / scoreProgress.total) * 100
+                  )}%`,
+                }}
+                aria-hidden="true"
+              />
+            )}
           </div>
         </div>
       )}
@@ -654,7 +771,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
                     <JobCard
                       key={job.id}
                       job={job}
-                      scoring={status === "scoring" && !Number.isFinite(job.matchScore)}
+                      scoring={status === "scoring" && !job.settled}
                     />
                   ))}
                 </div>

@@ -1,0 +1,90 @@
+.footer {
+  position: relative;
+  z-index: 1;
+  scroll-margin-top: var(--public-header-offset);
+  margin-top: var(--sp-10);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-5);
+  max-width: var(--shell-width-public);
+  margin: 0 auto;
+  padding: var(--sp-7) var(--sp-5) var(--sp-5);
+}
+
+.heading {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-lg);
+}
+.heading:focus {
+  outline: none;
+}
+
+.body {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.link:hover {
+  border-color: var(--accent);
+  background: var(--accent-softer);
+}
+.link > svg {
+  color: var(--accent);
+}
+
+.linkLabel,
+.linkValue {
+  display: block;
+  line-height: var(--lh-snug);
+}
+
+.linkLabel {
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subtle);
+}
+
+.linkValue {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.legal {
+  max-width: var(--shell-width-public);
+  margin: 0 auto;
+  padding: var(--sp-3) var(--sp-5) var(--sp-5);
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}

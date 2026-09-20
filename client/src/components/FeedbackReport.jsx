@@ -100,10 +100,16 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
                     <span className={styles.qNum}>Q{q.questionNumber}</span>
                     <span className={styles.qText}>{q.question}</span>
                     <span className={styles.qRight}>
+                      {/* This is the time that WAS ALLOWED, not the time taken.
+                          A bare clock next to a finished answer reads as the
+                          latter, so the label says which. */}
                       {q.timeLimitSeconds ? (
-                        <span className={styles.qTime}>
+                        <span
+                          className={styles.qTime}
+                          title="Time allowed for this answer"
+                        >
                           <Icon name="clock" size={13} />
-                          {formatDuration(q.timeLimitSeconds)}
+                          {formatDuration(q.timeLimitSeconds)} allowed
                         </span>
                       ) : null}
                       <span

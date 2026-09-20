@@ -17,6 +17,27 @@
   min-width: 0;
 }
 
+/* Which interview this report is for. Prints too — a printed report with no
+   role or date on it is not much use in a folder. */
+.context {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--sp-1);
+}
+
+.role {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.facts {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
 .chip {
   display: inline-flex;
   align-items: center;

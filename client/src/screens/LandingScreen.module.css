@@ -1,0 +1,387 @@
+.page {
+  gap: var(--sp-10);
+}
+
+/* Sections scrolled to from the nav clear the sticky header. */
+.section,
+.walkthrough {
+  scroll-margin-top: var(--public-header-offset);
+}
+
+/* Focus is moved to a section heading programmatically on navigation; the
+   heading isn't a control, so it shouldn't wear a focus ring for it. */
+.sectionTitle:focus {
+  outline: none;
+}
+
+/* .btn-primary / .btn-ghost are global; link-specific tweaks hang off this. */
+.ctaLink {
+  text-decoration: none;
+}
+
+/* --- hero ----------------------------------------------------------------- */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: center;
+  gap: var(--sp-9);
+  padding-top: var(--sp-8);
+}
+
+@media (max-width: 880px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: var(--sp-8);
+    padding-top: var(--sp-5);
+  }
+}
+
+.title {
+  margin: var(--sp-2) 0 var(--sp-4);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.025em;
+  max-width: 17ch;
+}
+
+@media (min-width: 720px) {
+  .title {
+    font-size: var(--fs-4xl);
+  }
+}
+
+/* Same treatment as the dashboard hero's "the job": the gradient carries the
+   promise, not decoration. */
+.grad {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lede {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-normal);
+  max-width: 50ch;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+}
+
+/* --- hero preview --------------------------------------------------------- */
+
+.preview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.previewBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-sunken);
+}
+
+.previewDot {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+}
+
+.previewStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.previewBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+}
+
+.bubbleQ,
+.bubbleA {
+  max-width: 88%;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+}
+
+.bubbleQ {
+  align-self: flex-start;
+  background: var(--surface-sunken);
+  color: var(--text);
+  border-top-left-radius: var(--radius-xs);
+}
+
+.bubbleA {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+  border-top-right-radius: var(--radius-xs);
+}
+
+.bubbleRole {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+.previewScore {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-1);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.scoreChip {
+  flex-shrink: 0;
+  padding: 3px var(--sp-2);
+  border-radius: var(--radius-pill);
+  background: var(--band-strong-soft);
+  color: var(--band-strong);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreText {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: var(--lh-snug);
+}
+.scoreText strong {
+  color: var(--text);
+}
+
+/* --- sections ------------------------------------------------------------- */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-7);
+}
+
+.sectionHead {
+  max-width: 64ch;
+}
+
+.sectionTitle {
+  margin: var(--sp-2) 0 var(--sp-3);
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 720px) {
+  .sectionTitle {
+    font-size: var(--fs-3xl);
+    line-height: var(--lh-tight);
+  }
+}
+
+.sectionLede {
+  margin: 0;
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+  line-height: var(--lh-normal);
+}
+
+/* --- about pillars -------------------------------------------------------- */
+
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 760px) {
+  .pillars {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pillar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.pillarIcon,
+.walkIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-bottom: var(--sp-1);
+}
+
+.pillarTitle {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 650;
+  letter-spacing: -0.012em;
+}
+
+.pillarBody {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+  line-height: var(--lh-normal);
+}
+
+/* --- how it works --------------------------------------------------------- */
+
+.walkthroughs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-9);
+}
+
+.walkthrough {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+/* Alternate the video side down the page so three rows don't read as a table.
+   Only the visual order flips — the copy still comes first in the DOM. */
+.flipped {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+}
+.flipped .walkCopy {
+  order: 2;
+}
+
+@media (max-width: 880px) {
+  .walkthrough {
+    grid-template-columns: 1fr;
+    gap: var(--sp-5);
+  }
+  .flipped .walkCopy {
+    order: 0;
+  }
+}
+
+.walkCopy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.walkTitle {
+  margin: var(--sp-1) 0 var(--sp-2);
+  font-size: var(--fs-xl);
+  letter-spacing: -0.015em;
+}
+
+.walkSummary {
+  margin: 0;
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+  line-height: var(--lh-normal);
+}
+
+.steps {
+  list-style: none;
+  margin: var(--sp-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  font-size: var(--fs-md);
+  color: var(--text);
+  line-height: var(--lh-normal);
+}
+
+.stepNum {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.walkVideo {
+  min-width: 0;
+}
+
+/* --- closing -------------------------------------------------------------- */
+
+.closing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-8) var(--sp-5);
+  text-align: center;
+  border: 1px solid var(--accent-soft);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--accent-softer), var(--surface));
+}
+
+.closingTitle {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.02em;
+}
+
+.closingBody {
+  margin: 0 0 var(--sp-3);
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+}

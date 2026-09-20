@@ -29,6 +29,33 @@
   max-width: 62ch;
 }
 
+/* The collapsed form: what was searched, and a way back to change it. */
+.searchSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.summaryText {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  min-width: 0;
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+}
+.summaryText strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
 .controls {
   display: flex;
   flex-direction: column;
@@ -200,6 +227,30 @@
   border-radius: var(--radius-pill);
   background: var(--gradient-accent);
   transition: width var(--dur-slow) var(--ease);
+}
+
+/* The batch currently in flight, pulsing just ahead of the solid fill. Scores
+   only land a whole batch at a time, so without this the bar is motionless for
+   the twenty-odd seconds each batch takes. */
+.trackPending {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  opacity: 0.35;
+  animation: pulseTrack 1.4s var(--ease) infinite;
+  transition: left var(--dur-slow) var(--ease), width var(--dur-slow) var(--ease);
+}
+
+@keyframes pulseTrack {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.45;
+  }
 }
 
 /* The Adzuna call has no progress to report, so the bar says "working" rather
@@ -377,5 +428,9 @@
     animation: none;
     width: 100%;
     opacity: 0.5;
+  }
+  .trackPending {
+    animation: none;
+    opacity: 0.35;
   }
 }

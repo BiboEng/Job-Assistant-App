@@ -1,0 +1,67 @@
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  object-fit: cover;
+  background: var(--surface-sunken);
+}
+
+/* Reads as "a video goes here", not as a broken embed: a dashed edge, a soft
+   accent wash and a play badge, with the feature named underneath. */
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-5);
+  text-align: center;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  box-shadow: none;
+  background: radial-gradient(
+      circle at 50% 42%,
+      var(--accent-soft),
+      transparent 70%
+    ),
+    var(--surface);
+}
+
+.play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding-left: 3px; /* optically centre the triangle */
+  border-radius: var(--radius-pill);
+  background: var(--gradient-accent);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--sp-1);
+}
+
+.label {
+  font-size: var(--fs-md);
+  font-weight: 650;
+  color: var(--text);
+}
+
+.hint {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}

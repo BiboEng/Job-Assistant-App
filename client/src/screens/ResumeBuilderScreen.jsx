@@ -60,9 +60,8 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 
 const GREETING =
-  "Hi — I'll build your resume with you. Tell me about your most recent role, " +
-  "or paste in what you already have. You can also edit the resume on the right " +
-  "directly at any time, and I'll pick up your changes.";
+  "Tell me about your most recent role, or paste in what you already have. " +
+  "You can also edit the page on the right directly — I'll pick up your changes.";
 
 const PANE_TABS = [
   { value: "chat", label: "Chat" },
@@ -84,7 +83,7 @@ function useStackedLayout() {
   return stacked;
 }
 
-export default function ResumeBuilderScreen({ onBack }) {
+export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
   // --- the document (single source of truth) ---------------------------
   const [resume, setResumeState] = useState(emptyResume);
   const resumeRef = useRef(resume);
@@ -191,6 +190,44 @@ export default function ResumeBuilderScreen({ onBack }) {
     },
     []
   );
+
+  /**
+   * Nothing here is persisted, by design — so leaving the screen destroys the
+   * resume. It used to do that silently: one click on the header nav and a
+   * document you had spent ten minutes on was gone, with no confirm and no way
+   * back. Two guards now cover it.
+   *
+   * `setLeaveGuard` catches in-app navigation (header nav, Back to home, sign
+   * out). `beforeunload` catches a reload, a closed tab, and the browser's own
+   * Back button, which declarative React Router can't intercept.
+   *
+   * Both are armed only when there is something to lose.
+   */
+  const hasWork = !isResumeEmpty(resume);
+
+  useEffect(() => {
+    if (!setLeaveGuard) return undefined;
+    if (!hasWork) {
+      setLeaveGuard(null);
+      return () => setLeaveGuard(null);
+    }
+    setLeaveGuard(() =>
+      window.confirm(
+        "Leave the Resume Builder?\n\nThis resume isn't saved anywhere and will be lost. Download it first if you want to keep it."
+      )
+    );
+    return () => setLeaveGuard(null);
+  }, [hasWork, setLeaveGuard]);
+
+  useEffect(() => {
+    if (!hasWork) return undefined;
+    const onBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = ""; // required for Chrome to show its own prompt
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasWork]);
 
   // --- send / stop ------------------------------------------------------
 
@@ -406,7 +443,7 @@ export default function ResumeBuilderScreen({ onBack }) {
     return () => ro.disconnect();
   }, [expanded, previewVisible]);
 
-  const empty = isResumeEmpty(resume);
+  const empty = !hasWork;
   const canUndo = undoRef.current.length > 0 && !busy;
 
   // --- the preview pane, shared by split and fullscreen layouts ---------
@@ -495,8 +532,7 @@ export default function ResumeBuilderScreen({ onBack }) {
         <p className={styles.startHint}>
           <Icon name="sparkles" size={15} />
           <span>
-            This page is your resume — click any line to type into it, or describe
-            yourself in the chat and it'll fill in.
+            Click any line to type into it, or describe yourself in the chat.
           </span>
         </p>
       )}
@@ -592,8 +628,8 @@ export default function ResumeBuilderScreen({ onBack }) {
           <p className={styles.blurb}>
             <Icon name="sparkles" size={15} />
             <span>
-              The chat and your own edits write to the same document, and nothing is
-              saved to your history — download before you leave.
+              The chat and your own edits write to the same document. Nothing is
+              saved — download before you leave.
             </span>
             <button
               type="button"

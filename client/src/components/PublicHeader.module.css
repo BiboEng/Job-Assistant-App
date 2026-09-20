@@ -1,0 +1,119 @@
+/* Full-bleed sticky bar. The translucent ground + blur keeps the page's ambient
+   wash visible behind it while still separating the nav from scrolled content. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  max-width: var(--shell-width-public);
+  margin: 0 auto;
+  padding: var(--sp-3) var(--sp-5);
+}
+
+/* --- wordmark ------------------------------------------------------------- */
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.wordmark:hover .wordmarkText {
+  color: var(--accent);
+}
+
+.wordmarkText {
+  transition: color var(--dur) var(--ease);
+}
+
+/* --- nav ------------------------------------------------------------------ */
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.navItem {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px var(--sp-3);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.navItem:hover {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+.navActive {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- tail ----------------------------------------------------------------- */
+
+.tail {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-shrink: 0;
+}
+
+.theme {
+  display: inline-flex;
+}
+
+/* .btn-primary is global, so link-specific overrides hang off a module class. */
+.cta {
+  text-decoration: none;
+}
+
+/* Narrow: the section links drop to their own row under the wordmark and the
+   Sign In button, rather than shrinking to icons — they're words, and there
+   are only three. */
+@media (max-width: 680px) {
+  .inner {
+    flex-wrap: wrap;
+    row-gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4) var(--sp-2);
+  }
+  .tail {
+    margin-left: auto;
+  }
+  .nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+  .navItem {
+    padding: 6px var(--sp-2);
+  }
+}
+
+@media (max-width: 380px) {
+  .theme {
+    display: none;
+  }
+}

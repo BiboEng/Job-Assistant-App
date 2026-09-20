@@ -13,12 +13,23 @@ import { relativeDay } from "../utils/time.js";
  * clickable, which keeps one link per card for a screen reader rather than
  * wrapping every line in an <a>.
  */
+/**
+ * Past this, an aggregator listing is far more likely to be closed than open.
+ * We can't know, so the card says "may have closed" rather than hiding it.
+ */
+const STALE_AFTER_DAYS = 60;
+
 export default function JobCard({ job, scoring = false }) {
   const { company, title, location, salary, url, source, matchScore, reason, postedAt } =
     job;
   const scored = Number.isFinite(matchScore);
   const band = scored ? scoreBand(matchScore) : null;
   const posted = relativeDay(postedAt);
+
+  const postedMs = postedAt ? new Date(postedAt).getTime() : NaN;
+  const stale =
+    Number.isFinite(postedMs) &&
+    Date.now() - postedMs > STALE_AFTER_DAYS * 24 * 60 * 60 * 1000;
 
   return (
     <article className={styles.card}>
@@ -42,7 +53,17 @@ export default function JobCard({ job, scoring = false }) {
             {location || "Location not specified"}
           </span>
           {salary && <span className={styles.salary}>{salary}</span>}
-          {posted && <span className={styles.metaItem}>Posted {posted}</span>}
+          {posted && (
+            <span className={`${styles.metaItem} ${stale ? styles.stalePosted : ""}`}>
+              Posted {posted}
+            </span>
+          )}
+          {stale && (
+            <span className={styles.staleFlag}>
+              <Icon name="alert" size={12} />
+              May have closed
+            </span>
+          )}
           <span className={styles.source}>{source}</span>
         </div>
 

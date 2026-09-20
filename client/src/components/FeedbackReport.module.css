@@ -241,6 +241,14 @@
   gap: var(--sp-3);
 }
 
+/* An explicit `display` beats the UA's `[hidden] { display: none }`, so without
+   this the accordion never actually collapses: every answer and comment stays
+   on screen and only aria-expanded moves. The @media print block below
+   deliberately re-shows them. */
+.qBody[hidden] {
+  display: none;
+}
+
 .aText {
   margin: 0;
   font-size: var(--fs-md);

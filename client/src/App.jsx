@@ -1,245 +1,66 @@
-import { useEffect, useRef, useState } from "react";
-import AppHeader from "./components/AppHeader.jsx";
-import HomeScreen from "./screens/HomeScreen.jsx";
-import JobDescriptionScreen from "./screens/JobDescriptionScreen.jsx";
-import ChatScreen from "./screens/ChatScreen.jsx";
-import ResultsScreen from "./screens/ResultsScreen.jsx";
-import HistoryDetailScreen from "./screens/HistoryDetailScreen.jsx";
-import JobMatchesScreen from "./screens/JobMatchesScreen.jsx";
-import ResumeBuilderScreen from "./screens/ResumeBuilderScreen.jsx";
-import { saveInterview } from "./api/historyApi.js";
-import { STORAGE_KEY, nextId } from "./constants.js";
+import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes } from "react-router";
+import RequireAuth from "./auth/RequireAuth.jsx";
+import AppSkeleton from "./components/AppSkeleton.jsx";
+import LandingScreen from "./screens/LandingScreen.jsx";
+import SignInScreen from "./screens/SignInScreen.jsx";
+import ResetPasswordScreen from "./screens/ResetPasswordScreen.jsx";
+import { PATHS } from "./routes.js";
 
 /**
- * Screens: 'home' -> 'setup' -> 'chat' -> 'results', plus 'historyDetail',
- * 'jobMatches' and 'resume'.
- * App owns the active session + transcript. An in-progress interview ('chat' /
- * 'results') is mirrored to sessionStorage so a refresh resumes it; other
- * screens always start from 'home'.
+ * The route table — the whole of the app's navigation, in one place.
+ *
+ * Public: the landing page and its three sections, plus /sign-in. The four
+ * landing paths all render the same LandingScreen (so moving between them is a
+ * scroll, not a remount); the path decides which section it scrolls to.
+ *
+ * Protected: one pathless layout route, guarded once by RequireAuth, holding
+ * AppWorkspace — which owns the interview/job-match state and keeps it alive
+ * while its child routes change. The whole signed-in app is one lazy chunk, so
+ * the public pages don't ship it.
  */
 
-const RESUMABLE = new Set(["chat", "results"]);
+const workspace = () => import("./AppWorkspace.jsx");
+const pick = (name) => lazy(() => workspace().then((m) => ({ default: m[name] })));
 
-// Screens that need more than the standard reading-width column. The Resume
-// Builder is a side-by-side workspace, not a document.
-const WIDE_SCREENS = new Set(["resume"]);
-
-// Which header nav item is lit for a given screen. The nav addresses sections,
-// not screens: everything in the interview flow belongs to "practice".
-const SECTION_OF = {
-  setup: "practice",
-  chat: "practice",
-  results: "practice",
-  historyDetail: "practice",
-  jobMatches: "jobs",
-  resume: "resume",
-};
-
-function loadPersisted() {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-const persisted = loadPersisted();
+const AppWorkspace = lazy(workspace);
+const DashboardRoute = pick("DashboardRoute");
+const SetupRoute = pick("SetupRoute");
+const ChatRoute = pick("ChatRoute");
+const ResultsRoute = pick("ResultsRoute");
+const HistoryDetailRoute = pick("HistoryDetailRoute");
+const JobMatchesRoute = pick("JobMatchesRoute");
+const ResumeBuilderRoute = pick("ResumeBuilderRoute");
 
 export default function App() {
-  const [screen, setScreen] = useState(
-    persisted && RESUMABLE.has(persisted.screen) ? persisted.screen : "home"
-  );
-  const [session, setSession] = useState(persisted?.session ?? null); // { sessionId, totalQuestions }
-  const [messages, setMessages] = useState(persisted?.messages ?? []); // [{ id, role, text }]
-  const [feedback, setFeedback] = useState(persisted?.feedback ?? null);
-  const [detailId, setDetailId] = useState(null);
-  const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
-
-  // Last Job Matches result, kept at the app level so leaving the screen and
-  // coming back doesn't throw away results (and re-spend a pile of model calls).
-  const [jobsResult, setJobsResult] = useState(null);
-
-  // The session id we're persisting — captured so a retry still works after the
-  // active session is cleared on navigation.
-  const savingIdRef = useRef(null);
-  const restoreSaveRef = useRef(false);
-
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ screen, session, messages, feedback })
-      );
-    } catch {
-      // storage unavailable — refresh recovery just won't work
-    }
-  }, [screen, session, messages, feedback]);
-
-  // If we reload straight onto the results screen (persisted in sessionStorage),
-  // the interview was already completed but may never have been saved — the
-  // original save could have failed on a network blip with no way back to it.
-  // Re-run the idempotent save once so history stays consistent.
-  useEffect(() => {
-    if (restoreSaveRef.current) return;
-    restoreSaveRef.current = true;
-    if (screen === "results" && feedback && session?.sessionId) {
-      persistInterview(session.sessionId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function clearActive() {
-    setSession(null);
-    setMessages([]);
-    setFeedback(null);
-  }
-
-  function goHome() {
-    try {
-      sessionStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-    clearActive();
-    setDetailId(null);
-    setSaveState("idle");
-    setScreen("home");
-  }
-
-  function startNew() {
-    clearActive();
-    setSaveState("idle");
-    setScreen("setup");
-  }
-
-  function handleStarted({ sessionId, question, totalQuestions, timeLimitSeconds }) {
-    setSession({ sessionId, totalQuestions });
-    setMessages([
-      { id: nextId(), role: "interviewer", text: question, timeLimitSeconds },
-    ]);
-    setFeedback(null);
-    setSaveState("idle");
-    setScreen("chat");
-  }
-
-  function persistInterview(sessionId) {
-    if (!sessionId) return;
-    savingIdRef.current = sessionId;
-    setSaveState("saving");
-    saveInterview(sessionId)
-      .then(() => setSaveState("saved"))
-      .catch((err) => {
-        console.warn("Could not save interview to history:", err.message);
-        setSaveState("error");
-      });
-  }
-
-  function handleFinished(fb) {
-    setFeedback(fb);
-    setScreen("results");
-    persistInterview(session?.sessionId);
-  }
-
-  function retrySave() {
-    persistInterview(savingIdRef.current);
-  }
-
-  function openInterview(id) {
-    setDetailId(id);
-    setScreen("historyDetail");
-  }
-
-  function openJobMatches() {
-    setScreen("jobMatches");
-  }
-
-  function openResumeBuilder() {
-    setScreen("resume");
-  }
-
-  /** Header nav. Disabled during a live interview, so no guard is needed here. */
-  function navigate(section) {
-    if (section === "practice") {
-      if (screen !== "setup") startNew();
-    } else if (section === "jobs") {
-      openJobMatches();
-    } else if (section === "resume") {
-      openResumeBuilder();
-    }
-  }
-
-  const chatReady = screen === "chat" && session?.sessionId;
-
   return (
-    <div className={`app-shell ${WIDE_SCREENS.has(screen) ? "app-shell--wide" : ""}`}>
-      <AppHeader
-        onHome={goHome}
-        onNavigate={navigate}
-        active={SECTION_OF[screen]}
-        interactive={screen !== "chat"}
-      />
+    <Routes>
+      <Route path={PATHS.home} element={<LandingScreen />} />
+      <Route path={PATHS.about} element={<LandingScreen />} />
+      <Route path={PATHS.howItWorks} element={<LandingScreen />} />
+      <Route path={PATHS.contact} element={<LandingScreen />} />
+      <Route path={PATHS.signIn} element={<SignInScreen />} />
+      <Route path={PATHS.resetPassword} element={<ResetPasswordScreen />} />
 
-      {/* Keyed so each navigation replays the enter animation. */}
-      <div key={screen} className="screen-slot screen-enter">
-        {screen === "home" && (
-          <HomeScreen
-            onStartNew={startNew}
-            onOpenInterview={openInterview}
-            onFindJobs={openJobMatches}
-            onBuildResume={openResumeBuilder}
-          />
-        )}
+      <Route
+        element={
+          <RequireAuth>
+            <Suspense fallback={<AppSkeleton label="Loading your workspace…" />}>
+              <AppWorkspace />
+            </Suspense>
+          </RequireAuth>
+        }
+      >
+        <Route path={PATHS.dashboard} element={<DashboardRoute />} />
+        <Route path={PATHS.setup} element={<SetupRoute />} />
+        <Route path={PATHS.chat} element={<ChatRoute />} />
+        <Route path={PATHS.results} element={<ResultsRoute />} />
+        <Route path="/history/:interviewId" element={<HistoryDetailRoute />} />
+        <Route path={PATHS.jobs} element={<JobMatchesRoute />} />
+        <Route path={PATHS.resume} element={<ResumeBuilderRoute />} />
+      </Route>
 
-        {screen === "resume" && <ResumeBuilderScreen onBack={goHome} />}
-
-        {screen === "jobMatches" && (
-          <JobMatchesScreen
-            onBack={goHome}
-            cachedResult={jobsResult}
-            onResult={setJobsResult}
-          />
-        )}
-
-        {screen === "setup" && (
-          <JobDescriptionScreen onStarted={handleStarted} onBack={goHome} />
-        )}
-
-        {chatReady && (
-          <ChatScreen
-            session={session}
-            messages={messages}
-            setMessages={setMessages}
-            onFinished={handleFinished}
-            onRestart={goHome}
-          />
-        )}
-
-        {screen === "chat" && !chatReady && (
-          <div className="error-banner" role="alert">
-            Your session could not be restored.{" "}
-            <button className="btn-ghost" onClick={goHome}>
-              Start over
-            </button>
-          </div>
-        )}
-
-        {screen === "results" && (
-          <ResultsScreen
-            feedback={feedback}
-            saveState={saveState}
-            onRetrySave={retrySave}
-            onRestart={startNew}
-            onHome={goHome}
-          />
-        )}
-
-        {screen === "historyDetail" && (
-          <HistoryDetailScreen interviewId={detailId} onBack={goHome} />
-        )}
-      </div>
-    </div>
+      <Route path="*" element={<Navigate to={PATHS.home} replace />} />
+    </Routes>
   );
 }

@@ -127,6 +127,10 @@
   /* --- layout ----------------------------------------------------------- */
   --shell-width: 820px;
   --shell-width-wide: 1440px;
+  --shell-width-public: 1080px; /* landing page + sign-in */
+  /* Height of the sticky public header, used as scroll-margin so a section
+     scrolled to from the nav isn't tucked underneath it. */
+  --public-header-offset: 84px;
 }
 
 /* Default ("system") viewers: prefers-color-scheme decides, unless the user has
@@ -336,6 +340,34 @@ select {
   .app-shell--wide {
     height: 100vh;
     overflow: hidden;
+  }
+}
+
+/* The public site (landing page, sign-in): wider than the reading column, and
+   it scrolls as a normal page rather than bounding itself to the viewport. */
+.app-shell--public {
+  max-width: var(--shell-width-public);
+  /* A flex child of .public-site: auto side margins would shrink it to its
+     content, so it needs an explicit width to fill up to the max. */
+  width: 100%;
+  flex: 1 0 auto;
+  min-height: 0;
+  padding-top: var(--sp-4);
+}
+
+/* Wrapper for every public page. #root is pinned to height: 100%, and a sticky
+   header can only stick within its parent's box — so the header's parent must
+   be this auto-height column that grows with the page, not #root itself. */
+.public-site {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* The public header wraps its links onto a second row on phones. */
+@media (max-width: 680px) {
+  :root {
+    --public-header-offset: 112px;
   }
 }
 
@@ -573,6 +605,27 @@ select {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Skip link: hidden until focused, then a real button over the header. The
+   public pages put a wordmark, three nav links, a theme control and a sign-in
+   button in front of the content, which is a lot to tab past on every page. */
+.skip-link {
+  position: absolute;
+  left: var(--sp-4);
+  top: -100px;
+  z-index: 100;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top var(--dur) var(--ease);
+}
+.skip-link:focus {
+  top: var(--sp-4);
 }
 
 /* Uppercase micro-label used above grouped controls and section headers. */

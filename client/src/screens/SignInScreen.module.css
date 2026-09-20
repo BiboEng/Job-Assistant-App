@@ -1,0 +1,264 @@
+.page {
+  align-items: center;
+  padding-top: var(--sp-9);
+}
+
+@media (max-width: 520px) {
+  .page {
+    padding-top: var(--sp-5);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  width: 100%;
+  max-width: 420px;
+  padding: var(--sp-7);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 520px) {
+  .card {
+    padding: var(--sp-6) var(--sp-5);
+  }
+}
+
+/* --- heading -------------------------------------------------------------- */
+
+.head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: var(--sp-3);
+  border-radius: var(--radius-md);
+  background: var(--gradient-accent);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+}
+
+/* --- mode switch — same shape as SegmentedControl / ThemeToggle ------------ */
+
+.switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.switchItem {
+  padding: 7px var(--sp-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.switchItem:hover {
+  color: var(--text);
+}
+
+.switchActive {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-xs);
+}
+.switchActive:hover {
+  color: var(--accent);
+}
+
+/* --- form ----------------------------------------------------------------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Show/Hide and Forgot? sit together on the right of the password label. */
+.labelActions {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+}
+
+.reveal {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.reveal:hover:not(:disabled) {
+  color: var(--accent-hover);
+}
+.reveal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input {
+  width: 100%;
+  padding: 10px var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-base);
+  outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.input:disabled {
+  background: var(--surface-sunken);
+  cursor: not-allowed;
+}
+
+.hint {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.submit {
+  width: 100%;
+  margin-top: var(--sp-1);
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+
+.alt {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+}
+
+/* --- back link ------------------------------------------------------------ */
+
+.back {
+  margin: var(--sp-5) 0 0;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.backLink:hover {
+  color: var(--accent);
+}
+
+/* Banners are flex-wrap; without this a long message wraps below its icon. */
+.bannerText {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* --- Google / GitHub ------------------------------------------------------- */
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.providerBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 10px var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.providerBtn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+.providerBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.providerBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}

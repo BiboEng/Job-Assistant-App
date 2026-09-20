@@ -1,10 +1,30 @@
+/* Sticky, like the public header. Scrolling a long report or the setup form
+   used to carry the only navigation off the top of the screen, so leaving a
+   page meant scrolling back up first.
+   The negative top margin plus matching padding lets the bar cover the shell's
+   own top padding as content slides under it, instead of leaving a strip of
+   page visible above it. */
 .bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  padding-bottom: var(--sp-4);
-  margin-bottom: var(--sp-6);
+  margin: calc(var(--sp-6) * -1) 0 var(--sp-6);
+  padding: var(--sp-4) 0;
   border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* The shell drops its padding when printing, so the negative margin that lets
+   the sticky bar cover it would pull the header off the top of the page. */
+@media print {
+  .bar {
+    position: static;
+    margin: 0 0 var(--sp-4);
+    padding: 0 0 var(--sp-3);
+  }
 }
 
 /* --- wordmark ------------------------------------------------------------- */
@@ -34,17 +54,6 @@ button.wordmark:hover .wordmarkText {
   transition: color var(--dur) var(--ease);
 }
 
-.mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  background: var(--gradient-accent);
-  color: #fff;
-  box-shadow: var(--shadow-xs);
-}
 
 /* --- nav ------------------------------------------------------------------ */
 
@@ -90,6 +99,7 @@ button.wordmark:hover .wordmarkText {
 .tail {
   display: flex;
   align-items: center;
+  gap: var(--sp-2);
   flex-shrink: 0;
 }
 
@@ -112,7 +122,8 @@ button.wordmark:hover .wordmarkText {
   .navItem {
     padding: 7px var(--sp-2);
   }
-  .wordmarkText {
+  .wordmarkText,
+  .signOutLabel {
     display: none;
   }
 }

@@ -2,7 +2,14 @@ import { useState } from "react";
 import FeedbackReport from "../components/FeedbackReport.jsx";
 import Icon from "../components/Icon.jsx";
 import Toast from "../components/Toast.jsx";
+import { INTERVIEW_FOCUSES } from "../constants.js";
 import styles from "./ResultsScreen.module.css";
+
+const focusLabel = (value) =>
+  INTERVIEW_FOCUSES.find((f) => f.value === value)?.short || "";
+
+const formatWhen = (ts) =>
+  new Date(ts).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 /** Plain-text version of a report, for pasting into notes or a journal. */
 function asText(feedback) {
@@ -27,6 +34,7 @@ function asText(feedback) {
 
 export default function ResultsScreen({
   feedback,
+  session,
   saveState = "idle",
   onRetrySave,
   onRestart,
@@ -84,6 +92,21 @@ export default function ResultsScreen({
           </button>
         </div>
       </div>
+
+      {/* Which interview this is. The report itself is all score and prose, so
+          with several in your history a fresh one was indistinguishable from an
+          old one you'd reopened. */}
+      {session && (session.role || session.totalQuestions) && (
+        <div className={styles.context}>
+          {session.role && <span className={styles.role}>{session.role}</span>}
+          <span className={styles.facts}>
+            {session.totalQuestions} question{session.totalQuestions === 1 ? "" : "s"}
+            {focusLabel(session.focus) ? ` · ${focusLabel(session.focus)}` : ""}
+            {` · ${session.mode === "speak" ? "spoken" : "typed"}`}
+            {session.startedAt ? ` · ${formatWhen(session.startedAt)}` : ""}
+          </span>
+        </div>
+      )}
 
       <FeedbackReport feedback={feedback} />
 

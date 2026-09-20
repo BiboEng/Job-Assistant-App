@@ -1,10 +1,16 @@
 # Mock Interview App — working notes for Claude
 
 AI-powered mock interview practice. Paste a job description, pick a question
-count (2–6) and a focus (mixed / behavioral / technical / system-design), and
-optionally paste your resume → answer the tailored questions in a chat (voice or
-text) → get scored feedback. Completed interviews are saved to a per-browser
-history.
+count (2–6), a focus (mixed / behavioral / technical / system-design) and a
+**mode** (type or speak), and optionally paste your resume → answer the tailored
+questions in a chat → get scored feedback. Completed interviews are saved to a
+per-browser history.
+
+In **Speak mode** the candidate answers out loud on camera and the browser
+measures how they delivered it — speaking pace, hesitation pauses and how much of
+the answer they spent facing the camera — which is fed to the evaluator alongside
+the transcript so the feedback covers presentation as well as content. See
+"Speak mode" below.
 
 A second feature, **Job Matches**, takes a resume + a city and returns real open
 roles from Adzuna — searched broadly across all companies and roles, not
@@ -15,10 +21,18 @@ A third feature, **Resume Builder**, is a split screen: chat on the left, a live
 ATS-friendly resume on the right. Both the AI and the user's own inline edits
 write to one shared document. See "Resume Builder" below.
 
+All three sit behind **sign-in** (Supabase email/password). Signed-out visitors
+get a public **landing page** — hero, About, How It Works (a tutorial-video slot
+per feature) and a Contact footer. See "Routing", "Authentication" and "Landing
+page" below.
+
 - **Frontend:** React 18 + Vite, plain CSS Modules over a design-token layer in
-  `index.css`. No component library, no router, no state library — `App.jsx`
-  owns navigation via a `screen` string, and `AppHeader` carries a persistent
-  nav so no feature is reachable only from Home. See "Design system" below.
+  `index.css`. **React Router 7** (declarative mode, `BrowserRouter`) for
+  URL-based navigation; no component library, no state library. `AppHeader`
+  carries a persistent nav inside the app so no feature is reachable only from
+  the dashboard. See "Design system" below.
+- **Auth:** Supabase Auth (`@supabase/supabase-js`), client-side only — the API
+  server does not verify Supabase tokens. See "Authentication".
 - **Backend:** Node.js + Express (ESM). No database — see "Storage" below.
 - **AI:** OpenRouter chat completions, called **only** from the backend.
 
@@ -48,21 +62,37 @@ mock-interview/
 │   └── test/                        node:test unit tests (`npm test`)
 └── client/
     └── src/
-        ├── App.jsx                  screen state machine + sessionStorage mirror
+        ├── main.jsx                 ErrorBoundary → BrowserRouter → AuthProvider → App
+        ├── App.jsx                  the route table (public routes + one guarded layout route)
+        ├── routes.js                PATHS — every app path, no component imports
+        ├── AppWorkspace.jsx         signed-in layout: interview/jobs state, sessionStorage mirror,
+        │                            AppHeader, and the thin `*Route` wrappers for each screen (lazy chunk)
+        ├── auth/                    supabaseClient.js, AuthProvider.jsx (useAuth), RequireAuth.jsx (guard)
         ├── index.css                design tokens, theme blocks, shared button/banner/skeleton classes
-        ├── identity.js              per-browser client id (localStorage) → X-Client-Id
+        ├── identity.js              owner id → X-Client-Id (Supabase user id when
+        │                            signed in, random per-browser id when not)
         ├── constants.js             limits + timeout; keep in sync with server config.js
         ├── api/                     client.js (fetch wrapper) + one module per resource (jobsApi, resumeApi, …)
-        ├── screens/                 Home (landing + history), JobDescription (JD + options), Chat, Results, HistoryDetail, JobMatches, ResumeBuilder
-        ├── components/              AppHeader (nav), ChatInput (voice/text), ChatMessage, FeedbackReport,
-        │                            JobCard, ResumePreview, ResumeChatPanel, EditableText, and the shared
-        │                            primitives: Icon, ThemeToggle, SegmentedControl, Toast
+        ├── screens/                 Landing (public), SignIn, ResetPassword (public), Home
+        │                            (dashboard + history), JobDescription
+        │                            (JD + options), Chat, Results, HistoryDetail, JobMatches, ResumeBuilder
+        ├── components/              AppHeader (app nav + sign out), PublicHeader (site nav + Sign In),
+        │                            SiteFooter (Contact), VideoPlaceholder, BrandMark,
+        │                            AppSkeleton (pre-render placeholder for protected pages),
+        │                            ChatInput (voice/text), ChatMessage, FeedbackReport,
+        │                            JobCard, CameraPreview (speak-mode self-view), ResumePreview,
+        │                            ResumeChatPanel, EditableText, and the shared primitives:
+        │                            Icon, ThemeToggle, SegmentedControl, Toast
         ├── utils/theme.js           light/dark/system preference → data-theme + meta theme-color
         ├── utils/score.js           score → { color, soft, label } band, shared by every score chip
         ├── utils/parseResume.js     client-side PDF/text → resume text (lazy-loads pdfjs-dist)
         ├── utils/resumeModel.js     resume doc shape + immutable edit helpers
         ├── utils/resumeExport.js    PDF / print-PDF / JPG / PNG / TXT (lazy html2canvas + jsPDF)
-        └── hooks/useSpeechRecognition.js   Web Speech API wrapper, client-only
+        ├── utils/deliveryMetrics.js pure: loudness samples → pause count/total + speaking time + wpm
+        ├── utils/faceTracker.js     MediaPipe Face Landmarker → on-camera % (lazy, fails soft to null)
+        ├── hooks/useSpeechRecognition.js   Web Speech API wrapper, client-only
+        └── hooks/useDeliveryCapture.js     owns the camera+mic stream, analyser and face tracker
+    └── test/                        node:test unit tests for the pure utils (`npm test`)
 ```
 
 ## Run it
@@ -79,9 +109,14 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
   For Job Matches also add `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` (free keys from
   https://developer.adzuna.com) — Adzuna is the sole Job Matches data source, so
   without them the feature returns a warning and no jobs.
-- Client env: `client/.env` is optional; only needed to set `VITE_API_BASE_URL`
-  (no proxy) or `VITE_API_TOKEN` (server has `API_TOKEN` set).
-- Tests: `cd server && npm test`. There is no client test runner yet.
+- Client env (`client/.env`, see `client/.env.example`): **`SUPABASE_URL` and
+  `SUPABASE_ANON_KEY` are required** to sign in — without them the public pages
+  still render but every app route redirects to `/sign-in`, which shows a
+  "not configured" banner. Restart Vite after changing them. Optionally
+  `VITE_API_BASE_URL` (no proxy) or `VITE_API_TOKEN` (server has `API_TOKEN` set).
+- Tests: `cd server && npm test`, and `cd client && npm test` (node:test, no
+  bundler — it covers the pure utils only, currently `utils/deliveryMetrics.js`.
+  There is still no component/DOM test runner.)
 
 ## Design system
 
@@ -118,23 +153,326 @@ in a `*.module.css` file. If a value is missing, add it to `index.css`.
 - **Icons** are `components/Icon.jsx` — one inline-SVG sprite in `currentColor`,
   decorative (`aria-hidden`) unless given a `title`. No emoji in the chrome:
   emoji render at a different weight, size and color on every platform.
-- **Screen transitions:** `App.jsx` renders each screen into a keyed
-  `.screen-slot.screen-enter` wrapper. The slot must stay a growing flex column
+- **Both headers are sticky.** `AppHeader` pins to the top with a negative top
+  margin equal to the shell's top padding, so content slides under it rather
+  than leaving a strip of page above. `@media print` in `AppHeader.module.css`
+  undoes both, because the print stylesheet zeroes `.app-shell`'s padding and
+  the negative margin would then pull the header off the page.
+- **Never render nothing while waiting.** `components/AppSkeleton.jsx` is the
+  fallback for both pre-render waits on a protected route — `RequireAuth` while
+  the stored session is read, and `App.jsx`'s `<Suspense>` while the workspace
+  chunk downloads. Both used to render an empty div, so every refresh of
+  `/dashboard`, `/jobs` or `/resume` was a second of blank dark page that read
+  as breakage.
+- **Screen transitions:** `AppWorkspace.jsx` renders each route's screen into a
+  `.screen-slot.screen-enter` wrapper keyed on the pathname. The slot must stay a growing flex column
   — ChatScreen and ResumeBuilderScreen depend on `flex: 1; min-height: 0` to
   scroll internally instead of growing the page. The enter animation ends on
   `transform: none` so it leaves no containing block behind for the Resume
   Builder's fixed-position fullscreen layer.
 - **Reduced motion** is handled once, globally. Don't re-implement it per module
   beyond disabling an animation that still reads wrong when frozen.
+- **Public pages** (landing, sign-in) wrap in `.public-site` and render their
+  body in `.app-shell.app-shell--public` (`--shell-width-public`, 1080px). The
+  wrapper is load-bearing: `#root` is pinned to `height: 100%`, and a sticky
+  element only sticks inside its parent's box — with `#root` as the parent the
+  `PublicHeader` scrolled away after one screen height.
+  `--public-header-offset` is the `scroll-margin-top` for sections scrolled to
+  from the nav, and is bumped under 680px where the header wraps to two rows.
+
+## Routing
+
+React Router 7 in declarative mode (`import … from "react-router"` — v8 needs
+React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
+`routes.js` holds `PATHS` so nothing hardcodes a path string.
+
+| Path | Access | Renders |
+| --- | --- | --- |
+| `/`, `/about`, `/how-it-works`, `/contact` | public | `LandingScreen` (scrolls to the section) |
+| `/sign-in` (`?mode=sign-up`, `?mode=forgot`) | public; a signed-in visitor is redirected on | `SignInScreen` |
+| `/reset-password` | public (arrives with a recovery session) | `ResetPasswordScreen` |
+| `/dashboard` | protected | `HomeScreen` (history + the three features) |
+| `/interview/new` | protected | `JobDescriptionScreen` (setup) |
+| `/interview` | protected | `ChatScreen` (live interview) |
+| `/interview/results` | protected | `ResultsScreen` |
+| `/history/:interviewId` | protected | `HistoryDetailScreen` |
+| `/jobs` | protected | `JobMatchesScreen` |
+| `/resume` | protected | `ResumeBuilderScreen` |
+| `*` | — | redirect to `/` |
+
+- **One guard, one layout.** All protected paths are children of a single
+  pathless layout route: `<RequireAuth><AppWorkspace/></RequireAuth>`.
+  `AppWorkspace` owns what `App.jsx` used to (active session + transcript,
+  feedback, save state, `jobsResult`) and stays mounted while children change,
+  so state survives navigation exactly as it did with the old `screen` string.
+  Children read it via `useOutletContext()` in the thin `*Route` components at
+  the bottom of `AppWorkspace.jsx`, which pass each screen **the same callback
+  props it always had** — the screens know nothing about URLs.
+- **The signed-in app is a lazy chunk.** `App.jsx` `React.lazy`s the layout and
+  each `*Route` export from the same module, so landing-page visitors don't
+  download it. The first render of each lazy child suspends for a tick, which is
+  why there's a `<Suspense>` **inside** `AppWorkspace` around the `<Outlet>`:
+  without it the suspension reaches the boundary above the layout, unmounts it,
+  and throws away a live interview.
+- **History entries:** starting an interview `replace`s `/interview/new` with
+  `/interview`, and finishing `replace`s `/interview` with `/interview/results`,
+  so Back never lands on a spent setup form or a finished chat.
+- **Refresh:** the sessionStorage mirror (`{ session, messages, feedback }`) is
+  read only when the workspace mounts on `/interview` or `/interview/results`;
+  any other path starts clean, as non-resumable screens always did. A reload on
+  the results page re-fires the idempotent save.
+- The header nav (and Sign out) is disabled on `/interview`, as before. The
+  browser Back button is not blockable in declarative mode; going Back from a
+  live interview unmounts `ChatScreen` (camera released as on any unmount) but
+  keeps the session in workspace state until "Start an interview" clears it.
+- **Deploying:** it's a client-side router — the static host must rewrite
+  unknown paths to `index.html` (SPA fallback) or a refresh on `/jobs` 404s.
+  Vite's dev and preview servers already do this.
+
+## Authentication
+
+Supabase Auth: email + password (with sign-up on the same page), plus **Google
+and GitHub** OAuth ("Continue with …" buttons above the email form).
+
+- **OAuth flow:** `signInWithProvider(provider, { returnTo })` builds the URL
+  with `skipBrowserRedirect`, first checks `GET /auth/v1/settings` (public,
+  `fetchEnabledProviders`) so a provider that's switched off shows a friendly
+  error instead of dead-ending on Supabase's raw JSON page, then leaves via
+  `window.location.assign`. The browser returns to `/sign-in`, where
+  `detectSessionInUrl` stores the session and the normal `user` → `<Navigate>`
+  path takes over. Router state doesn't survive the round-trip, so the deep-link
+  destination rides in sessionStorage (`mockInterview:authReturnTo`,
+  `takeAuthReturnTo`). A provider-side failure comes back as
+  `error_description` in the hash/query; `SignInScreen` shows it once and strips
+  it from the URL.
+- **OAuth config lives outside the code.** Each provider needs, in its own
+  console, the callback `https://<project-ref>.supabase.co/auth/v1/callback`
+  (Google Cloud → Credentials → OAuth client → Authorized redirect URIs;
+  GitHub → Settings → Developer settings → OAuth Apps → Authorization callback
+  URL), and in Supabase → Authentication → Sign In / Providers the real
+  **Client ID** + secret. The app origin's `/sign-in` must be in Supabase's
+  Redirect URLs, as for email confirmation.
+- Once signed in by any method the session persists like any other — no
+  re-authentication per visit.
+
+- **Env:** `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `client/.env`, read via
+  `import.meta.env`. They keep their plain names because `vite.config.js` sets
+  `envPrefix: ["VITE_", "SUPABASE_"]` — so **never put a secret in any
+  `SUPABASE_*` var** (e.g. the service_role key): everything matching the prefix
+  is bundled into the client. The anon key is public by design.
+- `auth/supabaseClient.js` creates the one client, or `null` when either var is
+  missing or the URL is malformed (so the public pages still render).
+  `persistSession` + `autoRefreshToken` keep the user signed in across reloads
+  (storage key `mockInterview:auth:v1`); `detectSessionInUrl` completes the
+  email-confirmation redirect.
+- `auth/AuthProvider.jsx` → `useAuth()` = `{ session, user, loading, configured,
+  signIn, signUp, signOut }`. `loading` is true only until the stored session
+  has been read; **`RequireAuth` must wait on it**, or every refresh of a
+  protected page bounces a signed-in user to `/sign-in`.
+  `onAuthStateChange` is the single writer after that (sign-in, sign-out, token
+  refresh, sign-out in another tab). Supabase error strings are mapped to plain
+  messages in `friendlyAuthError`.
+- **Redirects.** Signed out on a protected path → `/sign-in` with
+  `state.from`. `SignInScreen` has no navigate-on-success: when `user` becomes
+  non-null it renders `<Navigate to={from ?? "/dashboard"}>` (same-app paths
+  only), which covers sign-in, instant sign-up, and a confirmation link return.
+- **Sign-up.** With email confirmation on (the Supabase default) sign-up returns
+  no session; the screen switches to Sign in with a "check your email" notice.
+  `emailRedirectTo` is `<origin>/sign-in` — add that URL to Supabase → Auth →
+  URL Configuration → Redirect URLs for each environment. Client-side minimum
+  password length is 8 on sign-up only (existing accounts aren't re-validated).
+- **Password reset.** `/sign-in?mode=forgot` is a third mode of the same screen
+  (reached from "Forgot?" next to the Password label): email only, no OAuth
+  buttons, and a notice worded identically whether or not the address has an
+  account — Supabase won't say, so neither do we. `resetPasswordForEmail` sends
+  a link to **`<origin>/reset-password`**, which must be in Supabase → Auth →
+  URL Configuration → Redirect URLs alongside `/sign-in`.
+  `screens/ResetPasswordScreen.jsx` is a **public** route: the link establishes
+  a recovery session of its own, and the person is there precisely because they
+  can't sign in. No session on arrival (link unused, already spent, or expired)
+  → one message covering all three plus a way to request another. It reuses
+  `SignInScreen.module.css` so the two can't drift apart.
+- **Sign out** is in `AppHeader` (label hides under 620px; `aria-label` stays).
+  `AppWorkspace.handleSignOut` navigates to `/` **first** — otherwise
+  `RequireAuth` would see the session vanish and send the user to `/sign-in` —
+  then `signOut()` (scope `local`) clears the interview mirror, the Job Matches
+  cache and results (`JOBS_STORAGE_KEY`, `JOBS_RESULT_KEY`) **and the anonymous
+  browser id** so the next person on that browser inherits nothing.
+- **History is scoped to the account.** `identity.js` sends `X-Client-Id`, and
+  `AuthProvider` calls `setUserScope(user.id)` on every auth transition — so a
+  signed-in user's id is `u-<supabase user id>` and history follows the account
+  across devices. Signed out it falls back to the random per-browser id, which
+  keeps the app usable without auth. The scope is set **inside the
+  `getSession`/`onAuthStateChange` handlers, before `setSession`**, so the first
+  request a protected screen makes is already scoped correctly.
+- **What this is not:** a server-side access boundary. The route guard is UX and
+  the owner id is still a client-supplied header, so `/api` accepts whatever
+  owner a caller names (subject to `API_TOKEN`). What the user scope fixes is
+  the honest-user case — two accounts on one laptop, one account on two
+  machines. Making it a real boundary means sending the Supabase access token,
+  verifying it server-side (JWT secret / JWKS), and reading `ownerId` off the
+  verified token instead of the header.
+
+## Landing page
+
+`screens/LandingScreen.jsx`: `PublicHeader` → hero → About → How It Works →
+closing CTA → `SiteFooter` (Contact). One scrolling page; the four public paths
+all render the same element, so React Router keeps it mounted and moving
+between them is a scroll. The scroll effect keys on `location.key` (clicking
+the same link again still scrolls), jumps on first load and glides afterwards
+unless reduced motion is on, and moves focus to the section's `h2`
+(`tabIndex=-1`) so keyboard users land where they asked.
+
+- **PublicHeader:** wordmark, About / How It Works / Contact as `NavLink`s,
+  ThemeToggle, and **Sign In as a `.btn-primary`** ("Dashboard" when signed in;
+  hidden on `/sign-in`). Under 680px the three links drop to a second row.
+- **About:** placeholder copy plus three non-interactive pillars (interview,
+  jobs, resume) styled like the dashboard's feature cards.
+- **How It Works:** `HOW_IT_WORKS` in `LandingScreen.jsx` — Resume Builder, Job
+  Finder, Mock Interview — each with summary, three steps and a
+  `VideoPlaceholder`. **To add a tutorial** set that entry's `video.src` (a file
+  in `client/public/`, e.g. `/videos/resume-builder.mp4` → native `<video>`) or
+  `video.embedUrl` (e.g. a YouTube embed URL → iframe). Empty = labelled
+  placeholder. Rows alternate sides on desktop; DOM order stays copy-first.
+- **Contact:** `SiteFooter` (`id="contact"`) — `mailto:` email and GitHub link
+  (new tab, `noopener noreferrer`). Constants at the top of the file.
+- The hero's product preview is decorative, static and `aria-hidden`.
+- All copy is placeholder and meant to be edited in place — but **keep it
+  short**. Pillars and walkthrough summaries are one sentence each by design;
+  they were paragraphs, and three paragraphs side by side get skipped wholesale
+  on a landing page. The same rule cost the dashboard its hero: `HomeScreen` now
+  opens on "Your dashboard" and the three feature cards, and the three steps
+  appear only in the empty state, where someone genuinely doesn't know what an
+  interview involves yet.
+- **A skip link** (`.skip-link` in `index.css`) sits first inside `PublicHeader`
+  and targets `#main-content`, which every public screen puts on its `<main>`.
+
+## Speak mode
+
+Chosen on the setup screen ("How you'll answer": Type / Speak) and carried on the
+session as `mode`. **Type mode is the default and is untouched by any of this** —
+same request bodies, same evaluator prompt, no permissions requested, no hardware
+opened. Every branch below is gated on `mode === "speak"`.
+
+The point is that a real interview is lost on delivery as often as on content.
+Speak mode measures three things while the candidate answers, entirely in the
+browser, and hands them to the evaluator so the report covers presentation too.
+
+### Permissions, and falling back
+
+`JobDescriptionScreen` explains *why* before the browser ever prompts ("your pace,
+pauses and eye contact are measured live — nothing is recorded or sent anywhere"),
+then calls `probeMediaPermission()` (exported from `useDeliveryCapture.js`), which
+asks for camera+mic **and immediately stops the tracks again**. It's a "will this
+work?" check — the setup screen has no business holding the camera open while
+someone reads a job description. The browser remembers the grant, so `ChatScreen`'s
+real `request()` a moment later reuses it and the candidate sees exactly one
+prompt.
+
+Refusal is never fatal and never silent: the segmented control snaps back to Type,
+an amber `.warn-banner` says which device failed and why, and `effectiveMode`
+(what actually gets sent) can only be `"speak"` once permission is in hand. If the
+grant evaporates later, `ChatScreen` shows the same fallback and the interview
+carries on as a typed one.
+
+### The metrics
+
+Computed per answer, accumulated across re-recordings (the tracker is segmented,
+matching the way `ChatInput` appends each new transcript onto the draft):
+
+| field | meaning |
+| --- | --- |
+| `wpm` | words ÷ spoken window (first word → last word, pauses included) |
+| `pauseCount` | silences ≥1.5s **with speech on both sides** |
+| `pauseMs` | total time in those pauses |
+| `speakingMs` | time actually spent speaking |
+| `onCameraPct` | share of samples where a face was present and facing the screen |
+
+- **Audio** (`utils/deliveryMetrics.js`, pure and unit-tested): an `AnalyserNode`
+  RMS sample every 50ms, hysteresis (150ms in, 250ms out) so word gaps aren't
+  pauses, and a noise floor learned **only from samples already judged silent**.
+  That last rule is load-bearing — see Gotchas.
+- **Video** (`utils/faceTracker.js`): 10fps, yaw/pitch from the face's forward
+  vector; on-screen is `|yaw| ≤ 25°` and `|pitch| ≤ 20°`. Deliberately generous:
+  a false "you looked away" is worse feedback than none.
+- **Leading and trailing silence are excluded** — that's setup and wrap-up, not
+  hesitation.
+- **A metric that couldn't be measured is `null`, never `0`.** "0 pauses" reads to
+  the evaluator as a fact about the candidate; it must not be told that when the
+  truth is "we never heard them". `wpm` is also suppressed under 5s or 10 words,
+  where it would be arithmetic rather than information. Likewise, if **not one
+  frame** of an answer contained a face, `onCameraPct` is `null` rather than 0 —
+  a covered lens, a dark room, or Chrome defaulting to an idle virtual camera is
+  far likelier than someone facing away for every second, and 0 would have the
+  evaluator tell them they never made eye contact. (This is not hypothetical: it
+  is exactly what a phone-as-webcam virtual camera does when the phone app isn't
+  streaming.)
+
+### Face tracking: MediaPipe Tasks Vision
+
+`@mediapipe/tasks-vision`, pinned exactly (`0.10.21`), lazy-`import()`ed only when
+a Speak-mode interview starts — the same pattern as `pdfjs-dist` in
+`parseResume.js`. Chosen because `outputFacialTransformationMatrixes` gives real
+head pose from a rotation matrix rather than a guess inferred from 2D landmark
+spacing; `face-api.js` is unmaintained and TF.js BlazeFace degrades badly at angle.
+
+The WASM runtime and the ~3.8MB model are fetched from a **pinned CDN**
+(jsdelivr + Google's model bucket) — two constants at the top of
+`faceTracker.js`, kept in step with the npm version. To self-host, drop both into
+`client/public/` and change those two strings. If either fetch fails, the tracker
+resolves to `null`, `onCameraPct` stays `null`, and pace/pauses carry on alone.
+
+### Privacy — what does and doesn't leave the browser
+
+- The `MediaStream` has exactly two consumers, both local: a `<video>` for the
+  self-view and an `AnalyserNode` for loudness. There is **no `MediaRecorder`, no
+  canvas capture, no blob, no upload path** — the code never produces a media file
+  at all. MediaPipe runs as WASM in the tab and reads the `<video>` directly.
+- The only thing added to the answer POST is five bounded integers.
+  `normalizeDelivery` rebuilds that object from a numeric allowlist and returns
+  `null` for a type-mode session, so no client can attach delivery data — or
+  anything else — to an interview that wasn't spoken.
+- **The honest caveat:** the *transcript* still comes from the Web Speech API,
+  which in Chrome sends audio to Google. That predates this feature and is what
+  the dismissible note in `ChatInput` discloses; the note gains a sentence in
+  Speak mode making clear the pace/pause/camera half is local. Don't ever write
+  copy claiming "nothing leaves your browser" without that distinction.
+- **Teardown** is one function, `release()` in `useDeliveryCapture.js`: tracks
+  stopped, `AudioContext` closed, landmarker closed, timers cleared. It fires on
+  interview end, on scoring, on leaving the screen, on mode change and on unmount.
+  One place to get right, so the camera light can't outlive the interview.
+
+### Wiring
+
+`ChatInput` owns the mic button and reports transitions up via `onRecordingChange`;
+`ChatScreen` starts/stops measurement in lockstep and calls `collect(text)` at
+submit time — including on a skip or a timeout, where whatever was said before
+giving up is still that question's delivery. `session.mode` rides in
+`sessionStorage`, so a refresh mid-interview resumes in the same mode.
+
+### Feedback
+
+`transcriptForEvaluator` adds a `D` line under the answer
+(`D3: pace 168 wpm · 4 pauses totalling 11s · looking at camera 52% of the time`),
+and `evaluatorSystemPrompt(jd, { mode })` appends `DELIVERY_GUIDANCE`: reference
+bands (110–160 wpm conversational, <95 slow, >185 rushed), a requirement to pair
+any delivery criticism with a concrete fix, credit for good delivery as well as
+bad, and the nervousness rule — only when several signals co-occur, framed as how
+it *comes across*, never as a claim about how the candidate felt, and never a
+diagnosis. **Delivery never moves a `score`**; scores stay content-only so a good
+answer delivered nervously isn't penalised twice.
+
+Nothing renders the metrics in the UI by design — they exist to inform the written
+feedback. They do persist on `qaPairs`, so they're in saved history if that changes.
 
 ## Job Matches
 
-Reached from the Home screen ("Find job matches"). Screen: `JobMatchesScreen`
-(`App.jsx` `screen === "jobMatches"`).
+Reached from the dashboard ("Find job matches") or the header nav. Route:
+`/jobs` → `JobMatchesScreen`.
 
 The flow is **two-phase** so results show immediately and scores fill in
 progressively instead of one ~1-minute blocking request. The result is cached in
-`App.jsx` state (`jobsResult`), so leaving the screen and returning doesn't
+`AppWorkspace.jsx` state (`jobsResult`), so leaving the screen and returning doesn't
 re-spend model calls.
 
 1. The user uploads a resume (PDF or `.txt`), picks a country, and enters a
@@ -166,7 +504,24 @@ re-spend model calls.
    client (`JobMatchesScreen`) loops this a batch at a time, merging scores by
    id and re-rendering as each batch lands. A batch that fails leaves those jobs
    `null`; a "Score remaining" button retries them.
-4. While scoring, cards hold Adzuna's relevance order (no jumping) and no
+   The finished result is cached twice: in `AppWorkspace` state (survives in-app
+   navigation) and in `sessionStorage` under `JOBS_RESULT_KEY` (survives a
+   reload). A search is ~13 model calls, so losing them to a refresh was
+   expensive — and on the free tier the re-run comes back with more `null`
+   scores than the first did. Cleared on sign-out with the other keys.
+   `settled` on each job (not the run status) drives the card's "Scoring…"
+   spinner, so a role the model declines mid-run stops spinning immediately
+   instead of showing "Scoring…" next to "Couldn't score this role".
+   Once results exist the search form collapses to a one-line summary
+   ("<file> · <city>" + "Change search"); it stays expanded while a search runs,
+   and when a search returns nothing, because that's when the fields are what
+   the user needs.
+4. **Recency breaks the "best match" tie**, and `JobCard` badges anything older
+   than `STALE_AFTER_DAYS` (60) with an amber "May have closed". Match score
+   alone happily floated a 13-month-old listing to the top of the page, and a
+   role that isn't open any more is worth nothing however well it fits. We can't
+   know whether it's closed, hence a badge rather than a filter.
+5. While scoring, cards hold Adzuna's relevance order (no jumping) and no
    filter is offered — sorting or filtering mid-stream would make cards jump as
    scores land. Once `status === "done"` the user can sort by best match or most
    recent and filter by score floor, posted window, "has salary" and "remote".
@@ -222,8 +577,8 @@ drift). Adzuna returns salaries as bare numbers with no currency field, so
 
 ## Resume Builder
 
-Reached from the Home screen ("Build a resume"). Screen: `ResumeBuilderScreen`
-(`App.jsx` `screen === "resume"`). Session-only — nothing is persisted, by
+Reached from the dashboard ("Build a resume") or the header nav. Route:
+`/resume` → `ResumeBuilderScreen`. Session-only — nothing is persisted, by
 design; leaving the screen discards the draft.
 
 **One document, two writers.** The whole feature turns on a single piece of
@@ -253,6 +608,14 @@ copy is kept as-is rather than round-tripped.
   every turn on a small model would be silently discarded.
 - Entry `id`s round-trip through the model and the normalizer so React keys and
   in-progress edits survive an AI rewrite.
+
+**Leaving throws the document away** — nothing is persisted, by design. Two
+guards make that a choice rather than an accident: `setLeaveGuard` (handed down
+from `AppWorkspace`) confirms in-app navigation — header nav, Back to home, sign
+out — and a `beforeunload` listener covers reload, tab close and the browser's
+own Back button, which React Router's declarative mode cannot intercept. Both
+arm only when `isResumeEmpty` is false. `AppWorkspace` funnels every nav button
+through `guarded()`, which is the only place a screen can veto a navigation.
 
 **Undo.** Because the model returns the whole document rather than a patch, one
 bad turn can flatten hand-written bullets. Every write through `setResume` pushes
@@ -336,7 +699,9 @@ plain text.
 
 ## Security model — read before deploying
 
-The app has **no user accounts**. Two mechanisms stand in:
+Users sign in with Supabase, but **only the client enforces it** — the API has
+no notion of a user account (see "Authentication" → "What this is not"). On the
+server, two mechanisms stand in:
 
 1. **`API_TOKEN`** (server env). When set, every `/api` route except
    `/api/health` requires `Authorization: Bearer <API_TOKEN>`. The client sends
@@ -345,11 +710,13 @@ The app has **no user accounts**. Two mechanisms stand in:
    secret, and because it ships in the built client it is not a per-user secret —
    it just keeps the open internet out.
 
-2. **`X-Client-Id`** — a random id the browser generates and stores in
-   localStorage (`client/src/identity.js`). Saved interviews are stamped with it
-   (`ownerId`) and every history read/write/delete is scoped to it, so one
-   browser can't list, open, or delete another's interviews. It's an isolation
-   token, not authentication — same trust level as the unguessable session UUIDs.
+2. **`X-Client-Id`** — who owns saved interviews (`client/src/identity.js`).
+   Signed in it is `u-<supabase user id>`; signed out it falls back to a random
+   per-browser id in localStorage. Saved interviews are stamped with it
+   (`ownerId`) and every history read/write/delete is scoped to it, so one owner
+   can't list, open, or delete another's interviews. It's an isolation token,
+   not authentication — the server takes the header at face value, same trust
+   level as the unguessable session UUIDs.
    `assertOwner` **fails closed**: once a session has an owner, a request with a
    missing/malformed `X-Client-Id` is rejected (404), not waved through.
 
@@ -374,7 +741,9 @@ Other guards already in place:
   headers (not a 500).
 - `express.json({ limit: "64kb" })`; explicit length caps on job description
   (8000), answers (5000), interview resume paste (6000), and Job Matches resume
-  text (20000).
+  text (20000). Speak-mode `delivery` is rebuilt from a five-key numeric
+  allowlist and clamped (`config.delivery`), so the field can't be used to smuggle
+  anything — media included — into a session.
 - Request timeouts on both ends (client 60s, also 60s for Job Matches calls;
   server `OPENROUTER_TIMEOUT_MS` 30s).
 - `trust proxy` is **loopback-only by default** — set `TRUST_PROXY` to match your
@@ -402,6 +771,23 @@ Other guards already in place:
   remaining". A paid model fixes it. `openrouter.service` remembers when a model
   rejects JSON mode (time-boxed to 30 min, so a one-off misclassified 400
   doesn't disable JSON mode for the whole process).
+- **Speak mode on a `:free` model** follows the delivery guidance only loosely. In
+  testing it reliably picked the metrics up and kept scores content-based, but it
+  recites the raw figures ("205 wpm, 7 pauses totalling 18s") despite being told
+  to paraphrase, and it often skips the "suggest a concrete fix" instruction. A
+  stronger model is the fix; tightening the prompt further mostly isn't worth it.
+- **Speak mode is Chromium-only in practice.** The transcript comes from the Web
+  Speech API, which Firefox doesn't ship — `ChatInput` already degrades to typing
+  there, but that means Speak mode on Firefox measures delivery for an answer the
+  candidate has to type. Consider hiding the mode where `supported` is false.
+- **Eye contact is head orientation, not gaze.** Someone facing the camera while
+  reading something off to the side scores as fully on-camera. Thresholds (25°
+  yaw / 20° pitch) are deliberately loose; tightening them trades false negatives
+  for false accusations, which is the worse error here.
+- **Delivery metrics have no UI.** They reach the model and are stored on
+  `qaPairs`, but nothing renders them, so a candidate can't check an AI claim
+  about their pace against the number behind it. That was a deliberate scoping
+  call, not an oversight — revisit it if delivery feedback starts feeling opaque.
 
 ## Storage — this is not production-durable
 
@@ -433,7 +819,8 @@ Other guards already in place:
 - Keep `client/src/constants.js` in sync with `server/src/config.js`: length
   limits (job description, answer, resume `MIN/MAX_RESUME_LENGTH`,
   `MAX_INTERVIEW_RESUME_LENGTH`), the question-count range, `INTERVIEW_FOCUSES` ↔
-  `interviewFocuses`, and `ADZUNA_COUNTRIES` ↔ `adzuna.supportedCountries`
+  `interviewFocuses`, `INTERVIEW_MODES` ↔ `interviewModes`, and
+  `ADZUNA_COUNTRIES` ↔ `adzuna.supportedCountries`
   (`server/test/countrySync.test.js` guards the last one).
 - CSS: see "Design system" above. Style through the tokens; no raw hex, font
   size, spacing or radius literal in module CSS. The resume sheet
@@ -445,6 +832,20 @@ Other guards already in place:
 
 ## Gotchas
 
+- **`[hidden]` loses to an explicit `display`.** `FeedbackReport`'s accordion
+  bodies are `hidden={!isOpen}`, but `.qBody` sets `display: flex`, which beats
+  the UA's `[hidden] { display: none }` — so for a while the accordion never
+  collapsed at all: every answer stayed on screen and only `aria-expanded`
+  moved. `.qBody[hidden] { display: none }` is what makes it work, and the
+  `@media print` block deliberately overrides that back. Any module class used
+  with the `hidden` attribute needs the same pairing.
+- **`ChatInput` starts in the mode the candidate chose.** `preferType` is
+  seeded from `!speakMode`. Before that, Type mode changed nothing about the
+  composer — it still opened mic-first, said "tap the mic and speak", and showed
+  the speech-provider disclosure to someone who had just chosen to write. The
+  textarea auto-grows to `MAX_TEXTAREA_PX` and the remaining-characters counter
+  only appears past 80% of `MAX_ANSWER_LENGTH`, because `maxLength` silently
+  swallowing keystrokes reads as a broken keyboard.
 - `interview.controller.js` evaluates **all asked questions**, not just answered
   ones — skipped questions appear in the report with score 0.
 - In `ChatInput`, **Send is the primary button and Skip is a ghost**. They used
@@ -464,11 +865,35 @@ Other guards already in place:
   of getting a fresh full timer. If the deadline already passed while away, the
   answer auto-submits as timed-out.
 - `useSpeechRecognition` restarts the engine across its idle timeout while the
-  user wants to keep talking, with a hard 5-minute cap per recording.
+  user wants to keep talking, with a hard 5-minute cap per recording. Speak mode
+  reports recording state from an **effect on `listening`**, not from the click
+  handlers, precisely so those internal restarts don't look like the candidate
+  stopping and starting again.
+- **The engine emits once more from `onend`, after `stop()`** — it folds in audio
+  that was never finalised. `ChatInput` gates that flush behind
+  `acceptTranscriptRef`: it's wanted when the user just stops the mic (the words
+  are still theirs to edit), and must be dropped on send / skip / clear / the
+  input locking, where it lands *after* the draft is cleared and re-fills the
+  composer with the answer that was already sent — which then bleeds into the
+  next question. Easy to miss when typing; constant once voice is the default way
+  to answer.
+- **The speech-detection noise floor adapts only from samples already classified
+  as silence.** Letting a loud sample move it was wrong three separate ways, all
+  of which shipped and were caught by `client/test/deliveryMetrics.test.js`: a
+  long unbroken answer dragged the threshold up through the candidate's own voice
+  until its tail read as silence; an answer starting the instant recording began
+  left the floor initialised at speaking volume so the whole thing read as
+  silence; and the few loud samples inside the hysteresis window ratcheted the
+  floor up a notch on every word gap, until whole sentences counted as pauses.
+  Those three regression tests are the reason the rule is what it is — don't
+  "simplify" it back.
 - React StrictMode double-invokes effects in dev — `feedbackStartedRef` /
-  `savingIdRef` guard against duplicate `/feedback` and duplicate saves.
+  `savingIdRef` guard against duplicate `/feedback` and duplicate saves, and
+  `useDeliveryCapture` guards `getUserMedia` with a pending-promise ref plus a
+  generation counter, or the doubled effect opens two camera streams and leaks
+  the first (camera light stays on, with nothing on screen explaining why).
 - `POST /api/interviews` is idempotent per session (`session.savedInterviewId`).
-  `App.jsx` re-fires this once on a reload that lands straight on the results
+  `AppWorkspace.jsx` re-fires this once on a reload that lands straight on the results
   screen, so a save that failed on a network blip still gets recorded.
 - Job Matches PDF parsing is client-side only (`pdfjs-dist`, lazy-loaded, ~350 kB
   gzip in its own chunk). Scanned/image PDFs yield no text — the screen asks for

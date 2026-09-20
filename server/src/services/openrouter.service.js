@@ -111,6 +111,17 @@ function jsonModeCurrentlyRejected() {
   );
 }
 
+/**
+ * What the caller was asking the model for, used only to word the "unparseable
+ * response" error. "feedback" is interview wording and used to leak into the
+ * Resume Builder and Job Matches, where it makes no sense.
+ */
+const SUBJECT_BY_KIND = {
+  interview: "feedback",
+  jobs: "a usable match score",
+  resume: "a usable answer",
+};
+
 export async function chatCompletionJson(messages, options = {}) {
   let useJsonMode = !jsonModeCurrentlyRejected();
   let lastParseErr;
@@ -140,9 +151,13 @@ export async function chatCompletionJson(messages, options = {}) {
     }
   }
 
-  console.error("[openrouter] JSON feedback unparseable:", lastParseErr?.message);
+  const subject = SUBJECT_BY_KIND[options.kind] || "a usable answer";
+  console.error(
+    `[openrouter] JSON response unparseable (${options.kind || "interview"}):`,
+    lastParseErr?.message
+  );
   throw expose(
-    new Error("The AI service did not return usable feedback. Please try again."),
+    new Error(`The AI service did not return ${subject}. Please try again.`),
     502,
     lastParseErr
   );

@@ -79,8 +79,17 @@ function titleOf(jd) {
   return firstLine.slice(0, 80);
 }
 
+/**
+ * The body of the posting, minus the line already used as the title — starting
+ * at character zero made every history card read "<role> / <role> We're looking
+ * for…". Falls back to the whole text for a single-line job description.
+ */
 function snippetOf(jd) {
-  return jd.trim().replace(/\s+/g, " ").slice(0, 140);
+  const lines = jd.split("\n");
+  const firstIndex = lines.findIndex((l) => l.trim());
+  const rest = firstIndex === -1 ? "" : lines.slice(firstIndex + 1).join(" ");
+  const body = rest.trim() || jd.trim();
+  return body.replace(/\s+/g, " ").slice(0, 140);
 }
 
 /** Lightweight list for the home screen, newest first, scoped to one owner. */

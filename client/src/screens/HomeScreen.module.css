@@ -4,79 +4,26 @@
   gap: var(--sp-7);
 }
 
-/* --- hero ----------------------------------------------------------------- */
+/* --- page heading ---------------------------------------------------------- */
 
-.hero {
-  padding: var(--sp-2) 0 0;
-}
-
+/* A page label, not a headline. The dashboard is a workbench — the pitch
+   lives on the landing page. */
 .title {
-  margin: var(--sp-2) 0 var(--sp-3);
-  font-size: var(--fs-3xl);
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-2xl);
   line-height: var(--lh-tight);
-  letter-spacing: -0.025em;
-  max-width: 16ch;
-}
-
-@media (min-width: 720px) {
-  .title {
-    font-size: var(--fs-4xl);
-  }
-}
-
-/* The one place the accent gradient carries meaning rather than decoration:
-   it puts the emphasis on "the job", which is the product's whole premise. */
-.grad {
-  background: var(--gradient-accent);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.lede {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: var(--fs-lg);
-  line-height: var(--lh-normal);
-  max-width: 54ch;
-}
-
-/* "How it works" is reference material, not something a returning user should
-   read on every visit — so it collapses. */
-.how {
-  margin-top: var(--sp-4);
-}
-
-.howSummary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  cursor: pointer;
-  list-style: none;
-  font-size: var(--fs-md);
-  font-weight: 600;
-  color: var(--accent);
-  padding: var(--sp-1) 0;
-}
-.howSummary::-webkit-details-marker {
-  display: none;
-}
-
-.howChevron {
-  transition: transform var(--dur) var(--ease);
-}
-.how[open] .howChevron {
-  transform: rotate(180deg);
+  letter-spacing: -0.02em;
 }
 
 .steps {
   list-style: none;
-  margin: var(--sp-3) 0 0;
+  margin: var(--sp-3) 0 var(--sp-2);
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
-  max-width: 60ch;
+  gap: var(--sp-2);
+  max-width: 44ch;
+  text-align: left;
 }
 
 .steps li {
@@ -365,9 +312,3 @@
   font-size: var(--fs-lg);
 }
 
-.emptyBody {
-  margin: 0 0 var(--sp-3);
-  max-width: 44ch;
-  color: var(--text-muted);
-  font-size: var(--fs-md);
-}

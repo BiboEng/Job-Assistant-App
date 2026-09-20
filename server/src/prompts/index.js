@@ -44,10 +44,45 @@ Rules:
 }
 
 /**
+ * Appended to the evaluator prompt for speak-mode interviews only, where the
+ * transcript carries a `D` line per question (see `transcriptForEvaluator`).
+ *
+ * Three things this has to get right:
+ * - Delivery colours the WRITING, never the score. The numbers are rough
+ *   browser-side estimates; letting them move a score would mark a good answer
+ *   down twice for being delivered nervously.
+ * - The model must not simply read the figures back. "168 wpm" is data; "you
+ *   were moving fast enough that the detail got lost" is feedback.
+ * - Nerves are an inference from behaviour, not an observation of a feeling, so
+ *   the wording stays tentative and always comes with something to try.
+ */
+const DELIVERY_GUIDANCE = `
+DELIVERY DATA
+Some questions carry a "D" line: metrics measured in the candidate's browser while they spoke. They are rough estimates, not exact measurements.
+- pace: words per minute over the answer. Roughly 110-160 wpm is comfortable and conversational; below ~95 tends to drag; above ~185 reads as rushed.
+- pauses: silences of 1.5s or longer in the middle of the answer, with the total time spent in them. A couple of short pauses is normal thinking time; many, or a large total, reads as hesitation or losing the thread.
+- looking at camera: the share of the answer the candidate appeared to be facing the camera. Below ~50% reads as reading from notes or avoiding eye contact. Absent when the camera wasn't available.
+A "D" line may be missing or partial — say nothing about a metric you weren't given.
+
+How to use it:
+- Comment on delivery in "summary", in "strengths"/"weaknesses", and in a per-question "comment" where it's notable. Write it as an observation about presentation, in your own words. Do NOT recite the raw numbers back; at most quote one figure where it genuinely helps.
+- Whenever you raise a delivery problem, say in the same breath what to do about it — slow down and let a sentence land, pause deliberately instead of filling, look at the lens when starting an answer. An observation with no remedy is not useful feedback.
+- Delivery must NOT change any "score". Scores stay based on the content of the answer alone.
+- Good delivery counts too. Steady pace, few pauses and consistent eye contact earn a brief mention in "strengths"; don't only ever report delivery when it went badly.
+- If SEVERAL signals point the same way at once (frequent pauses AND a rushed pace AND low time looking at the camera), you may gently note that this combination is the kind of thing that reads as nerves to an interviewer. Frame it as how it comes across, never as a claim about how the candidate felt, and always pair it with one concrete thing to practise. Never diagnose anxiety or any other condition.`;
+
+/**
  * System prompt for the evaluator. Runs over the same transcript and must return
  * strict JSON matching the shape below.
+ *
+ * @param {string} jobDescription
+ * @param {{ mode?: "type" | "speak" }} [opts]  in speak mode the transcript
+ *   carries delivery metrics and the prompt gains DELIVERY_GUIDANCE. Type-mode
+ *   interviews produce exactly the prompt they always have.
  */
-export function evaluatorSystemPrompt(jobDescription) {
+export function evaluatorSystemPrompt(jobDescription, opts = {}) {
+  const delivery = opts.mode === "speak" ? `\n${DELIVERY_GUIDANCE}\n` : "";
+
   return `You are an expert interview evaluator. You will receive a job description and a full transcript of a mock interview (questions asked and the candidate's answers).
 
 Score the candidate's performance for THIS role:
@@ -71,7 +106,7 @@ Return ONLY valid JSON (no markdown, no code fences) with exactly this shape:
     }
   ]
 }
-
+${delivery}
 Be fair but honest. Base scores on relevance to the role, specificity, structure, and depth.
 If an answer was empty or skipped, score it low and say so.`;
 }
@@ -187,15 +222,47 @@ Return the JSON response.`;
 }
 
 /**
+ * Renders one answer's speak-mode delivery metrics as a short prose line.
+ * Returns "" when there's nothing measured worth saying — a metric the browser
+ * couldn't estimate comes through as null and is simply left out, rather than
+ * being reported as a zero the model would read as meaningful.
+ */
+function deliveryLine(delivery) {
+  if (!delivery) return "";
+  const parts = [];
+
+  if (delivery.wpm != null) parts.push(`pace ${delivery.wpm} wpm`);
+
+  if (delivery.pauseCount != null) {
+    if (delivery.pauseCount === 0) {
+      parts.push("no significant pauses");
+    } else {
+      const seconds = Math.round((delivery.pauseMs ?? 0) / 1000);
+      const count = `${delivery.pauseCount} pause${delivery.pauseCount === 1 ? "" : "s"}`;
+      parts.push(seconds > 0 ? `${count} totalling ${seconds}s` : count);
+    }
+  }
+
+  if (delivery.onCameraPct != null) {
+    parts.push(`looking at camera ${delivery.onCameraPct}% of the time`);
+  }
+
+  return parts.join(" · ");
+}
+
+/**
  * Turns the stored transcript into a single user message for the evaluator call.
+ * Speak-mode answers gain a "D" line carrying the delivery metrics; type-mode
+ * transcripts are rendered exactly as they always have been.
  */
 export function transcriptForEvaluator(qaPairs) {
   return qaPairs
-    .map(
-      (p) =>
-        `Q${p.questionNumber}: ${p.question}\nA${p.questionNumber}: ${
-          p.answer?.trim() || "(no answer given)"
-        }`
-    )
+    .map((p) => {
+      const block = `Q${p.questionNumber}: ${p.question}\nA${p.questionNumber}: ${
+        p.answer?.trim() || "(no answer given)"
+      }`;
+      const line = deliveryLine(p.delivery);
+      return line ? `${block}\nD${p.questionNumber}: ${line}` : block;
+    })
     .join("\n\n");
 }

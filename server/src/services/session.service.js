@@ -19,8 +19,9 @@ const sessions = new Map();
  * @property {boolean} processing  true while a model call for this session is in flight
  * @property {number} totalQuestions
  * @property {number} askedCount
+ * @property {"type" | "speak"} mode  how the candidate answers; "speak" collects delivery metrics
  * @property {Array<{role: string, content: string}>} messages  full chat history for the model
- * @property {Array<{questionNumber: number, question: string, answer: string|null, timeLimitSeconds: number|null}>} qaPairs
+ * @property {Array<{questionNumber: number, question: string, answer: string|null, timeLimitSeconds: number|null, delivery: object|null}>} qaPairs
  * @property {object|null} feedback  cached after first generation
  * @property {string|null} savedInterviewId  history record id once persisted
  */
@@ -42,7 +43,7 @@ function pruneExpired() {
 /**
  * @param {string} jobDescription
  * @param {string|null} [ownerId]
- * @param {{ totalQuestions?: number, focus?: string, resumeText?: string }} [opts]
+ * @param {{ totalQuestions?: number, focus?: string, resumeText?: string, mode?: string }} [opts]
  * @throws a user-safe 503 when the live-session cap is reached.
  */
 export function createSession(jobDescription, ownerId = null, opts = {}) {
@@ -63,6 +64,9 @@ export function createSession(jobDescription, ownerId = null, opts = {}) {
   const focus = config.interviewFocuses.includes(opts.focus)
     ? opts.focus
     : "mixed";
+  // Anything unrecognised falls back to "type" — the mode that needs no
+  // permissions and no client-side measurement.
+  const mode = config.interviewModes.includes(opts.mode) ? opts.mode : "type";
 
   /** @type {Session} */
   const session = {
@@ -70,6 +74,7 @@ export function createSession(jobDescription, ownerId = null, opts = {}) {
     ownerId,
     jobDescription,
     focus,
+    mode,
     createdAt: now,
     updatedAt: now,
     status: "active",
@@ -133,21 +138,32 @@ export function recordQuestion(session, questionText, timeLimitSeconds = null) {
     question: questionText,
     answer: null,
     timeLimitSeconds,
+    // Speak-mode delivery metrics, filled in by recordAnswer. Null in type mode.
+    delivery: null,
   });
   session.updatedAt = Date.now();
 }
 
 /**
  * Record the candidate's answer to the most recent question.
+ *
+ * `delivery` (speak mode only) holds the browser-measured pace/pause/on-camera
+ * numbers for this answer. It is deliberately kept off `session.messages` — the
+ * interviewer asking the next question has no use for it, and it would only
+ * invite the model to comment on delivery mid-interview. Only the evaluator
+ * sees it, via transcriptForEvaluator.
  */
-export function recordAnswer(session, answerText) {
+export function recordAnswer(session, answerText, delivery = null) {
   // Keep the model turn coherent even when the candidate ran out of time, but
   // store the raw answer ("" when skipped) so feedback can exclude it.
   const forModel =
     answerText.trim() || "(No answer — the candidate ran out of time.)";
   session.messages.push({ role: "user", content: forModel });
   const current = session.qaPairs[session.qaPairs.length - 1];
-  if (current) current.answer = answerText;
+  if (current) {
+    current.answer = answerText;
+    current.delivery = delivery;
+  }
   session.updatedAt = Date.now();
 }
 
@@ -167,6 +183,7 @@ export function publicSession(session) {
     sessionId: session.id,
     status: session.status,
     jobDescription: session.jobDescription,
+    mode: session.mode,
     totalQuestions: session.totalQuestions,
     askedCount: session.askedCount,
     transcript: session.qaPairs,

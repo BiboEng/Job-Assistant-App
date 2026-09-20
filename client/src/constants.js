@@ -44,6 +44,25 @@ export const INTERVIEW_FOCUSES = [
   },
 ];
 
+// How the candidate answers. `value` must stay in sync with `interviewModes` in
+// server/src/config.js; everything else is UI-only. Speak mode needs camera +
+// microphone and measures delivery (pace, pauses, eye contact) in the browser;
+// Type mode is the original behaviour and asks for no permissions at all.
+export const INTERVIEW_MODES = [
+  {
+    value: "type",
+    label: "Type",
+    hint: "Answer in writing. Feedback covers what you said.",
+  },
+  {
+    value: "speak",
+    label: "Speak",
+    hint: "Answer out loud on camera. Feedback also covers how you came across.",
+  },
+];
+
+export const DEFAULT_INTERVIEW_MODE = "type";
+
 // Client-side request timeout. Kept comfortably above the server's worst case
 // (one upstream call ~30s; feedback may retry once on an unparseable response)
 // so a genuine server error surfaces before the client gives up.
@@ -67,6 +86,12 @@ export const MAX_RESUME_LENGTH = 20000;
 // Where the uploaded resume + city + country are cached so Job Matches survives
 // a reload.
 export const JOBS_STORAGE_KEY = "mockInterview:jobs:v1";
+
+// Where the scored results themselves are mirrored. A full search costs ~13
+// model calls, so a reload that threw them away made the free tier's rate limit
+// much worse. sessionStorage, not localStorage: results go stale fast, and this
+// way they don't outlive the tab. Cleared on sign-out alongside the other keys.
+export const JOBS_RESULT_KEY = "mockInterview:jobsResult:v1";
 
 // Countries Adzuna serves job listings for. Keep in sync with
 // `adzuna.supportedCountries` in server/src/config.js. Alphabetical by label.

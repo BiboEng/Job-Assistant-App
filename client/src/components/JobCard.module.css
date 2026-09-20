@@ -94,6 +94,24 @@
   font-style: italic;
 }
 
+/* Aggregator listings can outlive the opening by months. Amber, because this is
+   a warning about the data — never the accent. */
+.stalePosted {
+  color: var(--warn);
+}
+
+.staleFlag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px var(--sp-2);
+  border-radius: var(--radius-pill);
+  background: var(--warn-soft);
+  border: 1px solid var(--warn-border);
+  color: var(--warn);
+  font-weight: 600;
+}
+
 .reason {
   margin: var(--sp-3) 0 0;
   font-size: var(--fs-md);

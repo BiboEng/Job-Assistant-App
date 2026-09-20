@@ -23,11 +23,12 @@ import { assertOwner } from "../middleware/auth.js";
 
 /**
  * POST /api/interview/start
- * body: { jobDescription, questionCount?, focus?, resumeText? }
+ * body: { jobDescription, questionCount?, focus?, resumeText?, mode? }
  */
 export async function startInterview(req, res, next) {
   try {
-    const { jobDescription, questionCount, focus, resumeText } = req.body ?? {};
+    const { jobDescription, questionCount, focus, resumeText, mode } =
+      req.body ?? {};
 
     if (typeof jobDescription !== "string") {
       return res.status(400).json({ error: "jobDescription is required." });
@@ -47,6 +48,9 @@ export async function startInterview(req, res, next) {
     if (focus != null && !config.interviewFocuses.includes(focus)) {
       return res.status(400).json({ error: "Unknown interview focus." });
     }
+    if (mode != null && !config.interviewModes.includes(mode)) {
+      return res.status(400).json({ error: "Unknown interview mode." });
+    }
     let resume = "";
     if (resumeText != null) {
       if (typeof resumeText !== "string") {
@@ -59,6 +63,7 @@ export async function startInterview(req, res, next) {
       totalQuestions: questionCount,
       focus,
       resumeText: resume,
+      mode,
     });
 
     const question = await chatCompletion(session.messages);
@@ -70,6 +75,9 @@ export async function startInterview(req, res, next) {
       question,
       questionNumber: session.askedCount,
       totalQuestions: session.totalQuestions,
+      // Echoed back so the client drives the chat screen off what the server
+      // actually accepted, not off what it asked for.
+      mode: session.mode,
       timeLimitSeconds,
       done: false,
     });
@@ -80,7 +88,7 @@ export async function startInterview(req, res, next) {
 
 /**
  * POST /api/interview/:sessionId/answer
- * body: { answer }
+ * body: { answer, timedOut?, delivery? }
  */
 export async function submitAnswer(req, res, next) {
   let session;
@@ -93,7 +101,7 @@ export async function submitAnswer(req, res, next) {
       return res.status(409).json({ error: "This interview has already ended." });
     }
 
-    const { answer, timedOut } = req.body ?? {};
+    const { answer, timedOut, delivery } = req.body ?? {};
     if (typeof answer !== "string") {
       return res.status(400).json({ error: "answer is required." });
     }
@@ -115,7 +123,7 @@ export async function submitAnswer(req, res, next) {
     }
 
     try {
-      recordAnswer(session, answer.trim());
+      recordAnswer(session, answer.trim(), normalizeDelivery(delivery, session));
 
       // Was that the final answer?
       if (session.askedCount >= session.totalQuestions) {
@@ -187,7 +195,12 @@ export async function generateFeedback(req, res, next) {
       if (session.status !== "completed") markCompleted(session);
 
       const messages = [
-        { role: "system", content: evaluatorSystemPrompt(session.jobDescription) },
+        {
+          role: "system",
+          content: evaluatorSystemPrompt(session.jobDescription, {
+            mode: session.mode,
+          }),
+        },
         {
           role: "user",
           content:
@@ -196,7 +209,9 @@ export async function generateFeedback(req, res, next) {
         },
       ];
 
-      const feedback = await chatCompletionJson(messages);
+      // `kind` is the interview pool's default anyway; passing it explicitly is
+      // what words the "unparseable response" error as being about feedback.
+      const feedback = await chatCompletionJson(messages, { kind: "interview" });
       const normalized = normalizeFeedback(feedback, askedPairs);
 
       saveFeedback(session, normalized);
@@ -221,6 +236,62 @@ export function getSessionState(req, res) {
 }
 
 // --- helpers -------------------------------------------------------------
+
+/** Round and clamp to a range, or null if it isn't a usable number. */
+function clampOrNull(n, min, max) {
+  if (n == null) return null;
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return null;
+  return Math.min(max, Math.max(min, v));
+}
+
+/**
+ * Speak-mode delivery metrics, rebuilt from scratch out of a numeric allowlist.
+ *
+ * Everything here is measured in the candidate's browser, so none of it is
+ * trusted: unknown keys are dropped, each value is coerced to an integer and
+ * clamped, and a metric the browser couldn't estimate stays null rather than
+ * becoming a zero the evaluator would read as "they never paused". Returns null
+ * for a type-mode session, so no amount of client-side insistence can attach
+ * delivery data to an interview that wasn't spoken.
+ *
+ * @param {unknown} raw
+ * @param {{ mode?: string }} session
+ * @returns {{ wpm: number|null, pauseCount: number|null, pauseMs: number|null,
+ *   speakingMs: number|null, onCameraPct: number|null } | null}
+ */
+export function normalizeDelivery(raw, session) {
+  if (session?.mode !== "speak") return null;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+
+  const d = config.delivery;
+  const wpm = clampOrNull(raw.wpm, d.minWpm, d.maxWpm);
+  const pauseCount = clampOrNull(raw.pauseCount, 0, d.maxPauseCount);
+  const pauseMs = clampOrNull(raw.pauseMs, 0, d.maxPauseMs);
+  const speakingMs = clampOrNull(raw.speakingMs, 0, d.maxSpeakingMs);
+  const onCameraPct = clampOrNull(raw.onCameraPct, 0, 100);
+
+  // Nothing measurable came through — store null rather than an object of nulls.
+  if (
+    wpm == null &&
+    pauseCount == null &&
+    pauseMs == null &&
+    speakingMs == null &&
+    onCameraPct == null
+  ) {
+    return null;
+  }
+
+  // A pause total without a count is meaningless on its own, and vice versa.
+  const hasPauses = pauseCount != null;
+  return {
+    wpm,
+    pauseCount,
+    pauseMs: hasPauses ? pauseMs ?? 0 : null,
+    speakingMs,
+    onCameraPct,
+  };
+}
 
 function toText(v) {
   if (typeof v === "string") return v;

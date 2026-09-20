@@ -1,9 +1,10 @@
 import Icon from "./Icon.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
+import BrandMark from "./BrandMark.jsx";
 import styles from "./AppHeader.module.css";
 
 /**
- * Persistent top bar: wordmark, feature nav, theme control.
+ * Persistent top bar: wordmark, feature nav, theme control, sign out.
  *
  * The nav exists because the three features used to be reachable only from the
  * Home screen — getting from Job Matches to the Resume Builder meant going back
@@ -12,7 +13,11 @@ import styles from "./AppHeader.module.css";
  *
  * During a live interview (`interactive=false`) the nav is disabled rather than
  * hidden: leaving would abandon the session, but the user should still see
- * where they are.
+ * where they are. Sign out follows the same rule — it would abandon the
+ * interview just as surely as navigating away.
+ *
+ * `onSignOut` / `userEmail` come from AppWorkspace; the header stays free of
+ * auth and router imports so it remains a plain presentational component.
  */
 
 const NAV = [
@@ -21,17 +26,24 @@ const NAV = [
   { id: "resume", label: "Resume", icon: "fileText" },
 ];
 
-export default function AppHeader({ onHome, onNavigate, active, interactive = true }) {
+export default function AppHeader({
+  onHome,
+  onNavigate,
+  onSignOut,
+  userEmail,
+  active,
+  interactive = true,
+}) {
   return (
     <header className={styles.bar}>
       {interactive ? (
         <button type="button" className={styles.wordmark} onClick={onHome}>
-          <Mark />
+          <BrandMark />
           <span className={styles.wordmarkText}>Mock Interview</span>
         </button>
       ) : (
         <span className={styles.wordmark}>
-          <Mark />
+          <BrandMark />
           <span className={styles.wordmarkText}>Mock Interview</span>
         </span>
       )}
@@ -57,16 +69,27 @@ export default function AppHeader({ onHome, onNavigate, active, interactive = tr
 
       <div className={styles.tail}>
         <ThemeToggle />
+        {onSignOut && (
+          <button
+            type="button"
+            className="btn-subtle btn-sm"
+            aria-label="Sign out"
+            onClick={onSignOut}
+            disabled={!interactive}
+            title={
+              interactive
+                ? userEmail
+                  ? `Signed in as ${userEmail}`
+                  : undefined
+                : "Finish or end the interview to sign out"
+            }
+          >
+            <Icon name="logOut" size={16} />
+            <span className={styles.signOutLabel}>Sign out</span>
+          </button>
+        )}
       </div>
     </header>
   );
 }
 
-/** The wordmark badge — the same gradient mic as the favicon. */
-function Mark() {
-  return (
-    <span className={styles.mark} aria-hidden="true">
-      <Icon name="mic" size={15} strokeWidth={2} />
-    </span>
-  );
-}

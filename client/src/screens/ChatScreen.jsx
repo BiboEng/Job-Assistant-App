@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { submitAnswer, getFeedback } from "../api/interviewApi.js";
 import ChatMessage from "../components/ChatMessage.jsx";
 import ChatInput from "../components/ChatInput.jsx";
+import CameraPreview from "../components/CameraPreview.jsx";
 import Icon from "../components/Icon.jsx";
+import useDeliveryCapture, {
+  PERMISSION_DENIED,
+  PERMISSION_UNSUPPORTED,
+} from "../hooks/useDeliveryCapture.js";
 import { nextId } from "../constants.js";
 import { formatDuration } from "../utils/time.js";
 import styles from "./ChatScreen.module.css";
@@ -34,6 +39,54 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
   const feedbackStartedRef = useRef(false); // blocks duplicate /feedback calls
   const draftRef = useRef(draft);
   const autoSentForRef = useRef(null); // message id we already auto-submitted
+
+  // Speak mode: camera + mic, and the browser-side delivery measurement that
+  // rides along with each answer. Inert in type mode — no permission is
+  // requested and no hardware is touched.
+  const speakMode = session.mode === "speak";
+  const capture = useDeliveryCapture();
+  const { request: requestMedia, release: releaseMedia, collect } = capture;
+
+  useEffect(() => {
+    if (!speakMode) {
+      releaseMedia();
+      return undefined;
+    }
+    requestMedia();
+    // Covers every way out of this screen — finishing, ending early, navigating
+    // away, or a refresh — so the camera light can't outlive the interview.
+    return releaseMedia;
+  }, [speakMode, requestMedia, releaseMedia]);
+
+  // Read the failure off the hook's own status rather than off what request()
+  // resolved to. A request superseded by a release resolves false without being
+  // a failure at all, and treating that as one made StrictMode's doubled effect
+  // show "your camera isn't available" on every single speak-mode interview.
+  const captureFailed =
+    speakMode &&
+    (capture.status === PERMISSION_DENIED || capture.status === PERMISSION_UNSUPPORTED);
+
+  const capturing = speakMode && capture.granted && !captureFailed;
+
+  // ChatInput owns the microphone button, so it tells us when a recording
+  // segment starts and stops; measurement runs in lockstep with it.
+  const [recording, setRecording] = useState(false);
+  const handleRecordingChange = useCallback(
+    (isRecording) => {
+      setRecording(isRecording);
+      if (!capturing) return;
+      if (isRecording) capture.beginRecording();
+      else capture.endRecording();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [capturing, capture.beginRecording, capture.endRecording]
+  );
+
+  // Once the interview is over there is nothing left to measure; don't make
+  // someone sit through feedback generation with their camera still on.
+  useEffect(() => {
+    if (interviewDone || scoring) releaseMedia();
+  }, [interviewDone, scoring, releaseMedia]);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -135,9 +188,16 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
     setBusy(true);
     setError("");
 
+    // Closes out measurement for this answer and resets for the next question.
+    // Always called in speak mode — including on a skip or a timeout, where
+    // whatever was said before giving up is still the delivery for that
+    // question. Returns null when nothing measurable happened.
+    const delivery = capturing ? collect(text) : null;
+
     try {
       const data = await submitAnswer(session.sessionId, text, {
         timedOut: timedOut || skipped,
+        delivery,
       });
 
       if (data.done) {
@@ -347,6 +407,25 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
         </div>
       )}
 
+      {capturing && !interviewDone && (
+        <CameraPreview
+          attachVideo={capture.attachVideo}
+          recording={recording}
+          eyeTracking={capture.faceTrackingReady}
+        />
+      )}
+
+      {speakMode && captureFailed && (
+        <div className="warn-banner" role="status">
+          <Icon name="alert" size={16} />
+          <span>
+            {capture.error || "Your camera and microphone aren't available."} Carry
+            on by typing — you'll still get feedback on what you say, just not on
+            how you delivered it.
+          </span>
+        </div>
+      )}
+
       <ChatInput
         value={draft}
         onChange={setDraft}
@@ -354,6 +433,8 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
         onSkip={handleSkip}
         disabled={busy || scoring || interviewDone}
         placeholder={interviewDone ? "Interview complete" : "Type your answer…"}
+        speakMode={speakMode}
+        onRecordingChange={handleRecordingChange}
       />
     </div>
   );

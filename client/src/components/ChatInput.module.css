@@ -63,6 +63,17 @@
   color: var(--text-subtle);
 }
 
+/* Only appears near the cap, so it can afford to be quiet until it isn't. */
+.count {
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.countFull {
+  color: var(--warn);
+  font-weight: 600;
+}
+
 .listening {
   display: inline-flex;
   align-items: center;

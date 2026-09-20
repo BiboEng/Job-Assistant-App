@@ -5,10 +5,11 @@ import { listInterviews, deleteInterview } from "../api/historyApi.js";
 import { scoreBand } from "../utils/score.js";
 import styles from "./HomeScreen.module.css";
 
+// Shown only in the empty state — see below.
 const STEPS = [
-  "Paste a job description and pick how many questions you want.",
-  "Answer each question by voice or text, against a per-question timer.",
-  "Get a scored report — overall, per question, strengths and weak spots.",
+  "Paste a job description.",
+  "Answer by voice or text, against a timer.",
+  "Get a scored report.",
 ];
 
 const SORTS = {
@@ -94,40 +95,18 @@ export default function HomeScreen({
 
   return (
     <div className={styles.wrap}>
-      <section className={styles.hero}>
-        <p className="eyebrow">Interview practice, end to end</p>
-        <h1 className={styles.title}>
-          Practice interviews that fit <span className={styles.grad}>the job</span>
-        </h1>
-        <p className={styles.lede}>
-          A mock interviewer asks questions tailored to a specific role, then scores
-          your answers. Nothing is shared — your history stays in this browser.
-        </p>
-
-        <details className={styles.how}>
-          <summary className={styles.howSummary}>
-            How it works
-            <Icon name="chevronDown" size={15} className={styles.howChevron} />
-          </summary>
-          <ol className={styles.steps}>
-            {STEPS.map((s, i) => (
-              <li key={i}>
-                <span className={styles.stepNum} aria-hidden="true">
-                  {i + 1}
-                </span>
-                {s}
-              </li>
-            ))}
-          </ol>
-        </details>
-      </section>
+      {/* The dashboard used to open with the landing page's pitch all over
+          again — headline, lede and a "how it works" list — which pushed the
+          three actions and the history below the fold on a page you see every
+          visit. The sell belongs on the front door; this is the workbench. */}
+      <h1 className={styles.title}>Your dashboard</h1>
 
       {/* Three peers, not one action and two afterthoughts. */}
       <section className={styles.features} aria-label="What you can do">
         <FeatureCard
           icon="messageSquare"
           title="Mock interview"
-          body="Answer role-specific questions by voice or text, on a timer, and get a scored report."
+          body="Role-specific questions, on a timer, scored."
           action="Start an interview"
           onClick={onStartNew}
           featured
@@ -135,14 +114,14 @@ export default function HomeScreen({
         <FeatureCard
           icon="briefcase"
           title="Job matches"
-          body="Upload a resume and a city to pull real open roles, each scored against your background."
+          body="Real openings near you, ranked against your resume."
           action="Find job matches"
           onClick={onFindJobs}
         />
         <FeatureCard
           icon="fileText"
           title="Resume builder"
-          body="Write an ATS-friendly resume with an assistant, editing the live page as you go."
+          body="Write an ATS-friendly resume with an assistant."
           action="Build a resume"
           onClick={onBuildResume}
         />
@@ -210,16 +189,24 @@ export default function HomeScreen({
         )}
         {loading && <p className="sr-only">Loading your practice history…</p>}
 
+        {/* The only place the three steps still earn their space: someone who
+            hasn't run an interview yet doesn't know what one involves. */}
         {!loading && !hasHistory && !error && (
           <div className={styles.empty}>
             <span className={styles.emptyIcon} aria-hidden="true">
               <Icon name="target" size={22} />
             </span>
             <h3 className={styles.emptyTitle}>No interviews yet</h3>
-            <p className={styles.emptyBody}>
-              Run your first practice interview and your scored report will be waiting
-              here afterwards.
-            </p>
+            <ol className={styles.steps}>
+              {STEPS.map((s, i) => (
+                <li key={i}>
+                  <span className={styles.stepNum} aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  {s}
+                </li>
+              ))}
+            </ol>
             <button className="btn-primary" onClick={onStartNew}>
               Start your first interview
             </button>

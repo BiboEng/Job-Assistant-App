@@ -1,0 +1,98 @@
+/* Sits directly under the countdown, tucked to the same edge as the time
+   readout so the two read as one "while you're answering" cluster. Deliberately
+   small: it's a reassurance that the camera is on and a way to notice you've
+   drifted out of frame, not a thing to watch yourself in. */
+.wrap {
+  position: relative;
+  align-self: flex-start;
+  width: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  /* Pull up against the timer above, against the parent's row gap. */
+  margin-top: calc(var(--sp-2) * -1);
+}
+
+.video {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: block;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-sm);
+  /* Every self-view is mirrored; an unmirrored one is distracting enough to
+     cost the candidate attention. Presentational only — the tracker reads the
+     element itself, which is unaffected. */
+  transform: scaleX(-1);
+}
+
+.badge {
+  position: absolute;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  /* Over live video, so it carries its own contrast rather than a token that
+     assumes a known background. */
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: recPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes recPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.noTrack {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+}
+
+.caption {
+  margin: 0;
+  font-size: var(--fs-2xs);
+  line-height: var(--lh-tight);
+  color: var(--text-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .wrap {
+    width: 104px;
+  }
+  .caption {
+    display: none;
+  }
+}

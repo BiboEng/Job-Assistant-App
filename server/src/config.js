@@ -50,6 +50,23 @@ export const config = {
   // Interview focus presets the client may request. `mixed` is the default.
   interviewFocuses: ["mixed", "behavioral", "technical", "system-design"],
 
+  // How the candidate answers. "type" is the default and the historical
+  // behaviour; "speak" additionally collects browser-side delivery metrics
+  // (pace, pauses, on-camera time) and feeds them to the evaluator.
+  interviewModes: ["type", "speak"],
+
+  // Bounds for the delivery metrics a speak-mode client reports per answer.
+  // They're estimates measured in the browser, so they're clamped rather than
+  // trusted — see normalizeDelivery in interview.controller.js.
+  delivery: {
+    minWpm: 20,
+    maxWpm: 400,
+    maxPauseCount: 100,
+    // 10 minutes — past the mic's own 5-minute cap even with a re-record.
+    maxPauseMs: 600_000,
+    maxSpeakingMs: 600_000,
+  },
+
   // Input limits. The job description is re-sent to the model on every turn, so
   // keeping it bounded matters for both latency and cost.
   minJobDescriptionLength: 30,
