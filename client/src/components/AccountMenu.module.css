@@ -1,0 +1,128 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 3px var(--sp-1) 3px 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-muted);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+.trigger:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.trigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.triggerOpen {
+  border-color: var(--accent-text);
+  color: var(--text);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-accent);
+  color: var(--accent-contrast);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  box-shadow: var(--inner-highlight);
+}
+
+.caret {
+  transition: transform var(--dur) var(--ease);
+}
+.triggerOpen .caret {
+  transform: rotate(180deg);
+}
+
+/* --- the menu -------------------------------------------------------------- */
+
+/* z-index above the sticky bar's own 20, so the panel isn't clipped behind the
+   content that slides under the header. */
+.menu {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  right: 0;
+  z-index: 30;
+  min-width: 232px;
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  margin-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.identityLabel {
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
+}
+
+/* The email is the one thing here that can be arbitrarily long; let it
+   truncate rather than stretch the panel across the header. */
+.identityEmail {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--fs-md);
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.item:hover,
+.item:focus-visible {
+  background: var(--surface-sunken);
+}
+
+.danger {
+  color: var(--text-muted);
+}
+.danger:hover,
+.danger:focus-visible {
+  background: var(--danger-soft);
+  color: var(--danger);
+}

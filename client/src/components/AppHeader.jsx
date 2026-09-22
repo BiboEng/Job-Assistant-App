@@ -1,6 +1,7 @@
 import Icon from "./Icon.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
 import BrandMark from "./BrandMark.jsx";
+import AccountMenu from "./AccountMenu.jsx";
 import styles from "./AppHeader.module.css";
 
 /**
@@ -16,8 +17,13 @@ import styles from "./AppHeader.module.css";
  * where they are. Sign out follows the same rule — it would abandon the
  * interview just as surely as navigating away.
  *
- * `onSignOut` / `userEmail` come from AppWorkspace; the header stays free of
- * auth and router imports so it remains a plain presentational component.
+ * Sign out used to be a button of its own here. It now lives in AccountMenu,
+ * alongside the career survey — which needs a permanent home, because someone
+ * who skips the dashboard banner has no other way back to it.
+ *
+ * `onSignOut` / `userEmail` / the survey props come from AppWorkspace; the
+ * header stays free of auth and router imports so it remains a plain
+ * presentational component.
  */
 
 const NAV = [
@@ -30,6 +36,8 @@ export default function AppHeader({
   onHome,
   onNavigate,
   onSignOut,
+  onOpenSurvey,
+  surveyState,
   userEmail,
   active,
   interactive = true,
@@ -70,23 +78,13 @@ export default function AppHeader({
       <div className={styles.tail}>
         <ThemeToggle />
         {onSignOut && (
-          <button
-            type="button"
-            className="btn-subtle btn-sm"
-            aria-label="Sign out"
-            onClick={onSignOut}
-            disabled={!interactive}
-            title={
-              interactive
-                ? userEmail
-                  ? `Signed in as ${userEmail}`
-                  : undefined
-                : "Finish or end the interview to sign out"
-            }
-          >
-            <Icon name="logOut" size={16} />
-            <span className={styles.signOutLabel}>Sign out</span>
-          </button>
+          <AccountMenu
+            userEmail={userEmail}
+            onSignOut={onSignOut}
+            onOpenSurvey={onOpenSurvey}
+            surveyState={surveyState}
+            interactive={interactive}
+          />
         )}
       </div>
     </header>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import InterviewCard from "../components/InterviewCard.jsx";
 import Icon from "../components/Icon.jsx";
+import SurveyBanner from "../components/SurveyBanner.jsx";
 import { listInterviews, deleteInterview } from "../api/historyApi.js";
 import { scoreBand } from "../utils/score.js";
 import styles from "./HomeScreen.module.css";
@@ -23,6 +24,9 @@ export default function HomeScreen({
   onOpenInterview,
   onFindJobs,
   onBuildResume,
+  showSurveyPrompt = false,
+  onTakeSurvey,
+  onSkipSurvey,
 }) {
   const [interviews, setInterviews] = useState(null); // null = loading
   const [error, setError] = useState("");
@@ -100,6 +104,13 @@ export default function HomeScreen({
           three actions and the history below the fold on a page you see every
           visit. The sell belongs on the front door; this is the workbench. */}
       <h1 className={styles.title}>Your dashboard</h1>
+
+      {/* Shown only to an account with no survey row at all. Taking it or
+          skipping it both write one, so this is genuinely once — after that the
+          survey lives in the account menu. */}
+      {showSurveyPrompt && (
+        <SurveyBanner onTake={onTakeSurvey} onSkip={onSkipSurvey} />
+      )}
 
       {/* Three peers, not one action and two afterthoughts. */}
       <section className={styles.features} aria-label="What you can do">

@@ -8,7 +8,9 @@ import ResultsScreen from "./screens/ResultsScreen.jsx";
 import HistoryDetailScreen from "./screens/HistoryDetailScreen.jsx";
 import JobMatchesScreen from "./screens/JobMatchesScreen.jsx";
 import ResumeBuilderScreen from "./screens/ResumeBuilderScreen.jsx";
+import SurveyScreen from "./screens/SurveyScreen.jsx";
 import { useAuth } from "./auth/AuthProvider.jsx";
+import { useSurvey } from "./survey/useSurvey.js";
 import { saveInterview } from "./api/historyApi.js";
 import { STORAGE_KEY, nextId } from "./constants.js";
 import { PATHS } from "./routes.js";
@@ -79,6 +81,12 @@ export default function AppWorkspace() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const pathname = location.pathname;
+
+  // Whether this account has taken the career survey. Owned here so the
+  // dashboard banner and the header's account menu read one fetch rather than
+  // one each. It's pure data collection — nothing downstream of it touches a
+  // model call.
+  const survey = useSurvey();
 
   // Read once, at mount, and only when landing on a resumable path.
   const [persisted] = useState(() =>
@@ -237,6 +245,10 @@ export default function AppWorkspace() {
     guarded(() => navigate(PATHS.resume));
   }
 
+  function openSurvey() {
+    guarded(() => navigate(PATHS.survey));
+  }
+
   /**
    * Header nav. Disabled during a live interview, so the interview needs no
    * guard here; the Resume Builder registers one because its document is
@@ -281,6 +293,8 @@ export default function AppWorkspace() {
     openInterview,
     openJobMatches,
     openResumeBuilder,
+    openSurvey,
+    survey,
     setLeaveGuard,
   };
 
@@ -290,6 +304,8 @@ export default function AppWorkspace() {
         onHome={goHome}
         onNavigate={navigateSection}
         onSignOut={handleSignOut}
+        onOpenSurvey={openSurvey}
+        surveyState={survey.state}
         userEmail={user?.email}
         active={sectionOf(pathname)}
         interactive={pathname !== PATHS.chat}
@@ -319,6 +335,9 @@ export function DashboardRoute() {
       onOpenInterview={w.openInterview}
       onFindJobs={w.openJobMatches}
       onBuildResume={w.openResumeBuilder}
+      showSurveyPrompt={w.survey.shouldPrompt}
+      onTakeSurvey={w.openSurvey}
+      onSkipSurvey={w.survey.skip}
     />
   );
 }
@@ -385,4 +404,19 @@ export function JobMatchesRoute() {
 export function ResumeBuilderRoute() {
   const w = useWorkspace();
   return <ResumeBuilderScreen onBack={w.goHome} setLeaveGuard={w.setLeaveGuard} />;
+}
+
+export function SurveyRoute() {
+  const w = useWorkspace();
+  return (
+    <SurveyScreen
+      // A save of either kind updates the cached status, so the banner is gone
+      // the moment we're back on the dashboard rather than after a reload.
+      onDone={(status) => {
+        w.survey.markSaved(status);
+        w.goHome();
+      }}
+      onExit={w.goHome}
+    />
+  );
 }

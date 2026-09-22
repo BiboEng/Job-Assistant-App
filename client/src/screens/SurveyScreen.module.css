@@ -1,0 +1,299 @@
+/* One question per screen, so the column is narrower than the app shell: a
+   single question and its options read badly stretched across full width. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+/* --- progress -------------------------------------------------------------- */
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.progressMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.progressText {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A bar rather than fifteen pips: at fifteen steps the dots are too small to
+   count and too many to scan, and the only question anyone actually has is
+   "how much is left". */
+.track {
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-accent);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+/* --- the question card ----------------------------------------------------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-7) var(--sp-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  /* One question at a time means the card's height swings between a two-line
+     text field and a twelve-option grid. A floor keeps the buttons below it
+     from jumping up the page on every Next. */
+  min-height: 268px;
+  /* Re-keyed on every advance, so this replays. Deliberately a fade and a small
+     rise, not a slide: fifteen horizontal slides in a row reads as a carousel
+     the user is being dragged through. */
+  animation: questionIn var(--dur-slow) var(--ease-out);
+}
+
+@keyframes questionIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+  .fill {
+    transition: none;
+  }
+}
+
+/* The question is the page's headline now, so it's sized like one. */
+.question {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight);
+  color: var(--text);
+}
+/* Focused programmatically on each advance; the default outline on a heading
+   reads as an error, so give it the accent ring instead. */
+.question:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+  border-radius: var(--radius-xs);
+}
+
+/* Says "you may skip this" once, where the eye already is, instead of a hint
+   repeated beside all fifteen questions. */
+.optional {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--text-subtle);
+}
+
+/* --- option chips ---------------------------------------------------------- */
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  transition: border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.chip:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.chipOn {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+.chipOn:hover:not(:disabled) {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+
+/* The mark holds its space whether or not it's filled, so selecting an option
+   doesn't shift the label — and, with it, the whole wrapped row. */
+.chipMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--accent-contrast);
+}
+.chipOn .chipMark {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* --- text fields ----------------------------------------------------------- */
+
+.textQuestion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.textarea {
+  resize: vertical;
+}
+.input:focus,
+.textarea:focus {
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.input:disabled,
+.textarea:disabled {
+  background: var(--surface-sunken);
+  color: var(--text-subtle);
+}
+
+.optOut {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.optOut input {
+  accent-color: var(--accent);
+}
+
+/* A follow-up is subordinate to the option that revealed it, so it's indented
+   under a rule rather than presented as another question. */
+.followUp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+  padding-left: var(--sp-4);
+  border-left: 2px solid var(--accent-border);
+}
+
+.followUpLabel {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-muted);
+}
+
+/* --- controls -------------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.controlsLeft,
+.controlsRight {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+@media (max-width: 560px) {
+  .controls {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .controlsLeft,
+  .controlsRight {
+    justify-content: space-between;
+  }
+  .controlsRight > * {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-subtle);
+  line-height: var(--lh-snug);
+}
+.note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* --- loading --------------------------------------------------------------- */
+
+.skelHeader {
+  height: 44px;
+  border-radius: var(--radius-md);
+}
+
+.skelCard {
+  height: 268px;
+  border-radius: var(--radius-lg);
+}

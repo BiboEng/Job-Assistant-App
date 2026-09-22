@@ -26,6 +26,11 @@ get a public **landing page** — hero, About, How It Works (a tutorial-video sl
 per feature) and a Contact footer. See "Routing", "Authentication" and "Landing
 page" below.
 
+A signed-in user is also offered an optional **career survey** once — fifteen
+questions about their job search, stored in Supabase. **Nothing reads it yet.**
+It exists to be wired into personalization later, deliberately and separately;
+no AI prompt touches it today. See "Career survey" below.
+
 - **Frontend:** React 18 + Vite, plain CSS Modules over a design-token layer in
   `index.css`. **React Router 7** (declarative mode, `BrowserRouter`) for
   URL-based navigation; no component library, no state library. `AppHeader`
@@ -40,6 +45,9 @@ page" below.
 
 ```
 mock-interview/
+├── supabase/
+│   ├── README.md                    how to apply a migration (by hand — nothing does it for you)
+│   └── migrations/                  the career-survey table; see "Career survey"
 ├── server/
 │   └── src/
 │       ├── index.js                 app wiring: CORS, headers, rate limit, auth, routes
@@ -68,6 +76,11 @@ mock-interview/
         ├── AppWorkspace.jsx         signed-in layout: interview/jobs state, sessionStorage mirror,
         │                            AppHeader, and the thin `*Route` wrappers for each screen (lazy chunk)
         ├── auth/                    supabaseClient.js, AuthProvider.jsx (useAuth), RequireAuth.jsx (guard)
+        ├── survey/                  the career survey, and the ONLY code that touches Supabase
+        │                            data: surveyQuestions.js (the 15 questions as data),
+        │                            surveyMapping.js (pure answers ↔ row), surveyApi.js
+        │                            (the table), useSurvey.js (prompt/completed state).
+        │                            Read by no AI prompt — see "Career survey"
         ├── index.css                design tokens, theme blocks, shared button/banner/skeleton classes
         ├── identity.js              owner id → X-Client-Id (Supabase user id when
         │                            signed in, random per-browser id when not)
@@ -75,8 +88,11 @@ mock-interview/
         ├── api/                     client.js (fetch wrapper) + one module per resource (jobsApi, resumeApi, …)
         ├── screens/                 Landing (public), SignIn, ResetPassword (public), Home
         │                            (dashboard + history), JobDescription
-        │                            (JD + options), Chat, Results, HistoryDetail, JobMatches, ResumeBuilder
-        ├── components/              AppHeader (app nav + sign out), PublicHeader (site nav + Sign In),
+        │                            (JD + options), Chat, Results, HistoryDetail, JobMatches,
+        │                            ResumeBuilder, Survey (the optional career survey)
+        ├── components/              AppHeader (app nav + AccountMenu), AccountMenu (email,
+        │                            survey link, sign out), SurveyBanner (the one-time prompt),
+        │                            PublicHeader (site nav + Sign In),
         │                            SiteFooter (Contact), VideoPlaceholder, BrandMark,
         │                            AppSkeleton (pre-render placeholder for protected pages),
         │                            ChatInput (voice/text), ChatMessage, FeedbackReport,
@@ -115,8 +131,15 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
   "not configured" banner. Restart Vite after changing them. Optionally
   `VITE_API_BASE_URL` (no proxy) or `VITE_API_TOKEN` (server has `API_TOKEN` set).
 - Tests: `cd server && npm test`, and `cd client && npm test` (node:test, no
-  bundler — it covers the pure utils only, currently `utils/deliveryMetrics.js`.
-  There is still no component/DOM test runner.)
+  bundler — so it covers only what imports cleanly outside Vite: the pure utils
+  (`utils/deliveryMetrics.js`), the theme tokens, and the survey's questions ↔
+  migration ↔ row mapping. There is still no component/DOM test runner. Anything
+  reading `import.meta.env` — the Supabase client, and so `survey/surveyApi.js`
+  — throws under plain node, which is why the survey's pure half lives in its
+  own module.)
+- **The career survey needs a migration applied by hand** before it does
+  anything: `supabase/migrations/` → Supabase SQL Editor. Without it the feature
+  switches itself off rather than erroring. See "Career survey".
 
 ## Design system
 
@@ -198,6 +221,7 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
 | `/history/:interviewId` | protected | `HistoryDetailScreen` |
 | `/jobs` | protected | `JobMatchesScreen` |
 | `/resume` | protected | `ResumeBuilderScreen` |
+| `/survey` | protected | `SurveyScreen` (the optional career survey) |
 | `*` | — | redirect to `/` |
 
 - **One guard, one layout.** All protected paths are children of a single
@@ -697,6 +721,149 @@ plain text.
   `maxHistoryMessages * maxMessageLength + maxResumeJsonLength` stays under the
   64kb `express.json` limit — `server/test/resume.test.js` asserts this.
 
+## Career survey
+
+An optional fifteen-question survey about the user's job search, offered once on
+the dashboard and reachable afterwards from the account menu. Route: `/survey` →
+`SurveyScreen`.
+
+> **This data is not used by any AI feature.** Not interview questions, not
+> feedback, not the resume builder, not job matching. It is collected now so it
+> can be wired into personalization later, as its own piece of work. The whole
+> feature lives client-side against Supabase; **nothing in `server/` knows the
+> table exists**, so no prompt can reach it even by accident.
+> `client/test/survey.test.js` greps `server/src` for any reference and fails if
+> one appears — that tripwire is there so switching this on becomes a decision
+> someone makes on purpose rather than a line that slips in.
+
+### The table — `public.user_survey_responses`
+
+Defined in `supabase/migrations/20260921120000_user_survey_responses.sql`, and
+**it must be applied by hand** — there's no CLI wiring in this repo and nothing
+runs migrations automatically. Supabase → SQL Editor → paste → Run (or
+`supabase db push` if you have the project linked). See `supabase/README.md`.
+
+One row per user: `user_id uuid primary key references auth.users(id) on delete
+cascade`. A profile, not an event log — retaking the survey edits the same row.
+
+| column | shape | question |
+| --- | --- | --- |
+| `status` | `'dismissed' \| 'completed'` | not a question — see the three states below |
+| `career_stage` | enum text | Q1 career stage |
+| `target_industry`, `target_industry_other` | enum text + text(120) | Q2 industry (+ "Other" free text) |
+| `employment_status` | enum text | Q3 employment status |
+| `timeline` | enum text | Q4 how soon |
+| `job_search_challenges` | `text[]` | Q5 biggest challenges (multi) |
+| `interview_nerves` | `text[]` | Q6 interview types that worry them (multi) |
+| `target_role` | text(120) | Q7 target title |
+| `years_experience` | enum text | Q8 years of experience |
+| `education_level` | enum text | Q9 education |
+| `resume_status` | enum text | Q10 resume situation |
+| `company_targeting`, `target_companies` | enum text + text(600) | Q11 specific companies (+ the list) |
+| `app_goals` | `text[]` | Q12 what matters in this app (multi) |
+| `work_arrangement` | enum text | Q13 remote / hybrid / in-office |
+| `salary_expectation`, `salary_opt_out` | text(120) + boolean | Q14 salary — see below |
+| `coach_wish` | text(600) | Q15 free text |
+| `completed_at`, `created_at`, `updated_at` | timestamptz | `updated_at` by trigger |
+
+- **Every answer column is nullable**: each question is individually skippable,
+  and a skipped one is NULL rather than an empty string. The three `text[]`
+  columns are `not null default '{}'` instead, so "picked nothing" is an empty
+  array.
+- **Single-selects and multi-selects are constrained in SQL**, not just in the
+  UI (`check (... in (...))` / `check (col <@ array[...])`). The client's option
+  values must stay inside those constraints or Postgres rejects the row —
+  `client/test/survey.test.js` reads the migration and asserts every option
+  value and `char_length` cap matches.
+- **`salary_opt_out` is its own column** so "prefer not to say" stays
+  distinguishable from "skipped the question". Ticking it clears
+  `salary_expectation`, so a row can't say both.
+- **RLS is on, with four `auth.uid() = user_id` policies.** The anon key is
+  public, so that is the *only* thing between one account's answers and
+  another's. Unlike the rest of the app (whose `X-Client-Id` is an isolation
+  token the server takes on faith — see "Security model"), this table is a real
+  server-side boundary, because Supabase verifies the JWT.
+
+### The flow
+
+Three states, and the row is what distinguishes them:
+
+| state | row | what the user sees |
+| --- | --- | --- |
+| `none` | no row | the dashboard banner — **the only state that prompts** |
+| `dismissed` | row, `status='dismissed'` | nothing automatic; the account menu says "Finish career survey" |
+| `completed` | row, `status='completed'` | nothing automatic; the menu says "Edit survey answers" |
+
+- **Skipping writes a row.** "Skip for now" on the banner upserts an empty
+  `dismissed` row, which is what stops the prompt coming back next session —
+  and, because it's a row rather than localStorage, on the user's other devices
+  too. It is not "never": the survey stays in the account menu.
+- **Exiting partway keeps the answers.** "Save & exit" writes what's filled in
+  so far as `dismissed`, and returning prefills from it. Exiting with *nothing*
+  filled in writes no row at all — opening the form out of curiosity and backing
+  out isn't a dismissal, so the banner survives it.
+- `completed_at` is set on Submit and deliberately never cleared by a later
+  partial save.
+- **`AppWorkspace` owns the status** (`survey/useSurvey.js`) so the dashboard
+  banner and the account menu share one fetch per sign-in.
+
+### Client structure
+
+- `survey/surveyQuestions.js` — the fifteen questions as data (id, `column`,
+  `single|multi|text`, options, follow-up field, opt-out, caps). **The single
+  source of truth**: the form renders from it and the row mapping is derived
+  from it. Adding a question means adding it here *and* to the migration.
+  `SURVEY_STEPS` still groups them into five named sections, but **the screen
+  walks `SURVEY_QUESTIONS` — one question per screen**. The grouping survives
+  only as each question's `section` label ("About you", "Preferences"), shown
+  above the question so someone twelve screens in can tell where they are, and
+  as the thing that keeps related questions adjacent.
+- `survey/surveyMapping.js` — pure `answers ↔ row` conversion. Split out from
+  `surveyApi.js` **so it can be tested**: `surveyApi.js` imports the Supabase
+  client, which reads `import.meta.env` at load time and throws under plain
+  node. It also drops any option value the question doesn't define, rather than
+  letting one stale value in local state fail the whole save.
+- `survey/surveyApi.js` — the only module that touches the table.
+- `screens/SurveyScreen.jsx` — **one question per screen**, Next to advance,
+  fifteen in all, with a progress bar and "Question n of 15". Notes worth
+  keeping:
+  - **The question is the `<h1>`.** There's one thing on the screen, so it
+    should be what the page is about, and focus moves to it on every advance —
+    otherwise a keyboard user is left on a Next button belonging to a question
+    they can no longer see. The option group is `aria-labelledby` that heading,
+    which is why there's no `<fieldset>`/`<legend>`: around a single group whose
+    label is already the page heading, that's a second name for the same thing.
+  - **The card is keyed on the question id**, so React rebuilds the controls
+    rather than reusing one text input across two different questions and
+    carrying a caret (and a half-finished IME composition) between them.
+  - **`min-height` on the card** — heights swing between a two-line text field
+    and a twelve-option grid, and without a floor the buttons jump up the page
+    on every Next.
+  - A **progress bar, not fifteen pips**: at fifteen the dots are too small to
+    count, and the only question anyone has is how much is left.
+  - Deliberately **not** a `<form>`: nothing is required, and Enter in a text
+    field submitting would skip the user past a question they were mid-answer
+    on. Next is always enabled — skipping *is* pressing it.
+  - Single-selects **toggle off** when re-clicked, because otherwise a mis-click
+    can't be undone on an all-optional survey.
+- `components/SurveyBanner.jsx`, `components/AccountMenu.jsx`.
+
+### AccountMenu
+
+Sign out used to be a bare button in `AppHeader`. It's now inside
+`AccountMenu` — email, the survey item, Sign out — because the survey needed a
+permanent home and this app has no settings screen. Disabled wholesale during a
+live interview, for the same reason the nav is.
+
+### Degrading when the migration hasn't been applied
+
+Every entry point is gated on the feature being *available*, and a missing table
+(PostgREST `PGRST205` / Postgres `42P01`) reads as "unavailable", not an error:
+no banner, no menu item, and `/survey` — still reachable by URL — explains that
+the table is missing instead of throwing. A failed read collapses the same way
+on purpose: nobody came here to take a survey, and an error banner on the
+dashboard about one is worse than the prompt quietly not appearing.
+
 ## Security model — read before deploying
 
 Users sign in with Supabase, but **only the client enforces it** — the API has
@@ -764,6 +931,10 @@ Other guards already in place:
   titles/descriptions pulled from Adzuna in Job Matches, and to every field of
   the Resume Builder document (rendered as text nodes; paste into the preview is
   flattened to plain text, so no markup can enter the document either way).
+  The career survey's free-text answers are the one batch of user input that
+  reaches **no** model at all — keep it that way until wiring it in is a
+  deliberate piece of work, and treat those fields as untrusted input the day it
+  stops being true.
 - **Job Matches on a `:free` model:** a full search still makes ~13 model calls
   (1 profile + up to 12 scoring), just spread across `/search` + several
   `/score` batches; the free OpenRouter tier's ~20/min limit will make some job
@@ -804,6 +975,9 @@ Other guards already in place:
   shared stores. `history.service.js` is deliberately isolated behind the same
   function signatures so it can be replaced with a DB module without touching
   controllers — that's the intended next step for a real deployment.
+- **The one exception is the career survey**, which is a real Postgres table in
+  Supabase, written from the client and protected by RLS. The Express server has
+  no part in it. See "Career survey".
 
 ## Conventions
 

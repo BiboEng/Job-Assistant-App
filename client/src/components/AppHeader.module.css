@@ -11,11 +11,19 @@
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  margin: calc(var(--sp-6) * -1) 0 var(--sp-6);
+  margin: calc(var(--sp-8) * -1) 0 var(--sp-8);
   padding: var(--sp-4) 0;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
 }
+
+/* No backdrop-filter here, deliberately. A translucent blurred bar is the
+   obvious way to make a sticky header read as a layer, and on this element it
+   is a trap: backdrop-filter on a position: sticky box puts the bar on its own
+   compositing layer whose backdrop has to be re-sampled every frame against a
+   scrolling parent, and Chromium tiles the stale layer down the page — the
+   header renders repeated over the content. A flat --bg ground costs nothing
+   and has no artifact. */
 
 /* The shell drops its padding when printing, so the negative margin that lets
    the sticky bar cover it would pull the header off the top of the page. */
@@ -24,6 +32,7 @@
     position: static;
     margin: 0 0 var(--sp-4);
     padding: 0 0 var(--sp-3);
+    background: none;
   }
 }
 
@@ -37,8 +46,8 @@
   border: none;
   padding: 0;
   font-size: var(--fs-md);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
   color: var(--text);
   flex-shrink: 0;
 }
@@ -47,7 +56,7 @@ button.wordmark {
   cursor: pointer;
 }
 button.wordmark:hover .wordmarkText {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .wordmarkText {
@@ -68,13 +77,13 @@ button.wordmark:hover .wordmarkText {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: 6px var(--sp-3);
+  padding: 7px var(--sp-3);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-muted);
   font-size: var(--fs-md);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .navItem:hover:not(:disabled) {
@@ -88,12 +97,12 @@ button.wordmark:hover .wordmarkText {
 
 .navActive {
   background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--accent-text);
+  font-weight: var(--fw-semibold);
 }
 .navActive:hover:not(:disabled) {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .tail {
@@ -122,8 +131,7 @@ button.wordmark:hover .wordmarkText {
   .navItem {
     padding: 7px var(--sp-2);
   }
-  .wordmarkText,
-  .signOutLabel {
+  .wordmarkText {
     display: none;
   }
 }

@@ -1,0 +1,67 @@
+/* An offer, so it's tinted with the accent rather than a semantic colour —
+   nothing has gone wrong and nothing needs attention. */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  background: linear-gradient(140deg, var(--accent-soft) -20%, var(--surface) 70%);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-accent);
+  color: var(--accent-contrast);
+  box-shadow: var(--shadow-brand), var(--inner-highlight);
+}
+
+.copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight);
+}
+
+.body {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: var(--lh-snug);
+}
+
+.actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Below this the row can't hold a 38px badge, two lines of copy and two
+   buttons without the buttons shrinking to slivers. */
+@media (max-width: 620px) {
+  .banner {
+    flex-wrap: wrap;
+  }
+  .copy {
+    flex-basis: calc(100% - 38px - var(--sp-4));
+  }
+  .actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

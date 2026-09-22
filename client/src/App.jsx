@@ -31,6 +31,7 @@ const ResultsRoute = pick("ResultsRoute");
 const HistoryDetailRoute = pick("HistoryDetailRoute");
 const JobMatchesRoute = pick("JobMatchesRoute");
 const ResumeBuilderRoute = pick("ResumeBuilderRoute");
+const SurveyRoute = pick("SurveyRoute");
 
 export default function App() {
   return (
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/history/:interviewId" element={<HistoryDetailRoute />} />
         <Route path={PATHS.jobs} element={<JobMatchesRoute />} />
         <Route path={PATHS.resume} element={<ResumeBuilderRoute />} />
+        <Route path={PATHS.survey} element={<SurveyRoute />} />
       </Route>
 
       <Route path="*" element={<Navigate to={PATHS.home} replace />} />
