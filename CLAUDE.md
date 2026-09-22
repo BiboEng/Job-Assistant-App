@@ -920,8 +920,6 @@ Other guards already in place:
 
 ### Still outstanding / known limitations
 
-- **Rotate the OpenRouter key.** The key in `server/.env` was exposed; it must be
-  rotated at https://openrouter.ai/keys. (The assistant cannot edit `server/.env`.)
 - **Model:** `server/.env` currently uses a `:free` model. It works (plain-text
   fallback + one parse retry) but a paid model is more reliable for `/feedback`.
 - **Prompt injection:** the job description and answers go into the LLM verbatim.
