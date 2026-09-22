@@ -36,7 +36,7 @@
 
 .active {
   background: var(--surface);
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 650;
   box-shadow: var(--shadow-xs);
 }

@@ -31,7 +31,7 @@
   color: var(--text-muted);
 }
 .blurb svg {
-  color: var(--accent);
+  color: var(--accent-text);
   flex-shrink: 0;
 }
 
@@ -137,8 +137,8 @@
   padding: 3px var(--sp-3);
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid var(--accent);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-text);
   font-size: var(--fs-xs);
   font-weight: 600;
 }
@@ -178,7 +178,7 @@
   line-height: var(--lh-snug);
 }
 .startHint svg {
-  color: var(--accent);
+  color: var(--accent-text);
   flex-shrink: 0;
 }
 

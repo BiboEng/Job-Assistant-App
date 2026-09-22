@@ -161,11 +161,11 @@
   transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .suggestion svg {
-  color: var(--accent);
+  color: var(--accent-text);
   flex-shrink: 0;
 }
 .suggestion:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   background: var(--accent-softer);
 }
 
@@ -194,7 +194,7 @@
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .input:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .input:disabled {

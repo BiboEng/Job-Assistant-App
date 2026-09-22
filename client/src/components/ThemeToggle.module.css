@@ -12,7 +12,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  width: 30px;
   height: 26px;
   padding: 0;
   border: none;
@@ -25,8 +25,11 @@
   color: var(--text);
 }
 
+/* The selected segment is a raised pill on a sunken track. In dark mode
+   --surface is *lighter* than --surface-sunken, so the same two tokens keep the
+   thumb reading as raised without the rule being restated per theme. */
 .active {
   background: var(--surface);
-  color: var(--accent);
+  color: var(--accent-text);
   box-shadow: var(--shadow-xs);
 }

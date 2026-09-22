@@ -84,12 +84,12 @@
   transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .dropzone:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   background: var(--accent-softer);
 }
 
 .dropzoneActive {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   border-style: solid;
   background: var(--accent-soft);
 }
@@ -102,7 +102,7 @@
   height: 42px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   margin-bottom: var(--sp-1);
 }
 .dropzoneActive .dropIcon {
@@ -192,7 +192,7 @@
 }
 .city:focus,
 .select:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
@@ -352,7 +352,7 @@
   outline: none;
 }
 .filterSelect:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
 }
 
 .filterToggle {
@@ -373,8 +373,8 @@
 
 .filterToggleOn {
   background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--accent-text);
+  color: var(--accent-text);
   font-weight: 600;
 }
 

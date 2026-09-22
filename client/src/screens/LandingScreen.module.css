@@ -252,7 +252,7 @@
   height: 38px;
   border-radius: var(--radius-md);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   margin-bottom: var(--sp-1);
 }
 
@@ -348,7 +348,7 @@
   margin-top: 1px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: var(--fs-xs);
   font-weight: 700;
   display: inline-flex;

@@ -178,7 +178,7 @@
 .qNum {
   flex-shrink: 0;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: var(--fs-xs);
   letter-spacing: 0.03em;
 }
@@ -279,7 +279,7 @@
   padding: var(--sp-3);
 }
 .comment svg {
-  color: var(--accent);
+  color: var(--accent-text);
   margin-top: 3px;
 }
 

@@ -1,18 +1,21 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-7);
+  gap: var(--sp-10);
 }
 
 /* --- page heading ---------------------------------------------------------- */
 
 /* A page label, not a headline. The dashboard is a workbench — the pitch
    lives on the landing page. */
+/* No bottom margin: .wrap is a flex column with its own gap, so a margin here
+   stacks on top of it — that is how the title ended up 84px clear of the cards. */
 .title {
-  margin: 0 0 var(--sp-2);
+  margin: 0;
   font-size: var(--fs-2xl);
+  font-weight: var(--fw-semibold);
   line-height: var(--lh-tight);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--ls-tighter);
 }
 
 .steps {
@@ -28,7 +31,7 @@
 
 .steps li {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--sp-3);
   font-size: var(--fs-md);
   color: var(--text-muted);
@@ -40,9 +43,9 @@
   height: 22px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: var(--fw-semibold);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -53,7 +56,7 @@
 .features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-4);
+  gap: var(--sp-5);
 }
 
 @media (max-width: 760px) {
@@ -66,9 +69,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
   text-align: left;
-  padding: var(--sp-5);
+  padding: var(--sp-6);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -77,39 +80,53 @@
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
     transform var(--dur) var(--ease);
 }
+/* 2px, where a button lifts 1px: the card is an order of magnitude larger, and
+   the same displacement on a bigger object reads as less movement, not more.
+   The border firms up rather than turning blue — a hovered card is not an
+   active one, and colouring the edge says it is. */
 .feature:hover {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
+.feature:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
 
 /* The interview is the product's centre of gravity, so it gets a tinted ground
-   and a filled icon — a difference in emphasis, not in rank. */
+   and a filled icon — a difference in emphasis, not in rank. The tint fades out
+   before the card's own bottom edge so it reads as light falling on the card
+   rather than as a second, bluer card. */
 .featured {
-  background: linear-gradient(180deg, var(--accent-softer), var(--surface) 60%);
-  border-color: var(--accent-soft);
+  background: linear-gradient(170deg, var(--accent-soft) -10%, var(--surface) 62%);
+  border-color: var(--accent-border);
+}
+.featured:hover {
+  border-color: var(--accent-text);
 }
 .featured .featureIcon {
   background: var(--gradient-accent);
-  color: #fff;
+  color: var(--accent-contrast);
+  box-shadow: var(--shadow-brand), var(--inner-highlight);
 }
 
 .featureIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   background: var(--accent-soft);
-  color: var(--accent);
-  margin-bottom: var(--sp-1);
+  color: var(--accent-text);
+  margin-bottom: var(--sp-2);
 }
 
 .featureTitle {
   font-size: var(--fs-lg);
-  font-weight: 650;
-  letter-spacing: -0.012em;
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
 }
 
 .featureBody {
@@ -119,17 +136,26 @@
   flex: 1;
 }
 
+/* The arrow slides out by 2px instead of the gap growing, so the label itself
+   never moves — text that shifts under the cursor reads as a layout bug. */
 .featureAction {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-1);
-  margin-top: var(--sp-2);
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
   font-size: var(--fs-md);
-  font-weight: 600;
-  color: var(--accent);
+  font-weight: var(--fw-medium);
+  color: var(--accent-text);
+  transition: color var(--dur) var(--ease);
+}
+.featureAction svg {
+  transition: transform var(--dur) var(--ease);
 }
 .feature:hover .featureAction {
-  gap: var(--sp-2);
+  color: var(--accent-text-hover);
+}
+.feature:hover .featureAction svg {
+  transform: translateX(2px);
 }
 
 /* --- history -------------------------------------------------------------- */
@@ -137,7 +163,7 @@
 .historySection {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-5);
 }
 
 .header {
@@ -151,9 +177,11 @@
 .heading {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
   margin: 0;
   font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
 }
 
 .countBadge {
@@ -163,37 +191,41 @@
   min-width: 22px;
   height: 22px;
   padding: 0 var(--sp-2);
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
   color: var(--text-muted);
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- stats strip ---------------------------------------------------------- */
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
   overflow: hidden;
 }
 
 .stat {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: var(--sp-3) var(--sp-4);
+  gap: 2px;
+  padding: var(--sp-5);
   background: var(--surface);
 }
 
 .statValue {
   font-size: var(--fs-xl);
-  font-weight: 700;
+  font-weight: var(--fw-semibold);
   line-height: 1.1;
+  letter-spacing: var(--ls-tight);
   font-variant-numeric: tabular-nums;
 }
 
@@ -214,6 +246,7 @@
   align-items: center;
   gap: var(--sp-3);
   flex-wrap: wrap;
+  margin-top: var(--sp-1);
 }
 
 .searchField {
@@ -233,7 +266,7 @@
 
 .search {
   width: 100%;
-  padding: 8px var(--sp-3) 8px 36px;
+  padding: 9px var(--sp-4) 9px 38px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -242,8 +275,14 @@
   outline: none;
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
+.search::placeholder {
+  color: var(--text-subtle);
+}
+.search:hover:not(:focus) {
+  border-color: var(--border-strong);
+}
 .search:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
@@ -254,14 +293,19 @@
 .sortSelect {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 8px var(--sp-3);
+  padding: 9px var(--sp-3);
   background: var(--surface);
   color: var(--text);
   font-size: var(--fs-md);
   outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.sortSelect:hover {
+  border-color: var(--border-strong);
 }
 .sortSelect:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 /* --- list / states -------------------------------------------------------- */
@@ -288,8 +332,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--sp-2);
-  padding: var(--sp-8) var(--sp-5);
+  gap: var(--sp-3);
+  padding: var(--sp-10) var(--sp-6);
   background: var(--surface);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-lg);
@@ -299,16 +343,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   margin-bottom: var(--sp-1);
 }
 
 .emptyTitle {
   margin: 0;
   font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
 }
 

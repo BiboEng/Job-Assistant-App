@@ -33,7 +33,7 @@
   flex-shrink: 0;
 }
 .wordmark:hover .wordmarkText {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .wordmarkText {
@@ -67,7 +67,7 @@
 }
 
 .navActive {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 

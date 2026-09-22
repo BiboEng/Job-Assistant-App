@@ -7,8 +7,10 @@
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
     transform var(--dur) var(--ease);
 }
+/* Matches the dashboard feature cards: the edge firms up, it does not turn
+   blue. A hovered row is not a selected one. */
 .card:hover {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
@@ -23,13 +25,13 @@
   color: inherit;
   background: none;
   border: none;
-  padding: var(--sp-4) var(--sp-5);
-  padding-right: 56px; /* room for the delete button */
+  padding: var(--sp-5) var(--sp-6);
+  padding-right: 60px; /* room for the delete button */
   cursor: pointer;
   border-radius: var(--radius-lg);
 }
 .open:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -41,7 +43,8 @@
 .title {
   margin: 0 0 2px;
   font-size: var(--fs-base);
-  font-weight: 650;
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -71,24 +74,25 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
-  width: 78px;
-  height: 78px;
+  width: 80px;
+  height: 80px;
   border-radius: var(--radius-md);
   border: 1px solid;
 }
 
 .scoreNum {
   font-size: var(--fs-2xl);
-  font-weight: 700;
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .scoreLabel {
   font-size: var(--fs-2xs);
-  font-weight: 700;
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--ls-wide);
 }
 
 .deleteBtn {
@@ -143,7 +147,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--sp-2) var(--sp-3);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-xl);
 }
 
 .confirmText {

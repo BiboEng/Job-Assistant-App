@@ -20,7 +20,7 @@
   margin-top: 18px; /* aligns with the bubble, below the role label */
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .bubbleWrap {

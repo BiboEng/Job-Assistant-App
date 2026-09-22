@@ -90,11 +90,11 @@
 
 .switchActive {
   background: var(--surface);
-  color: var(--accent);
+  color: var(--accent-text);
   box-shadow: var(--shadow-xs);
 }
 .switchActive:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* --- form ----------------------------------------------------------------- */
@@ -137,11 +137,11 @@
   background: none;
   font-size: var(--fs-xs);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   cursor: pointer;
 }
 .reveal:hover:not(:disabled) {
-  color: var(--accent-hover);
+  color: var(--accent-text-hover);
 }
 .reveal:disabled {
   opacity: 0.5;
@@ -160,7 +160,7 @@
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .input:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .input:disabled {
@@ -203,7 +203,7 @@
   text-decoration: none;
 }
 .backLink:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Banners are flex-wrap; without this a long message wraps below its icon. */

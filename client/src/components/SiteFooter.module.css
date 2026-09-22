@@ -54,11 +54,11 @@
   transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .link:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   background: var(--accent-softer);
 }
 .link > svg {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .linkLabel,

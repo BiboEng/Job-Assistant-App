@@ -12,12 +12,12 @@
     transform var(--dur) var(--ease);
 }
 .card:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 .card:focus-within {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
 }
 
 .body {
@@ -40,7 +40,7 @@
   text-decoration: none;
 }
 .link:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Stretched so the whole card is the click target, while the DOM still has
@@ -57,7 +57,7 @@
   align-self: center;
 }
 .link:hover .linkIcon {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .company {

@@ -54,7 +54,7 @@
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .textarea:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .textarea:disabled {
@@ -173,9 +173,9 @@
     background var(--dur) var(--ease);
 }
 .addResume:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   border-style: solid;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-softer);
 }
 
@@ -205,7 +205,7 @@
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .resumeArea:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
