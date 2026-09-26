@@ -1,12 +1,9 @@
-/* Full-bleed sticky bar. The translucent ground + blur keeps the page's ambient
-   wash visible behind it while still separating the nav from scrolled content. */
+/* Full-bleed sticky bar on a solid ground — no translucency, no blur. */
 .bar {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  -webkit-backdrop-filter: saturate(1.4) blur(12px);
-  backdrop-filter: saturate(1.4) blur(12px);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
 
@@ -16,28 +13,23 @@
   gap: var(--sp-4);
   max-width: var(--shell-width-public);
   margin: 0 auto;
-  padding: var(--sp-3) var(--sp-5);
+  padding: var(--sp-3) var(--sp-6);
+  min-height: 56px;
 }
 
-/* --- wordmark ------------------------------------------------------------- */
+/* --- wordmark: text only ---------------------------------------------------- */
 
 .wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  font-size: var(--fs-md);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tighter);
   color: var(--text);
   text-decoration: none;
   flex-shrink: 0;
-}
-.wordmark:hover .wordmarkText {
-  color: var(--accent-text);
-}
-
-.wordmarkText {
   transition: color var(--dur) var(--ease);
+}
+.wordmark:hover {
+  color: var(--accent);
 }
 
 /* --- nav ------------------------------------------------------------------ */
@@ -45,30 +37,30 @@
 .nav {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--sp-1);
   margin-left: auto;
 }
 
 .navItem {
   display: inline-flex;
   align-items: center;
-  padding: 6px var(--sp-3);
-  border-radius: var(--radius-md);
+  min-height: var(--control-height);
+  padding: 0 var(--sp-3);
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: var(--fs-md);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   text-decoration: none;
   white-space: nowrap;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .navItem:hover {
-  background: var(--surface-sunken);
+  background: var(--surface-raised);
   color: var(--text);
 }
 
 .navActive {
-  color: var(--accent-text);
-  font-weight: 600;
+  color: var(--accent);
 }
 
 /* --- tail ----------------------------------------------------------------- */
@@ -80,18 +72,15 @@
   flex-shrink: 0;
 }
 
-.theme {
-  display: inline-flex;
-}
-
 /* .btn-primary is global, so link-specific overrides hang off a module class. */
 .cta {
   text-decoration: none;
 }
+.cta:hover {
+  color: var(--accent-contrast);
+}
 
-/* Narrow: the section links drop to their own row under the wordmark and the
-   Sign In button, rather than shrinking to icons — they're words, and there
-   are only three. */
+/* Narrow: the section links drop to their own row under the wordmark. */
 @media (max-width: 680px) {
   .inner {
     flex-wrap: wrap;
@@ -108,12 +97,6 @@
     justify-content: space-between;
   }
   .navItem {
-    padding: 6px var(--sp-2);
-  }
-}
-
-@media (max-width: 380px) {
-  .theme {
-    display: none;
+    padding: 0 var(--sp-2);
   }
 }

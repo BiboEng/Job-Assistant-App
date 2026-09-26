@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router";
-import PublicHeader from "../components/PublicHeader.jsx";
 import Icon from "../components/Icon.jsx";
 import { useAuth, takeAuthReturnTo } from "../auth/AuthProvider.jsx";
 import { PATHS } from "../routes.js";
@@ -109,6 +108,10 @@ export default function SignInScreen() {
   // Read once at mount: set just before leaving for Google/GitHub.
   const [storedReturnTo] = useState(takeAuthReturnTo);
   const [notice, setNotice] = useState("");
+  // Google is the headline way in, so the email form starts folded away behind
+  // "Continue with email" — unless the visitor arrived asking for it (a
+  // sign-up or reset link), in which case hiding it would be in their way.
+  const [emailOpen, setEmailOpen] = useState(mode !== "sign-in");
   const emailRef = useRef(null);
   const ids = useId();
   const emailId = `${ids}-email`;
@@ -145,7 +148,14 @@ export default function SignInScreen() {
     // Replace, and carry the router state along, so a deep-link destination
     // isn't lost by toggling forms.
     setParams(nextParams, { replace: true, state: location.state });
+    setEmailOpen(true);
     emailRef.current?.focus();
+  }
+
+  function openEmail() {
+    setEmailOpen(true);
+    // The input mounts on this render; focus it once it exists.
+    requestAnimationFrame(() => emailRef.current?.focus());
   }
 
   async function handleSubmit(e) {
@@ -233,29 +243,85 @@ export default function SignInScreen() {
 
   return (
     <div className="public-site">
-      <PublicHeader />
-
-      <main id="main-content" tabIndex={-1} className={`app-shell app-shell--public ${styles.page}`}>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <main id="main-content" tabIndex={-1} className={styles.page}>
         <div className={styles.card}>
           <div className={styles.head}>
-            <span className={styles.icon} aria-hidden="true">
-              <Icon name="lock" size={20} />
-            </span>
             <h1 className={styles.title}>
-              {isForgot
-                ? "Reset your password"
-                : isSignUp
-                ? "Create your account"
-                : "Welcome back"}
+              <Link to={PATHS.home} className={styles.wordmark}>
+                Jobassist
+              </Link>
             </h1>
             <p className={styles.subtitle}>
               {isForgot
-                ? "We'll email you a link to set a new one."
+                ? "Reset your password. We'll email you a link."
                 : isSignUp
-                ? "Save your practice history and pick up where you left off."
-                : "Sign in to continue to your dashboard."}
+                ? "Create an account to save your practice history."
+                : "Interview practice, job matches and resumes."}
             </p>
           </div>
+
+          {!configured && (
+            <div className="warn-banner" role="alert">
+              <Icon name="alert" />
+              <span className={styles.bannerText}>
+                Sign-in isn&apos;t configured. Set <code>SUPABASE_URL</code> and{" "}
+                <code>SUPABASE_ANON_KEY</code> in <code>client/.env</code>, then restart
+                the dev server.
+              </span>
+            </div>
+          )}
+
+          {notice && (
+            <div className="info-banner" role="status">
+              <Icon name="mail" />
+              <span className={styles.bannerText}>{notice}</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="error-banner" role="alert">
+              <Icon name="alert" />
+              <span className={styles.bannerText}>{error}</span>
+            </div>
+          )}
+
+          {/* A password reset is about an email/password account, so the OAuth
+              buttons would only be a distraction here. Google leads; GitHub
+              is the quieter alternative under it. */}
+          {!isForgot && (
+            <div className={styles.providers}>
+              {PROVIDERS.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`${i === 0 ? "btn-primary" : "btn-ghost"} ${styles.providerBtn}`}
+                  onClick={() => handleProvider(p.id)}
+                  disabled={disabled || loading}
+                >
+                  <ProviderLogo provider={p.id} />
+                  {pendingProvider === p.id
+                    ? `Redirecting to ${p.label}…`
+                    : `Continue with ${p.label}`}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!emailOpen && !isForgot ? (
+            <button type="button" className={styles.emailToggle} onClick={openEmail}>
+              <Icon name="mail" />
+              Continue with email
+            </button>
+          ) : (
+          <>
+          {!isForgot && (
+            <div className={styles.divider} role="separator">
+              <span>or use your email</span>
+            </div>
+          )}
 
           {/* Two tabs, but it's one form — the switch is a mode, not a page.
               Forgot-password is reached from the link below, not from here, so
@@ -283,58 +349,6 @@ export default function SignInScreen() {
                 Sign up
               </button>
             </div>
-          )}
-
-          {!configured && (
-            <div className="warn-banner" role="alert">
-              <Icon name="alert" size={16} />
-              <span className={styles.bannerText}>
-                Sign-in isn&apos;t configured. Set <code>SUPABASE_URL</code> and{" "}
-                <code>SUPABASE_ANON_KEY</code> in <code>client/.env</code>, then restart
-                the dev server.
-              </span>
-            </div>
-          )}
-
-          {notice && (
-            <div className="info-banner" role="status">
-              <Icon name="mail" size={16} />
-              <span className={styles.bannerText}>{notice}</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="error-banner" role="alert">
-              <Icon name="alert" size={16} />
-              <span className={styles.bannerText}>{error}</span>
-            </div>
-          )}
-
-          {/* A password reset is about an email/password account, so the OAuth
-              buttons would only be a distraction here. */}
-          {!isForgot && (
-            <>
-              <div className={styles.providers}>
-                {PROVIDERS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={styles.providerBtn}
-                    onClick={() => handleProvider(p.id)}
-                    disabled={disabled || loading}
-                  >
-                    <ProviderLogo provider={p.id} />
-                    {pendingProvider === p.id
-                      ? `Redirecting to ${p.label}…`
-                      : `Continue with ${p.label}`}
-                  </button>
-                ))}
-              </div>
-
-              <div className={styles.divider} role="separator">
-                <span>or use your email</span>
-              </div>
-            </>
           )}
 
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -476,11 +490,13 @@ export default function SignInScreen() {
               </>
             )}
           </p>
+          </>
+          )}
         </div>
 
         <p className={styles.back}>
           <Link to={PATHS.home} className={styles.backLink}>
-            <Icon name="arrowLeft" size={15} />
+            <Icon name="arrowLeft" />
             Back to home
           </Link>
         </p>

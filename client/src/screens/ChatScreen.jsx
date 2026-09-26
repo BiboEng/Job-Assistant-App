@@ -349,7 +349,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
 
       {error && (
         <div className="error-banner" role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>{error}</span>
           {sessionLost && (
             <button className="btn-ghost" onClick={onRestart}>
@@ -361,7 +361,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
 
       {feedbackError && (
         <div className="error-banner" role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>Couldn't generate feedback: {feedbackError}</span>
           <button className="btn-ghost" onClick={runFeedback} disabled={scoring}>
             Try again
@@ -393,7 +393,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
       {awaitingAnswer && secondsLeft != null && (
         <div className={`${styles.timer} ${urgency}`} role="timer">
           <div className={styles.timerHead}>
-            <Icon name="clock" size={15} />
+            <Icon name="clock" />
             <span className={styles.timerValue}>{formatDuration(secondsLeft)}</span>
             <span className={styles.timerNote}>left for this answer</span>
           </div>
@@ -417,7 +417,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
 
       {speakMode && captureFailed && (
         <div className="warn-banner" role="status">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>
             {capture.error || "Your camera and microphone aren't available."} Carry
             on by typing — you'll still get feedback on what you say, just not on

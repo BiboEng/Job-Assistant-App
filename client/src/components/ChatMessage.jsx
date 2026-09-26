@@ -28,7 +28,7 @@ export default function ChatMessage({ role, text, typing = false }) {
     <div className={`${styles.row} ${isCandidate ? styles.right : styles.left}`}>
       {!isCandidate && (
         <span className={styles.avatar} aria-hidden="true">
-          <Icon name="messageSquare" size={14} />
+          <Icon name="messageSquare" />
         </span>
       )}
 

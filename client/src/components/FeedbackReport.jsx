@@ -1,5 +1,4 @@
 import { useState } from "react";
-import ScoreCard from "./ScoreCard.jsx";
 import Icon from "./Icon.jsx";
 import { formatDuration } from "../utils/time.js";
 import { scoreBand, pctOf } from "../utils/score.js";
@@ -9,6 +8,9 @@ import styles from "./FeedbackReport.module.css";
  * Renders a feedback object: overall score, summary, strengths, weaknesses, and
  * the per-question breakdown. Shared by the post-interview results screen and
  * the history detail screen.
+ *
+ * One bordered surface, divided into sections by 1px rules — the big mono score
+ * first, because it's the one number anyone looks for.
  *
  * The breakdown is an accordion. Fully expanded, a six-question report is a wall
  * of text — question, full answer and comment for each — with no way to skim.
@@ -23,6 +25,8 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
     weaknesses = [],
     perQuestion = [],
   } = feedback || {};
+
+  const overall = scoreBand(overallScore);
 
   // Weakest question opens by default — it's the one worth reading.
   const [open, setOpen] = useState(() => {
@@ -47,18 +51,33 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
   }
 
   return (
-    <div className={styles.wrap}>
-      <div className={`${styles.card} ${styles.headerCard}`}>
-        <div className={styles.headerRow}>
-          <div className={styles.headerText}>
-            <h2 className={styles.heading}>{title}</h2>
-            {summary && <p className={styles.summary}>{summary}</p>}
-          </div>
-          <ScoreCard score={overallScore} max={100} label="Overall" />
+    <div className={styles.report}>
+      <section className={`${styles.section} ${styles.scoreSection}`}>
+        <div
+          className={styles.bigScore}
+          role="img"
+          aria-label={`Overall score ${overallScore} out of 100, ${overall.label}`}
+        >
+          <span className={styles.scoreNum} style={{ color: overall.color }}>
+            {overallScore}
+          </span>
+          <span className={styles.scoreMax}>/100</span>
         </div>
-      </div>
+        <div className={styles.scoreText}>
+          <div className={styles.scoreMeta}>
+            <h2 className={styles.heading}>{title}</h2>
+            <span
+              className={styles.bandTag}
+              style={{ color: overall.color, background: overall.soft }}
+            >
+              {overall.label}
+            </span>
+          </div>
+          {summary && <p className={styles.summary}>{summary}</p>}
+        </div>
+      </section>
 
-      <div className={styles.twoCol}>
+      <div className={`${styles.section} ${styles.twoCol}`}>
         <PointList
           tone="strong"
           icon="check"
@@ -76,7 +95,7 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
       </div>
 
       {perQuestion.length > 0 && (
-        <div className={styles.card}>
+        <section className={styles.section}>
           <div className={styles.breakdownHead}>
             <h3 className={styles.subheading}>Question breakdown</h3>
             <button type="button" className="btn-subtle btn-sm no-print" onClick={toggleAll}>
@@ -108,7 +127,7 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
                           className={styles.qTime}
                           title="Time allowed for this answer"
                         >
-                          <Icon name="clock" size={13} />
+                          <Icon name="clock" />
                           {formatDuration(q.timeLimitSeconds)} allowed
                         </span>
                       ) : null}
@@ -120,7 +139,6 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
                       </span>
                       <Icon
                         name="chevronDown"
-                        size={16}
                         className={`${styles.qChevron} ${isOpen ? styles.qChevronOpen : ""}`}
                       />
                     </span>
@@ -149,8 +167,8 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
                     </p>
                     {q.comment && (
                       <p className={styles.comment}>
-                        <Icon name="sparkles" size={14} />
-                        <span>{q.comment}</span>
+                        <span className={styles.aLabel}>Feedback</span>
+                        {q.comment}
                       </p>
                     )}
                   </div>
@@ -158,23 +176,22 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
               );
             })}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
 }
 
 /**
- * Strengths and weaknesses used to be two identical grey cards, which meant you
- * had to read the heading to know which one you were looking at. They're now
- * distinguished by color and icon as well as by title.
+ * Strengths and weaknesses are told apart by colour and icon as well as by
+ * title, so neither needs its heading read to be recognised.
  */
 function PointList({ tone, icon, title, items, emptyText }) {
   return (
-    <div className={`${styles.card} ${styles[tone]}`}>
+    <div className={`${styles.points} ${styles[tone]}`}>
       <h3 className={styles.subheading}>
         <span className={styles.pointIcon} aria-hidden="true">
-          <Icon name={icon} size={14} />
+          <Icon name={icon} />
         </span>
         {title}
       </h3>

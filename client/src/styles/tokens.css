@@ -1,0 +1,191 @@
+/*
+ * Design tokens — the single source of every visual value in the app.
+ *
+ * Palette: "underwater" — an abyssal blue base, with a soft aqua accent used
+ * the way bioluminescence is: sparingly, for the one thing on screen that
+ * matters (the primary action, the active nav item, focus, a key number).
+ *
+ * Rules the rest of the stylesheet follows:
+ *   - Module CSS styles through these names. No hex, rgb(), font size, spacing
+ *     value or radius literal belongs in a *.module.css file. If a value is
+ *     missing, add it here. The one deliberate exception is the resume sheet
+ *     (ResumePreview / EditableText), which is paper and must match the PDF.
+ *   - Separation is a 1px --border, never a drop shadow. The --shadow-* names
+ *     survive only so older rules resolve; they're all `none`, bar the one
+ *     popover shadow that lifts a floating menu off the page.
+ *   - The only gradient is --gradient-hero, one faint teal pool in a corner of
+ *     the page background. --gradient-accent is a flat colour under an old
+ *     name so no button can grow a ramp.
+ *
+ * The app is dark only. There is no light theme and no theme attribute.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* --- palette ----------------------------------------------------------- */
+  --bg: #070d14; /* abyss — page background */
+  --surface: #0c1622; /* cards, sidebar */
+  --surface-raised: #122030; /* hover states, inputs, menus, modals */
+  --border: #1c2e40;
+  --text: #e3eef5;
+  --text-muted: #7f97a8;
+  --accent: #4fd1c5; /* aqua */
+  --accent-soft: rgba(79, 209, 197, 0.12);
+  --secondary: #7aa7ff; /* soft blue — links, secondary highlights, sparingly */
+
+  --good: #5fd39a;
+  --okay: #e3b85c;
+  --weak: #e8787a;
+
+  /* --- derived neutrals --------------------------------------------------- */
+  --bg-tint: var(--bg);
+  --surface-sunken: #09121b; /* wells inside a surface: code, meters, tracks */
+  --surface-hover: var(--surface-raised);
+  --border-strong: #2a4259; /* hovered / focused control edges */
+  --text-subtle: #6b8496; /* 4.8:1 on --surface — tertiary labels only */
+
+  /* --- derived accent ----------------------------------------------------
+     --accent is both the fill and the ink: aqua is light enough to read as
+     text on the abyss, and dark text (--accent-contrast) reads on it as a
+     fill. --accent-text exists so older rules keep a name to point at. */
+  --accent-hover: #6fdcd1;
+  --accent-text: var(--accent);
+  --accent-text-hover: #8fe6dd;
+  --accent-softer: rgba(79, 209, 197, 0.06);
+  --accent-border: rgba(79, 209, 197, 0.32);
+  --accent-contrast: #04211e;
+  --accent-ring: rgba(79, 209, 197, 0.5);
+  --accent-2: var(--secondary);
+  --secondary-hover: #9dbdff;
+
+  --gradient-accent: var(--accent);
+  --gradient-accent-hover: var(--accent-hover);
+  --inner-highlight: 0 0 0 0 transparent;
+  --shadow-brand: none;
+  --shadow-brand-hover: none;
+
+  /* The only gradient allowed: a faint teal pool, top-left, like light from
+     somewhere far above the water. */
+  --gradient-hero: radial-gradient(
+    900px 600px at 0% 0%,
+    rgba(34, 128, 128, 0.09),
+    transparent 70%
+  );
+
+  /* --- semantic ----------------------------------------------------------- */
+  --success: var(--good);
+  --success-soft: rgba(95, 211, 154, 0.1);
+  --success-border: rgba(95, 211, 154, 0.3);
+  --warn: var(--okay);
+  --warn-soft: rgba(227, 184, 92, 0.1);
+  --warn-border: rgba(227, 184, 92, 0.3);
+  --danger: var(--weak);
+  --danger-soft: rgba(232, 120, 122, 0.1);
+  --danger-border: rgba(232, 120, 122, 0.3);
+  --danger-contrast: #2a0b0c;
+
+  /* Score bands. Kept as their own names because utils/score.js applies them
+     through inline styles as well as from CSS. */
+  --band-strong: var(--good);
+  --band-strong-soft: var(--success-soft);
+  --band-mixed: var(--okay);
+  --band-mixed-soft: var(--warn-soft);
+  --band-weak: var(--weak);
+  --band-weak-soft: var(--danger-soft);
+
+  /* Overlay behind a modal: a flat dim, never a blur. */
+  --scrim: rgba(3, 7, 11, 0.72);
+  --scrim-light: rgba(3, 7, 11, 0.28); /* a dim over the paper sheet while it is locked */
+
+  /* --- type --------------------------------------------------------------- */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "Cascadia Mono",
+    Menlo, monospace;
+
+  --fs-2xs: 0.6875rem; /* 11px — mono micro-labels */
+  --fs-xs: 0.75rem; /* 12px */
+  --fs-sm: 0.8125rem; /* 13px */
+  --fs-md: 0.875rem; /* 14px — base */
+  --fs-base: 0.875rem; /* 14px — body */
+  --fs-lg: 1rem; /* 16px */
+  --fs-xl: 1.125rem; /* 18px — section headings */
+  --fs-2xl: 1.375rem; /* 22px — page titles */
+  --fs-3xl: 1.75rem; /* 28px — landing hero */
+  --fs-4xl: 2.5rem; /* 40px — the big score */
+
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 600; /* nothing heavier than semibold */
+
+  --lh-tight: 1.2;
+  --lh-snug: 1.35;
+  --lh-normal: 1.5;
+
+  --ls-tight: -0.011em;
+  --ls-tighter: -0.018em;
+  --ls-wide: 0.04em; /* mono micro-labels */
+
+  /* --- spacing: a 4px grid ------------------------------------------------
+     The scale is 4 · 8 · 12 · 16 · 24 · 32 · 48. The older steps (-5, -8,
+     -10…-12) are kept as names and snapped onto it, so nothing is off-grid. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 16px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 32px;
+  --sp-9: 48px;
+  --sp-10: 48px;
+  --sp-11: 48px;
+  --sp-12: 48px;
+
+  /* --- radii: 6px controls, 10px cards, nothing rounder ------------------ */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --radius-pill: 6px; /* no pill shapes; the name survives for old rules */
+  --radius-round: 50%; /* avatars and status dots only */
+  --radius: var(--radius-md);
+
+  /* --- elevation: borders, not shadows ----------------------------------- */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow: none;
+  /* A floating menu is the one thing that sits *over* content rather than on
+     the page, and needs a dark halo to separate from what's underneath. */
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* --- motion: hover / focus / collapse only ----------------------------- */
+  --ease: cubic-bezier(0, 0, 0.2, 1); /* ease-out */
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 150ms;
+  --dur-slow: 180ms;
+
+  /* --- layout ------------------------------------------------------------- */
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 56px;
+  --shell-width: 1100px;
+  --shell-width-wide: 1440px;
+  --shell-width-public: 1080px;
+  --control-height: 32px;
+  --row-height: 44px;
+  --public-header-offset: 72px;
+}
+
+/* Under 680px the public header wraps its links onto a second row. */
+@media (max-width: 680px) {
+  :root {
+    --public-header-offset: 104px;
+  }
+}

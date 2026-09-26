@@ -1,48 +1,89 @@
-.wrap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-
-.card {
+/* One surface; sections are divided by 1px rules rather than stacked cards. */
+.report {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: var(--sp-5) var(--sp-6);
 }
 
-/* --- header --------------------------------------------------------------- */
-
-.headerCard {
-  background: linear-gradient(180deg, var(--accent-softer), var(--surface) 70%);
+.section {
+  padding: var(--sp-6);
+}
+.section + .section {
+  border-top: 1px solid var(--border);
 }
 
-.headerRow {
+/* --- overall score ---------------------------------------------------------- */
+
+.scoreSection {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-7);
+}
+
+.bigScore {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreNum {
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  letter-spacing: var(--ls-tighter);
+}
+
+.scoreMax {
+  font-size: var(--fs-lg);
+  color: var(--text-subtle);
+}
+
+.scoreText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.scoreMeta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-6);
+  gap: var(--sp-3);
   flex-wrap: wrap;
 }
 
-.headerText {
-  flex: 1;
-  min-width: 240px;
+.heading {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
 }
 
-.heading {
-  margin: 0 0 var(--sp-2);
-  font-size: var(--fs-2xl);
-  letter-spacing: -0.02em;
+.bandTag {
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
 }
 
 .summary {
   margin: 0;
+  max-width: 68ch;
   color: var(--text-muted);
-  font-size: var(--fs-md);
   line-height: var(--lh-normal);
-  max-width: 48ch;
+}
+
+@media (max-width: 560px) {
+  .scoreSection {
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
 }
 
 /* --- strengths / weaknesses ------------------------------------------------ */
@@ -50,36 +91,25 @@
 .twoCol {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-4);
+  padding: 0;
 }
-@media (max-width: 620px) {
+
+.points {
+  padding: var(--sp-6);
+  min-width: 0;
+}
+.points + .points {
+  border-left: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
   .twoCol {
     grid-template-columns: 1fr;
   }
-}
-
-/* Tone is carried by a left rule + icon color, not by the whole card ground —
-   a fully tinted card would read as an alert. */
-.strong {
-  border-left: 3px solid var(--band-strong);
-}
-.strong .pointIcon {
-  background: var(--band-strong-soft);
-  color: var(--band-strong);
-}
-.strong .bullet {
-  background: var(--band-strong);
-}
-
-.weak {
-  border-left: 3px solid var(--band-mixed);
-}
-.weak .pointIcon {
-  background: var(--band-mixed-soft);
-  color: var(--band-mixed);
-}
-.weak .bullet {
-  background: var(--band-mixed);
+  .points + .points {
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
 }
 
 .subheading {
@@ -87,49 +117,56 @@
   align-items: center;
   gap: var(--sp-2);
   margin: 0 0 var(--sp-3);
-  font-size: var(--fs-base);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0;
 }
 
 .pointIcon {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-pill);
+}
+.strong .pointIcon {
+  color: var(--band-strong);
+}
+.strong .bullet {
+  background: var(--band-strong);
+}
+.weak .pointIcon {
+  color: var(--band-weak);
+}
+.weak .bullet {
+  background: var(--band-weak);
 }
 
 .list {
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+}
+.list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
   font-size: var(--fs-md);
   line-height: var(--lh-normal);
 }
 
-.list li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-2);
-}
-
 .bullet {
   flex-shrink: 0;
-  width: 5px;
-  height: 5px;
-  margin-top: 9px;
-  border-radius: 50%;
-  background: var(--text-subtle);
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-round);
+  transform: translateY(-3px);
 }
 
 .muted {
   color: var(--text-subtle);
 }
 
-/* --- breakdown ------------------------------------------------------------- */
+/* --- question breakdown ---------------------------------------------------- */
 
 .breakdownHead {
   display: flex;
@@ -145,18 +182,13 @@
 .qList {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
-.qBlock {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--surface);
-  transition: border-color var(--dur) var(--ease);
-}
-.qBlock:hover {
-  border-color: var(--border-strong);
+.qBlock + .qBlock {
+  border-top: 1px solid var(--border);
 }
 
 .qToggle {
@@ -170,47 +202,52 @@
   border: none;
   color: inherit;
   font: inherit;
+  transition: background-color var(--dur) var(--ease);
 }
 .qToggle:hover {
-  background: var(--surface-hover);
+  background: var(--surface-raised);
+}
+.qToggle:focus-visible {
+  outline-offset: -2px;
 }
 
 .qNum {
   flex-shrink: 0;
-  font-weight: 700;
-  color: var(--accent-text);
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  letter-spacing: 0.03em;
+  color: var(--accent);
 }
 
 .qText {
   flex: 1;
   min-width: 0;
   font-size: var(--fs-md);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   line-height: var(--lh-snug);
 }
 
 .qRight {
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
   flex-shrink: 0;
 }
 
 .qTime {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: var(--fs-xs);
+  gap: var(--sp-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
   color: var(--text-subtle);
 }
 
 .qScore {
-  font-weight: 700;
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  padding: 3px var(--sp-2);
-  border-radius: var(--radius-pill);
+  font-weight: var(--fw-medium);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -223,22 +260,21 @@
 }
 
 .qBar {
-  height: 3px;
+  height: 2px;
   background: var(--surface-sunken);
 }
 
 .qBarFill {
   height: 100%;
-  transition: width 0.6s var(--ease);
 }
 
 .qBody {
   padding: var(--sp-4);
   border-top: 1px solid var(--border);
-  background: var(--surface-hover);
+  background: var(--surface-sunken);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
 }
 
 /* An explicit `display` beats the UA's `[hidden] { display: none }`, so without
@@ -249,45 +285,34 @@
   display: none;
 }
 
-.aText {
+.aText,
+.comment {
   margin: 0;
   font-size: var(--fs-md);
   line-height: var(--lh-normal);
   white-space: pre-wrap;
 }
 
-.aLabel {
-  display: block;
-  margin-bottom: 2px;
-  font-size: var(--fs-2xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-subtle);
+.comment {
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--accent);
 }
 
-.comment {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  margin: 0;
-  font-size: var(--fs-md);
-  line-height: var(--lh-normal);
-  color: var(--text);
-  background: var(--accent-soft);
-  border-radius: var(--radius-md);
-  padding: var(--sp-3);
-}
-.comment svg {
-  color: var(--accent-text);
-  margin-top: 3px;
+.aLabel {
+  display: block;
+  margin-bottom: var(--sp-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
 }
 
 /* Printing a report should print the whole report, not whatever happened to be
    expanded when the user hit print. */
 @media print {
   .qBody[hidden] {
-    display: block !important;
+    display: flex !important;
   }
   .qChevron {
     display: none;

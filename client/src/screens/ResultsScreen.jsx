@@ -64,55 +64,54 @@ export default function ResultsScreen({
 
   return (
     <div className={styles.wrap}>
-      <div className={`${styles.topBar} no-print`}>
-        {/* Save state lives up here as a quiet chip rather than a line of grey
-            text below the report, where it was easy to miss. */}
-        <div className={styles.saveState}>
-          {saveState === "saving" && (
-            <span className={styles.chip} role="status">
-              Saving to your history…
-            </span>
-          )}
-          {saveState === "saved" && (
-            <span className={`${styles.chip} ${styles.chipOk}`} role="status">
-              <Icon name="check" size={14} />
-              Saved to your history
-            </span>
-          )}
+      {/* Which interview this is, as the page title. The report itself is all
+          score and prose, so with several in your history a fresh one was
+          indistinguishable from an old one you'd reopened. Prints too — a
+          printed report with no role or date on it is not much use. */}
+      <header className={styles.head}>
+        <div className={styles.titleBlock}>
+          <h1 className={styles.title}>{session?.role || "Interview results"}</h1>
+          <div className={styles.meta}>
+            {session?.totalQuestions ? (
+              <span className={styles.facts}>
+                {session.totalQuestions} question{session.totalQuestions === 1 ? "" : "s"}
+                {focusLabel(session.focus) ? ` · ${focusLabel(session.focus)}` : ""}
+                {` · ${session.mode === "speak" ? "spoken" : "typed"}`}
+                {session.startedAt ? ` · ${formatWhen(session.startedAt)}` : ""}
+              </span>
+            ) : null}
+            {/* Save state as a quiet chip beside the facts, where it's seen. */}
+            {saveState === "saving" && (
+              <span className={`${styles.chip} no-print`} role="status">
+                Saving…
+              </span>
+            )}
+            {saveState === "saved" && (
+              <span className={`${styles.chip} ${styles.chipOk} no-print`} role="status">
+                <Icon name="check" />
+                Saved to history
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className={styles.topActions}>
-          <button className="btn-ghost btn-sm" onClick={copyReport}>
-            <Icon name="fileText" size={15} />
+        <div className={`${styles.topActions} no-print`}>
+          <button className="btn-ghost" onClick={copyReport}>
+            <Icon name="fileText" />
             Copy as text
           </button>
-          <button className="btn-ghost btn-sm" onClick={() => window.print()}>
-            <Icon name="printer" size={15} />
+          <button className="btn-ghost" onClick={() => window.print()}>
+            <Icon name="printer" />
             Print / save PDF
           </button>
         </div>
-      </div>
-
-      {/* Which interview this is. The report itself is all score and prose, so
-          with several in your history a fresh one was indistinguishable from an
-          old one you'd reopened. */}
-      {session && (session.role || session.totalQuestions) && (
-        <div className={styles.context}>
-          {session.role && <span className={styles.role}>{session.role}</span>}
-          <span className={styles.facts}>
-            {session.totalQuestions} question{session.totalQuestions === 1 ? "" : "s"}
-            {focusLabel(session.focus) ? ` · ${focusLabel(session.focus)}` : ""}
-            {` · ${session.mode === "speak" ? "spoken" : "typed"}`}
-            {session.startedAt ? ` · ${formatWhen(session.startedAt)}` : ""}
-          </span>
-        </div>
-      )}
+      </header>
 
       <FeedbackReport feedback={feedback} />
 
       {saveState === "error" && (
         <div className="error-banner no-print" role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>Couldn&apos;t save this interview to your history.</span>
           <button className="btn-ghost" onClick={onRetrySave}>
             Try again
@@ -122,7 +121,7 @@ export default function ResultsScreen({
 
       <div className={`${styles.actions} no-print`}>
         <button className="btn-primary" onClick={onRestart}>
-          <Icon name="refresh" size={16} />
+          <Icon name="refresh" />
           New interview
         </button>
         <button className="btn-ghost" onClick={onHome}>

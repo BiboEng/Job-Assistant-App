@@ -140,41 +140,35 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
 
   return (
     <div className={styles.wrap}>
-      {onBack && (
-        <button type="button" className={`btn-ghost btn-sm ${styles.back}`} onClick={onBack}>
-          <Icon name="arrowLeft" size={15} />
-          Back to home
-        </button>
-      )}
+      {/* This screen IS the whole setup — "Step 1 of 2" promised a second step
+          that never existed. */}
+      <header className="page-head">
+        <h1>New Interview</h1>
+        {!text && (
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => setText(SAMPLE_JD)}
+            disabled={loading}
+          >
+            <Icon name="sparkles" />
+            Use an example
+          </button>
+        )}
+      </header>
 
       <form className={styles.card} onSubmit={handleSubmit}>
         <header className={styles.cardHead}>
-          <div>
-            {/* This screen IS the whole setup — "Step 1 of 2" promised a second
-                step that never existed. */}
-            <p className="eyebrow">New interview</p>
-            <h2 className={styles.heading}>Paste the job description</h2>
-            <p className={styles.sub}>
-              {questionCount} question{questionCount === 1 ? "" : "s"}, tailored to
-              this role.
-            </p>
-          </div>
-          {!text && (
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              onClick={() => setText(SAMPLE_JD)}
-              disabled={loading}
-            >
-              <Icon name="sparkles" size={15} />
-              Use an example
-            </button>
-          )}
+          <h2 className={styles.heading}>Job description</h2>
+          <p className={styles.sub}>
+            {questionCount} question{questionCount === 1 ? "" : "s"}, tailored to this
+            role.
+          </p>
         </header>
 
         {error && (
           <div className="error-banner" role="alert">
-            <Icon name="alert" size={16} />
+            <Icon name="alert" />
             <span>{error}</span>
           </div>
         )}
@@ -243,7 +237,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
                 want my camera?" is a question to answer in advance. */}
             {speakRequested && permission !== "ok" && (
               <div className="info-banner">
-                <Icon name="video" size={16} />
+                <Icon name="video" />
                 <span>
                   We'll ask for your camera and microphone. Pace, pauses and eye
                   contact are measured in your browser — nothing is recorded or
@@ -254,7 +248,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
 
             {speakReady && (
               <div className="info-banner">
-                <Icon name="check" size={16} />
+                <Icon name="check" />
                 <span>
                   Camera and microphone ready. The camera switches off the moment
                   the interview ends.
@@ -264,7 +258,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
 
             {permission === "denied" && (
               <div className="warn-banner" role="status">
-                <Icon name="alert" size={16} />
+                <Icon name="alert" />
                 <span>
                   {permissionError} Staying in typing mode — your answers will be
                   scored on content as usual.
@@ -329,7 +323,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
               className={styles.addResume}
               onClick={() => setShowResume(true)}
             >
-              <Icon name="plus" size={15} />
+              <Icon name="plus" />
               Add your resume (optional)
             </button>
           )}
@@ -348,7 +342,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
             ) : (
               <>
                 Start interview
-                <Icon name="chevronRight" size={16} />
+                <Icon name="chevronRight" />
               </>
             )}
           </button>

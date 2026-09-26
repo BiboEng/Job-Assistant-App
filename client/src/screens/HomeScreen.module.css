@@ -1,360 +1,209 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-10);
 }
 
-/* --- page heading ---------------------------------------------------------- */
-
-/* A page label, not a headline. The dashboard is a workbench — the pitch
-   lives on the landing page. */
-/* No bottom margin: .wrap is a flex column with its own gap, so a margin here
-   stacks on top of it — that is how the title ended up 84px clear of the cards. */
-.title {
-  margin: 0;
-  font-size: var(--fs-2xl);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-tight);
-  letter-spacing: var(--ls-tighter);
+.banner {
+  margin-bottom: var(--sp-6);
 }
 
-.steps {
-  list-style: none;
-  margin: var(--sp-3) 0 var(--sp-2);
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  max-width: 44ch;
-  text-align: left;
-}
-
-.steps li {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  font-size: var(--fs-md);
-  color: var(--text-muted);
-}
-
-.stepNum {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* --- feature cards -------------------------------------------------------- */
-
-.features {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-5);
-}
-
-@media (max-width: 760px) {
-  .features {
-    grid-template-columns: 1fr;
-  }
-}
-
-.feature {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-3);
-  text-align: left;
-  padding: var(--sp-6);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  color: var(--text);
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
-}
-/* 2px, where a button lifts 1px: the card is an order of magnitude larger, and
-   the same displacement on a bigger object reads as less movement, not more.
-   The border firms up rather than turning blue — a hovered card is not an
-   active one, and colouring the edge says it is. */
-.feature:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-.feature:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-sm);
-}
-
-/* The interview is the product's centre of gravity, so it gets a tinted ground
-   and a filled icon — a difference in emphasis, not in rank. The tint fades out
-   before the card's own bottom edge so it reads as light falling on the card
-   rather than as a second, bluer card. */
-.featured {
-  background: linear-gradient(170deg, var(--accent-soft) -10%, var(--surface) 62%);
-  border-color: var(--accent-border);
-}
-.featured:hover {
-  border-color: var(--accent-text);
-}
-.featured .featureIcon {
-  background: var(--gradient-accent);
-  color: var(--accent-contrast);
-  box-shadow: var(--shadow-brand), var(--inner-highlight);
-}
-
-.featureIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  margin-bottom: var(--sp-2);
-}
-
-.featureTitle {
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-semibold);
-  letter-spacing: var(--ls-tight);
-}
-
-.featureBody {
-  font-size: var(--fs-md);
-  color: var(--text-muted);
-  line-height: var(--lh-normal);
-  flex: 1;
-}
-
-/* The arrow slides out by 2px instead of the gap growing, so the label itself
-   never moves — text that shifts under the cursor reads as a layout bug. */
-.featureAction {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-  font-size: var(--fs-md);
-  font-weight: var(--fw-medium);
-  color: var(--accent-text);
-  transition: color var(--dur) var(--ease);
-}
-.featureAction svg {
-  transition: transform var(--dur) var(--ease);
-}
-.feature:hover .featureAction {
-  color: var(--accent-text-hover);
-}
-.feature:hover .featureAction svg {
-  transform: translateX(2px);
-}
-
-/* --- history -------------------------------------------------------------- */
-
-.historySection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-5);
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  flex-wrap: wrap;
-}
-
-.heading {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-3);
-  margin: 0;
-  font-size: var(--fs-xl);
-  font-weight: var(--fw-semibold);
-  letter-spacing: var(--ls-tight);
-}
-
-.countBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 var(--sp-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-sunken);
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-medium);
-  font-variant-numeric: tabular-nums;
-}
-
-/* --- stats strip ---------------------------------------------------------- */
+/* --- stats strip: four mono figures in one bordered row -------------------- */
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1px;
-  background: var(--border);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 var(--sp-7);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  overflow: hidden;
+  background: var(--surface);
 }
 
 .stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--sp-5);
-  background: var(--surface);
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-4);
+  min-width: 0;
 }
-
-.statValue {
-  font-size: var(--fs-xl);
-  font-weight: var(--fw-semibold);
-  line-height: 1.1;
-  letter-spacing: var(--ls-tight);
-  font-variant-numeric: tabular-nums;
+.stat + .stat {
+  border-left: 1px solid var(--border);
 }
 
 .statLabel {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-}
-
-.statHint {
+  font-family: var(--font-mono);
   font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
   color: var(--text-subtle);
 }
 
-/* --- filter bar ----------------------------------------------------------- */
+.statValue {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  color: var(--text);
+}
 
-.filterBar {
+@media (max-width: 560px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stat:nth-child(3) {
+    border-left: none;
+  }
+  .stat:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* --- history --------------------------------------------------------------- */
+
+.historySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--sp-3);
   flex-wrap: wrap;
-  margin-top: var(--sp-1);
+  min-height: var(--control-height);
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-normal);
+  color: var(--text-subtle);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
 }
 
 .searchField {
   position: relative;
-  flex: 1;
-  min-width: 200px;
+  display: flex;
+  align-items: center;
 }
 
 .searchIcon {
   position: absolute;
-  left: var(--sp-3);
-  top: 50%;
-  transform: translateY(-50%);
+  left: var(--sp-2);
   color: var(--text-subtle);
   pointer-events: none;
 }
 
 .search {
-  width: 100%;
-  padding: 9px var(--sp-4) 9px 38px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--fs-md);
-  outline: none;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-.search::placeholder {
-  color: var(--text-subtle);
-}
-.search:hover:not(:focus) {
-  border-color: var(--border-strong);
-}
-.search:focus {
-  border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  width: 220px;
+  height: var(--control-height);
+  padding: 0 var(--sp-2) 0 var(--sp-7);
+  font-size: var(--fs-sm);
 }
 
 .sortField {
-  display: inline-flex;
+  display: flex;
 }
 
 .sortSelect {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 9px var(--sp-3);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--fs-md);
-  outline: none;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-.sortSelect:hover {
-  border-color: var(--border-strong);
-}
-.sortSelect:focus {
-  border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  height: var(--control-height);
+  padding: 0 var(--sp-2);
+  font-size: var(--fs-sm);
 }
 
-/* --- list / states -------------------------------------------------------- */
+/* --- the table --------------------------------------------------------------- */
 
-.list {
+.table {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
-}
-
-.skelCard {
-  height: 104px;
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
 }
 
-.state {
-  color: var(--text-muted);
-  margin: 0;
-  font-size: var(--fs-md);
+/* The header row. Its fixed tracks + gaps must total the same as a row's
+   (InterviewRow: 80 + 112 + 56 + 3 gaps + the 40px action cell), so the last
+   track here is 24px, not 40. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 112px 56px 24px;
+  gap: var(--sp-4);
+  align-items: center;
+  height: var(--control-height);
+  padding-left: var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
 }
+.colScore {
+  text-align: right;
+}
+
+.skelRow {
+  height: var(--row-height);
+  border-radius: 0;
+}
+.skelRow + .skelRow {
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr) 96px 48px 28px;
+    gap: var(--sp-3);
+  }
+  .colAnswered {
+    display: none;
+  }
+  .search {
+    width: 160px;
+  }
+}
+
+/* --- empty / no-match -------------------------------------------------------- */
 
 .empty {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  gap: var(--sp-3);
-  padding: var(--sp-10) var(--sp-6);
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  border: 1px dashed var(--border-strong);
+}
+.empty p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.state {
+  margin: 0;
+  padding: var(--sp-4);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }
-
-.emptyIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  margin-bottom: var(--sp-1);
-}
-
-.emptyTitle {
-  margin: 0;
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-semibold);
-  letter-spacing: var(--ls-tight);
-}
-

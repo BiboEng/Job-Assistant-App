@@ -1,12 +1,16 @@
-.page {
-  align-items: center;
-  padding-top: var(--sp-9);
-}
+/* Shared by SignInScreen and ResetPasswordScreen, so the two can't drift. */
 
-@media (max-width: 520px) {
-  .page {
-    padding-top: var(--sp-5);
-  }
+/* Centered in the viewport, nothing around it. */
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-9) var(--sp-4);
+}
+.page:focus {
+  outline: none;
 }
 
 .card {
@@ -14,18 +18,7 @@
   flex-direction: column;
   gap: var(--sp-4);
   width: 100%;
-  max-width: 420px;
-  padding: var(--sp-7);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-}
-
-@media (max-width: 520px) {
-  .card {
-    padding: var(--sp-6) var(--sp-5);
-  }
+  max-width: 360px;
 }
 
 /* --- heading -------------------------------------------------------------- */
@@ -34,6 +27,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
   text-align: center;
 }
 
@@ -41,60 +36,127 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: var(--sp-3);
-  border-radius: var(--radius-md);
-  background: var(--gradient-accent);
-  color: #fff;
-  box-shadow: var(--shadow-sm);
+  width: var(--control-height);
+  height: var(--control-height);
+  margin-bottom: var(--sp-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent);
 }
 
 .title {
   margin: 0;
   font-size: var(--fs-2xl);
-  letter-spacing: -0.02em;
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tighter);
+}
+
+.wordmark {
+  color: var(--text);
+  text-decoration: none;
+  transition: color var(--dur) var(--ease);
+}
+.wordmark:hover {
+  color: var(--accent);
 }
 
 .subtitle {
-  margin: var(--sp-1) 0 0;
+  margin: 0;
   font-size: var(--fs-md);
   color: var(--text-muted);
 }
 
-/* --- mode switch — same shape as SegmentedControl / ThemeToggle ------------ */
+/* --- Google / GitHub ------------------------------------------------------- */
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.providerBtn {
+  width: 100%;
+  min-height: 36px;
+  gap: var(--sp-3);
+}
+
+/* Google's mark must sit on white (its brand rules), so on the aqua button
+   it gets a small white tile of its own. */
+.providerBtn:global(.btn-primary) svg {
+  box-sizing: content-box;
+  padding: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--text);
+}
+
+.emailToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  align-self: center;
+  min-height: var(--control-height);
+  padding: 0 var(--sp-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  transition: color var(--dur) var(--ease);
+}
+.emailToggle:hover {
+  color: var(--text);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* --- mode switch — same shape as SegmentedControl -------------------------- */
 
 .switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2px;
-  padding: 3px;
+  padding: 2px;
   background: var(--surface-sunken);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .switchItem {
-  padding: 7px var(--sp-3);
+  min-height: 28px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-muted);
-  font-size: var(--fs-md);
-  font-weight: 600;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .switchItem:hover {
   color: var(--text);
 }
 
-.switchActive {
-  background: var(--surface);
-  color: var(--accent-text);
-  box-shadow: var(--shadow-xs);
-}
+.switchActive,
 .switchActive:hover {
-  color: var(--accent-text);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* --- form ----------------------------------------------------------------- */
@@ -102,13 +164,13 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-1);
 }
 
 .labelRow {
@@ -120,7 +182,7 @@
 
 .label {
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-medium);
   color: var(--text);
 }
 
@@ -134,14 +196,14 @@
 .reveal {
   padding: 0;
   border: none;
+  border-radius: var(--radius-xs);
   background: none;
   font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--accent-text);
+  color: var(--secondary);
   cursor: pointer;
 }
 .reveal:hover:not(:disabled) {
-  color: var(--accent-text-hover);
+  color: var(--secondary-hover);
 }
 .reveal:disabled {
   opacity: 0.5;
@@ -150,18 +212,9 @@
 
 .input {
   width: 100%;
-  padding: 10px var(--sp-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--fs-base);
-  outline: none;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-.input:focus {
-  border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  height: 36px;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-md);
 }
 .input:disabled {
   background: var(--surface-sunken);
@@ -169,96 +222,44 @@
 }
 
 .hint {
-  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
   color: var(--text-subtle);
 }
 
 .submit {
   width: 100%;
+  min-height: 36px;
   margin-top: var(--sp-1);
-  padding-top: 11px;
-  padding-bottom: 11px;
 }
 
 .alt {
   margin: 0;
   text-align: center;
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
 
 /* --- back link ------------------------------------------------------------ */
 
 .back {
-  margin: var(--sp-5) 0 0;
+  margin: var(--sp-7) 0 0;
 }
 
 .backLink {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
-  font-size: var(--fs-md);
-  font-weight: 600;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   text-decoration: none;
 }
 .backLink:hover {
-  color: var(--accent-text);
+  color: var(--text);
 }
 
 /* Banners are flex-wrap; without this a long message wraps below its icon. */
 .bannerText {
   flex: 1 1 0;
   min-width: 0;
-}
-
-/* --- Google / GitHub ------------------------------------------------------- */
-
-.providers {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-
-.providerBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-3);
-  width: 100%;
-  padding: 10px var(--sp-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--fs-md);
-  font-weight: 600;
-  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
-    transform var(--dur-fast) var(--ease);
-}
-.providerBtn:hover:not(:disabled) {
-  background: var(--surface-hover);
-  border-color: var(--border-strong);
-}
-.providerBtn:active:not(:disabled) {
-  transform: translateY(1px);
-}
-.providerBtn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  font-size: var(--fs-xs);
-  color: var(--text-subtle);
-}
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--border);
 }

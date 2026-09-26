@@ -46,7 +46,7 @@
 .fill {
   height: 100%;
   border-radius: var(--radius-pill);
-  background: var(--gradient-accent);
+  background: var(--accent);
   transition: width var(--dur-slow) var(--ease-out);
 }
 
@@ -60,32 +60,13 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   /* One question at a time means the card's height swings between a two-line
      text field and a twelve-option grid. A floor keeps the buttons below it
      from jumping up the page on every Next. */
   min-height: 268px;
-  /* Re-keyed on every advance, so this replays. Deliberately a fade and a small
-     rise, not a slide: fifteen horizontal slides in a row reads as a carousel
-     the user is being dragged through. */
-  animation: questionIn var(--dur-slow) var(--ease-out);
-}
-
-@keyframes questionIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card {
-    animation: none;
-  }
   .fill {
     transition: none;
   }

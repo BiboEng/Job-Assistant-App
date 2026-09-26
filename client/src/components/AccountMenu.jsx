@@ -3,30 +3,40 @@ import Icon from "./Icon.jsx";
 import styles from "./AccountMenu.module.css";
 
 /**
- * The account control in the header: who you're signed in as, the career
- * survey, and Sign out.
+ * The account control at the foot of the sidebar: avatar + name, opening a
+ * small menu with the signed-in email, the career survey, and Sign out.
  *
- * It replaced a bare "Sign out" button because the survey needs a permanent
- * home — someone who skips the dashboard banner has to be able to find it
- * again, and "settings" isn't a screen this app has. The menu item changes
- * label with `surveyState`, so it reads as an invitation the first time and as
- * an edit afterwards; when the survey is unavailable (no Supabase, or the
- * migration hasn't been applied) the item isn't rendered at all.
+ * The survey lives here because it needs a permanent home — someone who skips
+ * the dashboard banner has to be able to find it again, and "settings" isn't a
+ * screen this app has. The item changes label with `surveyState`, so it reads
+ * as an invitation the first time and as an edit afterwards; when the survey is
+ * unavailable (no Supabase, or the migration hasn't been applied) it isn't
+ * rendered at all.
+ *
+ * The avatar is the provider's picture (Google, GitHub) when there is one, and
+ * an initial otherwise — email/password accounts have no picture to show.
  *
  * Disabled wholesale during a live interview, for the same reason the nav is:
  * both roads out of this menu abandon the session.
  */
 export default function AccountMenu({
-  userEmail,
+  user,
+  collapsed = false,
   onSignOut,
   onOpenSurvey,
   surveyState = "unavailable",
   interactive = true,
 }) {
   const [open, setOpen] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const wrapRef = useRef(null);
   const buttonRef = useRef(null);
   const menuId = useId();
+
+  const email = user?.email || "";
+  const meta = user?.user_metadata || {};
+  const name = meta.full_name || meta.name || meta.user_name || email || "Account";
+  const avatarUrl = meta.avatar_url || meta.picture || "";
 
   // Any click outside closes it, and Escape closes it and returns focus to the
   // button — otherwise a keyboard user is left adrift in the page.
@@ -72,7 +82,7 @@ export default function AccountMenu({
       : "Take career survey";
 
   return (
-    <div className={styles.wrap} ref={wrapRef}>
+    <div className={`${styles.wrap} ${collapsed ? styles.collapsed : ""}`} ref={wrapRef}>
       <button
         ref={buttonRef}
         type="button"
@@ -82,26 +92,43 @@ export default function AccountMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-label={userEmail ? `Account: ${userEmail}` : "Account"}
+        aria-label={`Account: ${name}`}
         title={
           interactive
-            ? undefined
+            ? collapsed
+              ? name
+              : undefined
             : "Finish or end the interview to change account settings"
         }
       >
-        <span className={styles.avatar} aria-hidden="true">
-          {initialOf(userEmail)}
-        </span>
-        <Icon name="chevronDown" size={14} className={styles.caret} />
+        {avatarUrl && !avatarFailed ? (
+          <img
+            className={styles.avatar}
+            src={avatarUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            onError={() => setAvatarFailed(true)}
+          />
+        ) : (
+          <span className={styles.avatar} aria-hidden="true">
+            {initialOf(name)}
+          </span>
+        )}
+        {!collapsed && (
+          <>
+            <span className={styles.name}>{name}</span>
+            <Icon name="chevronsUpDown" className={styles.caret} />
+          </>
+        )}
       </button>
 
       {open && (
         <div className={styles.menu} id={menuId} role="menu">
-          {userEmail && (
+          {email && (
             <div className={styles.identity}>
               <span className={styles.identityLabel}>Signed in as</span>
-              <span className={styles.identityEmail} title={userEmail}>
-                {userEmail}
+              <span className={styles.identityEmail} title={email}>
+                {email}
               </span>
             </div>
           )}
@@ -113,7 +140,7 @@ export default function AccountMenu({
               className={styles.item}
               onClick={() => run(onOpenSurvey)}
             >
-              <Icon name="sparkles" size={15} />
+              <Icon name="clipboard" />
               <span>{surveyLabel}</span>
             </button>
           )}
@@ -124,7 +151,7 @@ export default function AccountMenu({
             className={`${styles.item} ${styles.danger}`}
             onClick={() => run(onSignOut)}
           >
-            <Icon name="logOut" size={15} />
+            <Icon name="logOut" />
             <span>Sign out</span>
           </button>
         </div>
@@ -133,8 +160,8 @@ export default function AccountMenu({
   );
 }
 
-/** First letter of the email, or a neutral glyph when there isn't one. */
-function initialOf(email) {
-  const ch = (email || "").trim().charAt(0);
+/** First letter of the name, or a neutral glyph when there isn't one. */
+function initialOf(text) {
+  const ch = (text || "").trim().charAt(0);
   return ch ? ch.toUpperCase() : "•";
 }

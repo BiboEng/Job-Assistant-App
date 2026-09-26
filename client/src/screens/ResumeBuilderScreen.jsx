@@ -473,7 +473,7 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
             disabled={!canUndo}
             title={undoLabel ? `Undo ${undoLabel}` : "Nothing to undo"}
           >
-            <Icon name="undo" size={15} />
+            <Icon name="undo" />
             Undo
           </button>
 
@@ -487,9 +487,9 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              <Icon name="download" size={15} />
+              <Icon name="download" />
               {downloading ? "Preparing…" : "Download"}
-              <Icon name="chevronDown" size={14} />
+              <Icon name="chevronDown" />
             </button>
 
             {menuOpen && (
@@ -515,7 +515,7 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
             className="btn-ghost btn-sm"
             onClick={() => setExpanded((v) => !v)}
           >
-            <Icon name={expanded ? "collapse" : "expand"} size={15} />
+            <Icon name={expanded ? "collapse" : "expand"} />
             {expanded ? "Exit fullscreen" : "Expand"}
           </button>
         </div>
@@ -523,14 +523,14 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
 
       {downloadError && (
         <div className="error-banner" role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>{downloadError}</span>
         </div>
       )}
 
       {empty && !busy && (
         <p className={styles.startHint}>
-          <Icon name="sparkles" size={15} />
+          <Icon name="sparkles" />
           <span>
             Click any line to type into it, or describe yourself in the chat.
           </span>
@@ -607,7 +607,7 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
       <div className={styles.head}>
         {onBack && (
           <button type="button" className="btn-ghost btn-sm" onClick={onBack}>
-            <Icon name="arrowLeft" size={15} />
+            <Icon name="arrowLeft" />
             Back to home
           </button>
         )}
@@ -626,7 +626,7 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
 
         {!tipDismissed && (
           <p className={styles.blurb}>
-            <Icon name="sparkles" size={15} />
+            <Icon name="sparkles" />
             <span>
               The chat and your own edits write to the same document. Nothing is
               saved — download before you leave.
@@ -637,7 +637,7 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
               onClick={dismissTip}
               aria-label="Dismiss tip"
             >
-              <Icon name="x" size={14} />
+              <Icon name="x" />
             </button>
           </p>
         )}

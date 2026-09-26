@@ -4,37 +4,39 @@
   gap: var(--sp-4);
 }
 
-.topBar {
+/* Page header row: role + facts on the left, report actions on the right. */
+.head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
   flex-wrap: wrap;
-  min-height: 30px;
+  margin-bottom: var(--sp-2);
 }
 
-.saveState {
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
   min-width: 0;
 }
 
-/* Which interview this report is for. Prints too — a printed report with no
-   role or date on it is not much use in a folder. */
-.context {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0 var(--sp-1);
+.title {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  overflow-wrap: anywhere;
 }
 
-.role {
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--text);
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
 }
 
 .facts {
-  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   color: var(--text-muted);
 }
 
@@ -42,12 +44,12 @@
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
-  padding: 3px var(--sp-3);
-  border-radius: var(--radius-pill);
-  background: var(--surface-sunken);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
   color: var(--text-muted);
-  font-size: var(--fs-xs);
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
 }
 
 .chipOk {
@@ -58,21 +60,20 @@
 .topActions {
   display: flex;
   gap: var(--sp-2);
-  margin-left: auto;
   flex-wrap: wrap;
 }
 
 .actions {
   display: flex;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   flex-wrap: wrap;
+  padding-top: var(--sp-2);
 }
 
 .empty {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   padding: var(--sp-6);
   display: flex;
   flex-direction: column;

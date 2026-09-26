@@ -1,6 +1,5 @@
 import { useEffect, useId, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import PublicHeader from "../components/PublicHeader.jsx";
 import Icon from "../components/Icon.jsx";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import { PATHS } from "../routes.js";
@@ -80,13 +79,15 @@ export default function ResetPasswordScreen() {
 
   return (
     <div className="public-site">
-      <PublicHeader />
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
 
-      <main id="main-content" tabIndex={-1} className={`app-shell app-shell--public ${styles.page}`}>
+      <main id="main-content" tabIndex={-1} className={styles.page}>
         <div className={styles.card}>
           <div className={styles.head}>
             <span className={styles.icon} aria-hidden="true">
-              <Icon name="lock" size={20} />
+              <Icon name="lock" />
             </span>
             <h1 className={styles.title}>Choose a new password</h1>
             <p className={styles.subtitle}>
@@ -98,7 +99,7 @@ export default function ResetPasswordScreen() {
 
           {!configured && (
             <div className="warn-banner" role="alert">
-              <Icon name="alert" size={16} />
+              <Icon name="alert" />
               <span className={styles.bannerText}>
                 Sign-in isn&apos;t configured, so passwords can&apos;t be changed here.
               </span>
@@ -107,7 +108,7 @@ export default function ResetPasswordScreen() {
 
           {done && (
             <div className="info-banner" role="status">
-              <Icon name="check" size={16} />
+              <Icon name="check" />
               <span className={styles.bannerText}>
                 Your password has been changed.
               </span>
@@ -116,7 +117,7 @@ export default function ResetPasswordScreen() {
 
           {noLink && !done && (
             <div className="warn-banner" role="status">
-              <Icon name="alert" size={16} />
+              <Icon name="alert" />
               <span className={styles.bannerText}>
                 This reset link has expired or has already been used.{" "}
                 <Link to={`${PATHS.signIn}?mode=forgot`}>Request a new one</Link>.
@@ -126,7 +127,7 @@ export default function ResetPasswordScreen() {
 
           {error && (
             <div className="error-banner" role="alert">
-              <Icon name="alert" size={16} />
+              <Icon name="alert" />
               <span className={styles.bannerText}>{error}</span>
             </div>
           )}

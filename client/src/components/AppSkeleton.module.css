@@ -1,55 +1,49 @@
-/* Mirrors AppHeader's bar so the real header doesn't jump when it replaces
-   this. Only the wordmark is shown — guessing at the nav would be worse than
-   leaving it out, since we don't yet know whether the person is signed in. */
-.bar {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  padding-bottom: var(--sp-4);
-  margin-bottom: var(--sp-6);
-  border-bottom: 1px solid var(--border);
+/* Mirrors Sidebar's box so the real one doesn't jump when it replaces this. */
+.sidebar {
+  flex-shrink: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  padding: var(--sp-3) var(--sp-2) var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
 }
 
 .wordmark {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--sp-2);
-  font-size: var(--fs-md);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  min-height: var(--control-height);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tighter);
   color: var(--text);
 }
 
-.wordmarkText {
-  white-space: nowrap;
+@media (max-width: 767px) {
+  .sidebar {
+    width: var(--sidebar-width-collapsed);
+  }
+  .wordmark {
+    visibility: hidden;
+  }
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-6);
 }
 
 .title {
-  height: 34px;
-  width: min(460px, 70%);
-  border-radius: var(--radius-md);
+  height: 28px;
+  width: min(240px, 60%);
 }
 
-.line {
-  height: 14px;
-  width: min(560px, 90%);
-  border-radius: var(--radius-sm);
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
 }
 
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: var(--sp-4);
-  margin-top: var(--sp-4);
-}
-
-.card {
-  height: 176px;
-  border-radius: var(--radius-lg);
+.row {
+  height: var(--row-height);
 }

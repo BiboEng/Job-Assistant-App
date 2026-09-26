@@ -42,7 +42,7 @@ export default function CameraPreview({ attachVideo, recording, eyeTracking }) {
           </>
         ) : (
           <>
-            <Icon name="video" size={12} />
+            <Icon name="video" />
             Camera on
           </>
         )}
@@ -50,7 +50,7 @@ export default function CameraPreview({ attachVideo, recording, eyeTracking }) {
 
       {!eyeTracking && (
         <span className={styles.noTrack} title="Eye-contact tracking couldn't start">
-          <Icon name="videoOff" size={12} />
+          <Icon name="videoOff" />
         </span>
       )}
 

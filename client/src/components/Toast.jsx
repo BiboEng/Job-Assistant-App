@@ -26,7 +26,7 @@ export default function Toast({ message, tone = "success", duration = 3200, onDi
   return (
     <div className={styles.wrap} role="status" aria-live="polite">
       <div className={`${styles.toast} ${styles[tone] || ""}`}>
-        <Icon name={TONE_ICON[tone] || "check"} size={16} />
+        <Icon name={TONE_ICON[tone] || "check"} />
         <span>{message}</span>
         {onDismiss && (
           <button
@@ -35,7 +35,7 @@ export default function Toast({ message, tone = "success", duration = 3200, onDi
             onClick={onDismiss}
             aria-label="Dismiss"
           >
-            <Icon name="x" size={14} />
+            <Icon name="x" />
           </button>
         )}
       </div>

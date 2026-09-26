@@ -18,10 +18,9 @@
   aspect-ratio: 4 / 3;
   display: block;
   object-fit: cover;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-sunken);
-  box-shadow: var(--shadow-sm);
   /* Every self-view is mirrored; an unmirrored one is distracting enough to
      cost the candidate attention. Presentational only — the tracker reads the
      element itself, which is unaffected. */
@@ -36,29 +35,26 @@
   align-items: center;
   gap: var(--sp-1);
   padding: 2px var(--sp-2);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
   font-size: var(--fs-2xs);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-wide);
   /* Over live video, so it carries its own contrast rather than a token that
      assumes a known background. */
-  background: rgb(0 0 0 / 0.55);
-  color: #fff;
+  background: var(--scrim);
+  color: var(--text);
 }
 
 .dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--danger);
-  animation: recPulse 1.2s ease-in-out infinite;
+  animation: recBlink 1.6s steps(1, end) infinite;
 }
 
-@keyframes recPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
+@keyframes recBlink {
   50% {
     opacity: 0.35;
   }
@@ -71,12 +67,13 @@
   display: inline-flex;
   padding: 3px;
   border-radius: var(--radius-sm);
-  background: rgb(0 0 0 / 0.55);
-  color: #fff;
+  background: var(--scrim);
+  color: var(--text);
 }
 
 .caption {
   margin: 0;
+  font-family: var(--font-mono);
   font-size: var(--fs-2xs);
   line-height: var(--lh-tight);
   color: var(--text-subtle);

@@ -5,36 +5,32 @@
   align-items: stretch;
 }
 
-.back {
-  align-self: flex-start;
-}
-
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   padding: var(--sp-6);
 }
 
 .cardHead {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  margin-bottom: var(--sp-5);
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
   flex-wrap: wrap;
 }
 
 .heading {
-  margin: var(--sp-1) 0 var(--sp-1);
-  font-size: var(--fs-xl);
+  margin: 0;
+  font-size: var(--fs-md);
+  letter-spacing: 0;
 }
 
 .sub {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--fs-md);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
 }
 
 /* --- job description ------------------------------------------------------ */
@@ -42,9 +38,9 @@
 .textarea {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--sp-3) var(--sp-4);
-  background: var(--surface);
+  background: var(--surface-raised);
   color: var(--text);
   font-size: var(--fs-md);
   line-height: var(--lh-normal);
@@ -54,8 +50,8 @@
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .textarea:focus {
-  border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .textarea:disabled {
   background: var(--surface-sunken);
@@ -80,6 +76,7 @@
 }
 
 .count {
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
   color: var(--text-subtle);
   font-variant-numeric: tabular-nums;
@@ -87,7 +84,7 @@
 
 .countInvalid {
   color: var(--danger);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .clearBtn {
@@ -95,7 +92,7 @@
   border: none;
   padding: 0;
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-subtle);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -108,13 +105,13 @@
 
 .options {
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--sp-4) var(--sp-4) var(--sp-5);
-  margin: var(--sp-5) 0 0;
+  border-radius: var(--radius-sm);
+  padding: var(--sp-4);
+  margin: var(--sp-4) 0 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-5);
-  background: var(--surface-hover);
+  gap: var(--sp-4);
+  background: var(--surface-sunken);
 }
 .options:disabled {
   opacity: 0.6;
@@ -138,12 +135,12 @@
 }
 
 .optionLabel {
-  font-size: var(--fs-md);
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
 }
 
 .optional {
-  font-weight: 400;
+  font-weight: var(--fw-normal);
   color: var(--text-subtle);
 }
 
@@ -164,18 +161,18 @@
   gap: var(--sp-1);
   background: transparent;
   border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--sp-2) var(--sp-3);
-  font-size: var(--fs-md);
-  font-weight: 500;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   color: var(--text-muted);
   transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease),
     background var(--dur) var(--ease);
 }
 .addResume:hover {
-  border-color: var(--accent-text);
+  border-color: var(--accent);
   border-style: solid;
-  color: var(--accent-text);
+  color: var(--accent);
   background: var(--accent-softer);
 }
 
@@ -194,9 +191,9 @@
 .resumeArea {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--sp-3);
-  background: var(--surface);
+  background: var(--surface-raised);
   color: var(--text);
   font-size: var(--fs-md);
   resize: vertical;
@@ -205,8 +202,8 @@
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .resumeArea:focus {
-  border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .resumeFoot {

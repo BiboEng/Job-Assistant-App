@@ -153,7 +153,7 @@ export default function ResumePreview({ resume, onChange, locked = false, sheetR
                     onClick={() => edit((r) => removeLink(r, i))}
                     title="Remove link"
                   >
-                    <Icon name="x" size={12} strokeWidth={2.2} />
+                    <Icon name="x" strokeWidth={2.2} />
                     <span className="sr-only">Remove link {i + 1}</span>
                   </button>
                 )}
@@ -166,7 +166,7 @@ export default function ResumePreview({ resume, onChange, locked = false, sheetR
                 className={styles.addInline}
                 onClick={() => edit(addLink)}
               >
-                <Icon name="plus" size={11} strokeWidth={2.4} />
+                <Icon name="plus" strokeWidth={2.4} />
                 Link
               </button>
             )}
@@ -600,7 +600,7 @@ function Section({ title, children, empty = false, locked, onAdd, addLabel }) {
       {children}
       {!locked && onAdd && (
         <button type="button" data-noexport="" className={styles.addBtn} onClick={onAdd}>
-          <Icon name="plus" size={12} strokeWidth={2.4} />
+          <Icon name="plus" strokeWidth={2.4} />
           {addLabel}
         </button>
       )}
@@ -623,7 +623,7 @@ function EntryControls({ locked, index, total, label, onMove, onRemove, inline =
         disabled={index === 0}
         title="Move up"
       >
-        <Icon name="arrowUp" size={12} strokeWidth={2.2} />
+        <Icon name="arrowUp" strokeWidth={2.2} />
         <span className="sr-only">Move {label} up</span>
       </button>
       <button
@@ -633,11 +633,11 @@ function EntryControls({ locked, index, total, label, onMove, onRemove, inline =
         disabled={index === total - 1}
         title="Move down"
       >
-        <Icon name="arrowDown" size={12} strokeWidth={2.2} />
+        <Icon name="arrowDown" strokeWidth={2.2} />
         <span className="sr-only">Move {label} down</span>
       </button>
       <button type="button" className={styles.iconBtn} onClick={onRemove} title="Remove">
-        <Icon name="x" size={12} strokeWidth={2.2} />
+        <Icon name="x" strokeWidth={2.2} />
         <span className="sr-only">Remove {label}</span>
       </button>
     </span>
@@ -688,7 +688,7 @@ function Bullets({ section, entry, edit, locked, onSplit }) {
                   onClick={() => edit((r) => removeBullet(r, section, entry.id, i))}
                   title="Remove bullet"
                 >
-                  <Icon name="x" size={12} strokeWidth={2.2} />
+                  <Icon name="x" strokeWidth={2.2} />
                   <span className="sr-only">Remove bullet {i + 1}</span>
                 </button>
               )}
@@ -706,7 +706,7 @@ function Bullets({ section, entry, edit, locked, onSplit }) {
             onSplit(`${entry.id}:${bullets.length}`);
           }}
         >
-          <Icon name="plus" size={11} strokeWidth={2.4} />
+          <Icon name="plus" strokeWidth={2.4} />
           Bullet
         </button>
       )}

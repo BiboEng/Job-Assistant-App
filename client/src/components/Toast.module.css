@@ -14,14 +14,13 @@
   gap: var(--sp-2);
   pointer-events: auto;
   padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
   color: var(--text);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
-  font-size: var(--fs-md);
-  font-weight: 500;
-  animation: toastIn var(--dur-slow) var(--ease) both;
+  box-shadow: var(--shadow-popover);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
 }
 
 .success {
@@ -41,22 +40,11 @@
   height: 22px;
   padding: 0;
   border: none;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-subtle);
 }
 .close:hover {
-  background: var(--surface-sunken);
+  background: var(--surface);
   color: var(--text);
-}
-
-@keyframes toastIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }

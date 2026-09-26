@@ -34,22 +34,25 @@ export default function HistoryDetailScreen({ interviewId, onBack }) {
 
   return (
     <div className={styles.wrap}>
-      <div className={`${styles.topBar} no-print`}>
-        <button type="button" className="btn-ghost btn-sm" onClick={onBack}>
-          <Icon name="arrowLeft" size={15} />
-          Back to home
-        </button>
-        {record && (
-          <button className="btn-ghost btn-sm" onClick={() => window.print()}>
-            <Icon name="printer" size={15} />
-            Print / save PDF
+      <header className="page-head">
+        <h1>Interview review</h1>
+        <div className={`${styles.headActions} no-print`}>
+          <button type="button" className="btn-ghost" onClick={onBack}>
+            <Icon name="arrowLeft" />
+            Back to home
           </button>
-        )}
-      </div>
+          {record && (
+            <button className="btn-ghost" onClick={() => window.print()}>
+              <Icon name="printer" />
+              Print / save PDF
+            </button>
+          )}
+        </div>
+      </header>
 
       {error && (
         <div className="error-banner" role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>{error}</span>
         </div>
       )}

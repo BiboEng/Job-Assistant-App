@@ -26,7 +26,7 @@ export default function SiteFooter() {
         <ul className={styles.links}>
           <li>
             <a className={styles.link} href={`mailto:${CONTACT_EMAIL}`}>
-              <Icon name="mail" size={16} />
+              <Icon name="mail" />
               <span>
                 <span className={styles.linkLabel}>Email</span>
                 <span className={styles.linkValue}>{CONTACT_EMAIL}</span>
@@ -40,7 +40,7 @@ export default function SiteFooter() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Icon name="github" size={16} />
+              <Icon name="github" />
               <span>
                 <span className={styles.linkLabel}>GitHub</span>
                 <span className={styles.linkValue}>github.com/BiboEng</span>
@@ -52,7 +52,7 @@ export default function SiteFooter() {
       </div>
 
       <div className={styles.legal}>
-        <span>© {new Date().getFullYear()} Mock Interview</span>
+        <span>© {new Date().getFullYear()} Jobassist</span>
       </div>
     </footer>
   );

@@ -1,17 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import InterviewCard from "../components/InterviewCard.jsx";
+import InterviewRow from "../components/InterviewRow.jsx";
 import Icon from "../components/Icon.jsx";
 import SurveyBanner from "../components/SurveyBanner.jsx";
 import { listInterviews, deleteInterview } from "../api/historyApi.js";
 import { scoreBand } from "../utils/score.js";
 import styles from "./HomeScreen.module.css";
-
-// Shown only in the empty state — see below.
-const STEPS = [
-  "Paste a job description.",
-  "Answer by voice or text, against a timer.",
-  "Get a scored report.",
-];
 
 const SORTS = {
   recent: { label: "Newest first", fn: (a, b) => b.createdAt - a.createdAt },
@@ -19,11 +12,15 @@ const SORTS = {
   worst: { label: "Lowest score", fn: (a, b) => a.overallScore - b.overallScore },
 };
 
+/**
+ * Home: the practice history as a dense table, with a one-line stats strip
+ * above it. Job Matches and the Resume Builder are reached from the sidebar,
+ * which is always on screen, so the page no longer spends its top half on
+ * three feature cards pointing at them.
+ */
 export default function HomeScreen({
   onStartNew,
   onOpenInterview,
-  onFindJobs,
-  onBuildResume,
   showSurveyPrompt = false,
   onTakeSurvey,
   onSkipSurvey,
@@ -60,7 +57,7 @@ export default function HomeScreen({
       setInterviews((list) => list.filter((it) => it.id !== id));
     } catch (err) {
       setActionError(err.message || "Could not delete that interview.");
-      throw err; // let the card reset its confirm state
+      throw err; // let the row reset its confirm state
     }
   }
 
@@ -99,217 +96,154 @@ export default function HomeScreen({
 
   return (
     <div className={styles.wrap}>
-      {/* The dashboard used to open with the landing page's pitch all over
-          again — headline, lede and a "how it works" list — which pushed the
-          three actions and the history below the fold on a page you see every
-          visit. The sell belongs on the front door; this is the workbench. */}
-      <h1 className={styles.title}>Your dashboard</h1>
+      <header className="page-head">
+        <h1>Home</h1>
+        <button type="button" className="btn-primary" onClick={onStartNew}>
+          <Icon name="plus" />
+          New interview
+        </button>
+      </header>
 
       {/* Shown only to an account with no survey row at all. Taking it or
           skipping it both write one, so this is genuinely once — after that the
           survey lives in the account menu. */}
       {showSurveyPrompt && (
-        <SurveyBanner onTake={onTakeSurvey} onSkip={onSkipSurvey} />
+        <div className={styles.banner}>
+          <SurveyBanner onTake={onTakeSurvey} onSkip={onSkipSurvey} />
+        </div>
       )}
 
-      {/* Three peers, not one action and two afterthoughts. */}
-      <section className={styles.features} aria-label="What you can do">
-        <FeatureCard
-          icon="messageSquare"
-          title="Mock interview"
-          body="Role-specific questions, on a timer, scored."
-          action="Start an interview"
-          onClick={onStartNew}
-          featured
-        />
-        <FeatureCard
-          icon="briefcase"
-          title="Job matches"
-          body="Real openings near you, ranked against your resume."
-          action="Find job matches"
-          onClick={onFindJobs}
-        />
-        <FeatureCard
-          icon="fileText"
-          title="Resume builder"
-          body="Write an ATS-friendly resume with an assistant."
-          action="Build a resume"
-          onClick={onBuildResume}
-        />
-      </section>
+      {hasHistory && stats && (
+        <dl className={styles.stats}>
+          <Stat label="Interviews" value={stats.count} />
+          <Stat label="Average" value={stats.avg} color={scoreBand(stats.avg).color} />
+          <Stat label="Best" value={stats.best} color={scoreBand(stats.best).color} />
+          {stats.delta !== null && (
+            <Stat
+              label="Trend"
+              value={`${stats.delta > 0 ? "+" : ""}${stats.delta}`}
+              color={
+                stats.delta > 0
+                  ? "var(--band-strong)"
+                  : stats.delta < 0
+                  ? "var(--band-weak)"
+                  : "var(--text-muted)"
+              }
+              hint="Last 3 interviews vs. the 3 before"
+            />
+          )}
+        </dl>
+      )}
 
-      <section className={styles.historySection}>
-        <div className={styles.header}>
-          <h2 className={styles.heading}>
+      <section className={styles.historySection} aria-labelledby="history-heading">
+        <div className={styles.toolbar}>
+          <h2 id="history-heading" className={styles.heading}>
             Practice history
-            {hasHistory && <span className={styles.countBadge}>{all.length}</span>}
+            {hasHistory && <span className={styles.count}>{all.length}</span>}
           </h2>
-          {hasHistory && (
-            <button className="btn-ghost btn-sm" onClick={onStartNew}>
-              <Icon name="plus" size={15} />
-              New interview
-            </button>
+
+          {hasHistory && all.length > 2 && (
+            <div className={styles.controls}>
+              <div className={styles.searchField}>
+                <Icon name="search" className={styles.searchIcon} />
+                <input
+                  type="search"
+                  className={styles.search}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search"
+                  aria-label="Search your practice history"
+                />
+              </div>
+              <label className={styles.sortField}>
+                <span className="sr-only">Sort history</span>
+                <select
+                  className={styles.sortSelect}
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value)}
+                >
+                  {Object.entries(SORTS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           )}
         </div>
 
-        {hasHistory && stats && (
-          <div className={styles.stats}>
-            <Stat label="Interviews" value={stats.count} />
-            <Stat
-              label="Average score"
-              value={stats.avg}
-              color={scoreBand(stats.avg).color}
-            />
-            <Stat label="Best" value={stats.best} color={scoreBand(stats.best).color} />
-            {stats.delta !== null && (
-              <Stat
-                label="Recent trend"
-                value={`${stats.delta > 0 ? "+" : ""}${stats.delta}`}
-                color={
-                  stats.delta > 0
-                    ? "var(--band-strong)"
-                    : stats.delta < 0
-                    ? "var(--band-weak)"
-                    : "var(--text-muted)"
-                }
-                hint="last 3 vs. the 3 before"
-              />
-            )}
-          </div>
-        )}
-
         {error && (
           <div className="error-banner" role="alert">
-            <Icon name="alert" size={16} />
+            <Icon name="alert" />
             <span>Couldn't load your history: {error}</span>
           </div>
         )}
 
         {actionError && (
           <div className="error-banner" role="alert">
-            <Icon name="alert" size={16} />
+            <Icon name="alert" />
             <span>{actionError}</span>
           </div>
         )}
 
         {loading && (
-          <div className={styles.list} aria-hidden="true">
-            <div className={`skeleton ${styles.skelCard}`} />
-            <div className={`skeleton ${styles.skelCard}`} />
+          <div className={styles.table} aria-hidden="true">
+            <div className={`skeleton ${styles.skelRow}`} />
+            <div className={`skeleton ${styles.skelRow}`} />
+            <div className={`skeleton ${styles.skelRow}`} />
           </div>
         )}
         {loading && <p className="sr-only">Loading your practice history…</p>}
 
-        {/* The only place the three steps still earn their space: someone who
-            hasn't run an interview yet doesn't know what one involves. */}
         {!loading && !hasHistory && !error && (
           <div className={styles.empty}>
-            <span className={styles.emptyIcon} aria-hidden="true">
-              <Icon name="target" size={22} />
-            </span>
-            <h3 className={styles.emptyTitle}>No interviews yet</h3>
-            <ol className={styles.steps}>
-              {STEPS.map((s, i) => (
-                <li key={i}>
-                  <span className={styles.stepNum} aria-hidden="true">
-                    {i + 1}
-                  </span>
-                  {s}
-                </li>
-              ))}
-            </ol>
-            <button className="btn-primary" onClick={onStartNew}>
-              Start your first interview
+            <p>No interviews yet.</p>
+            <button type="button" className="btn-primary" onClick={onStartNew}>
+              Start new interview
             </button>
           </div>
         )}
 
-        {hasHistory && (
-          <>
-            {all.length > 2 && (
-              <div className={styles.filterBar}>
-                <div className={styles.searchField}>
-                  <Icon name="search" size={15} className={styles.searchIcon} />
-                  <input
-                    type="search"
-                    className={styles.search}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search by role or description"
-                    aria-label="Search your practice history"
-                  />
-                </div>
-                <label className={styles.sortField}>
-                  <span className="sr-only">Sort history</span>
-                  <select
-                    className={styles.sortSelect}
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value)}
-                  >
-                    {Object.entries(SORTS).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+        {hasHistory &&
+          (visible.length === 0 ? (
+            <p className={styles.state}>
+              No interviews match “{query.trim()}”.{" "}
+              <button type="button" className="link-btn" onClick={() => setQuery("")}>
+                Clear search
+              </button>
+            </p>
+          ) : (
+            <div className={styles.table} role="list">
+              <div className={styles.columns} aria-hidden="true">
+                <span>Role</span>
+                <span className={styles.colAnswered}>Answered</span>
+                <span className={styles.colDate}>Date</span>
+                <span className={styles.colScore}>Score</span>
+                <span />
               </div>
-            )}
-
-            {visible.length === 0 ? (
-              <p className={styles.state}>
-                No interviews match “{query.trim()}”.{" "}
-                <button type="button" className="link-btn" onClick={() => setQuery("")}>
-                  Clear search
-                </button>
-              </p>
-            ) : (
-              <div className={styles.list}>
-                {visible.map((it) => (
-                  <InterviewCard
-                    key={it.id}
-                    interview={it}
-                    onOpen={() => onOpenInterview(it.id)}
-                    onDelete={() => handleDelete(it.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+              {visible.map((it) => (
+                <InterviewRow
+                  key={it.id}
+                  interview={it}
+                  onOpen={() => onOpenInterview(it.id)}
+                  onDelete={() => handleDelete(it.id)}
+                />
+              ))}
+            </div>
+          ))}
       </section>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, body, action, onClick, featured = false }) {
-  return (
-    <button
-      type="button"
-      className={`${styles.feature} ${featured ? styles.featured : ""}`}
-      onClick={onClick}
-    >
-      <span className={styles.featureIcon} aria-hidden="true">
-        <Icon name={icon} size={19} />
-      </span>
-      <span className={styles.featureTitle}>{title}</span>
-      <span className={styles.featureBody}>{body}</span>
-      <span className={styles.featureAction}>
-        {action}
-        <Icon name="chevronRight" size={15} />
-      </span>
-    </button>
-  );
-}
-
 function Stat({ label, value, color, hint }) {
   return (
-    <div className={styles.stat}>
-      <span className={styles.statValue} style={color ? { color } : undefined}>
+    <div className={styles.stat} title={hint}>
+      <dt className={styles.statLabel}>{label}</dt>
+      <dd className={styles.statValue} style={color ? { color } : undefined}>
         {value}
-      </span>
-      <span className={styles.statLabel}>{label}</span>
-      {hint && <span className={styles.statHint}>{hint}</span>}
+      </dd>
     </div>
   );
 }

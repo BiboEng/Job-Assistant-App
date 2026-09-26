@@ -134,31 +134,21 @@
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: 3px var(--sp-3);
-  border-radius: var(--radius-pill);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-xs);
   background: var(--accent-soft);
-  color: var(--accent-text);
-  border: 1px solid var(--accent-text);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .lockDot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: currentColor;
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
 }
 
 /* --- first-run hint ----------------------------------------------------- */
@@ -201,19 +191,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  animation: menuIn var(--dur) var(--ease) both;
-}
-
-@keyframes menuIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  box-shadow: var(--shadow-popover);
 }
 
 .menuItem {
@@ -235,7 +213,7 @@
 
 .menuLabel {
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .menuHint {
@@ -278,9 +256,8 @@
   align-items: flex-start;
   justify-content: center;
   padding-top: var(--sp-6);
-  border-radius: 2px;
-  background: rgba(20, 22, 26, 0.16);
-  backdrop-filter: saturate(0.85);
+  border-radius: var(--radius-xs);
+  background: var(--scrim-light);
   cursor: not-allowed;
 }
 
@@ -289,13 +266,13 @@
   align-items: center;
   gap: var(--sp-2);
   padding: 7px var(--sp-4);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
   color: var(--text);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-popover);
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   position: sticky;
   top: var(--sp-6);
 }

@@ -1,98 +1,108 @@
 .wrap {
   position: relative;
-  display: inline-flex;
 }
 
 .trigger {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--sp-1);
-  padding: 3px var(--sp-1) 3px 3px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--text-muted);
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
-    color var(--dur) var(--ease);
-}
-.trigger:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  background: var(--surface-hover);
+  gap: var(--sp-2);
+  width: 100%;
+  min-height: 40px;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  transition: background-color var(--dur) var(--ease);
+}
+.collapsed .trigger {
+  justify-content: center;
+  padding: var(--sp-1) 0;
+}
+.trigger:hover:not(:disabled),
+.triggerOpen {
+  background: var(--surface-raised);
 }
 .trigger:disabled {
-  opacity: 0.45;
   cursor: not-allowed;
-}
-
-.triggerOpen {
-  border-color: var(--accent-text);
-  color: var(--text);
+  opacity: 0.5;
 }
 
 .avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-pill);
-  background: var(--gradient-accent);
-  color: var(--accent-contrast);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  line-height: 1;
-  box-shadow: var(--inner-highlight);
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: var(--radius-round);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-medium);
+  object-fit: cover;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .caret {
-  transition: transform var(--dur) var(--ease);
-}
-.triggerOpen .caret {
-  transform: rotate(180deg);
+  color: var(--text-muted);
 }
 
-/* --- the menu -------------------------------------------------------------- */
-
-/* z-index above the sticky bar's own 20, so the panel isn't clipped behind the
-   content that slides under the header. */
+/* Opens upward from the foot of the sidebar; in the rail it opens to the
+   right, since there's no room above a 56px column. */
 .menu {
   position: absolute;
-  top: calc(100% + var(--sp-2));
+  left: 0;
   right: 0;
-  z-index: 30;
-  min-width: 232px;
-  padding: var(--sp-2);
+  bottom: calc(100% + var(--sp-1));
+  z-index: 40;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: var(--surface-raised);
+  min-width: 220px;
+  padding: var(--sp-1);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+}
+.collapsed .menu {
+  left: calc(100% + var(--sp-2));
+  right: auto;
+  bottom: 0;
 }
 
 .identity {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  gap: 2px;
+  padding: var(--sp-2) var(--sp-2) var(--sp-2);
   margin-bottom: var(--sp-1);
   border-bottom: 1px solid var(--border);
 }
 
 .identityLabel {
+  font-family: var(--font-mono);
   font-size: var(--fs-2xs);
   text-transform: uppercase;
   letter-spacing: var(--ls-wide);
   color: var(--text-subtle);
 }
 
-/* The email is the one thing here that can be arbitrarily long; let it
-   truncate rather than stretch the panel across the header. */
 .identityEmail {
   font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -102,27 +112,22 @@
 .item {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  width: 100%;
-  padding: var(--sp-2) var(--sp-3);
+  gap: var(--sp-2);
+  height: var(--control-height);
+  padding: 0 var(--sp-2);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   background: transparent;
-  color: var(--text);
-  font-size: var(--fs-md);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
   text-align: left;
-  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
-.item:hover,
-.item:focus-visible {
-  background: var(--surface-sunken);
+.item:hover {
+  background: var(--surface);
+  color: var(--text);
 }
 
-.danger {
-  color: var(--text-muted);
-}
-.danger:hover,
-.danger:focus-visible {
-  background: var(--danger-soft);
+.danger:hover {
   color: var(--danger);
 }

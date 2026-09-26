@@ -1,383 +1,14 @@
 /*
- * Design tokens.
+ * Global styles: base elements, the layout shell, and the shared classes
+ * (.btn-*, .card, banners, .skeleton, .eyebrow, .sr-only, .no-print).
  *
- * Everything visual in the app is expressed through these — type scale, spacing,
- * radii, elevation and color. Module CSS must not hardcode a hex, a font size or
- * a radius; if a value is missing here, add it here. The one deliberate
- * exception is the resume sheet (ResumePreview / EditableText), which is "paper"
- * and must look identical in both themes and in the exported PDF.
- *
- * Theming has three states, and the CSS has to cover all of them:
- *   - "system" (no data-theme attribute)  -> prefers-color-scheme decides
- *   - data-theme="light" / data-theme="dark" -> an explicit user choice wins
- * So every dark value is declared twice: once under the media query (guarded by
- * :not([data-theme="light"]) so an explicit light choice isn't overridden) and
- * once under :root[data-theme="dark"].
- *
- * Two conventions are worth knowing before you reach for a colour:
- *
- *   - The palette is a ramp (--gray-*, --brand-*) and the semantic names below
- *     it are *assignments* from that ramp. Style against the semantic name
- *     (--text-muted, --border), never the ramp step, so a theme can reassign it.
- *
- *   - --accent and --accent-text are not the same colour and are not
- *     interchangeable. --accent is the brand as a *fill* — a button ground, a
- *     sent chat bubble — and always carries --accent-contrast as its text
- *     colour. --accent-text is the brand as *text, or as a border, on a
- *     surface*: links, active labels, a focused input's edge. They are
- *     identical in light mode and deliberately different in dark, where a blue
- *     dark enough to hold white on a button (5.7:1) is far too dark to read as
- *     text on a near-black surface. Using --accent for text is the mistake this
- *     split exists to prevent, and it only ever shows up in dark mode.
+ * Every value comes from styles/tokens.css — see the rules at the top of that
+ * file. These classes are global, so a CSS module can't target them by name
+ * (`.x > .btn-primary` in a module compiles to a hashed selector that matches
+ * nothing); give the element a module class as well instead.
  */
 
-:root {
-  color-scheme: light dark;
-
-  /* --- type scale -----------------------------------------------------
-     The platform's own UI face, in the platform's own order. This is the one
-     typographic decision that makes an interface feel native rather than
-     branded, and it costs nothing to load. */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display",
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
-
-  --fs-2xs: 0.6875rem; /* 11px — uppercase micro-labels only */
-  --fs-xs: 0.75rem; /* 12px */
-  --fs-sm: 0.8125rem; /* 13px */
-  --fs-md: 0.875rem; /* 14px */
-  --fs-base: 1rem; /* 16px — body */
-  --fs-lg: 1.125rem; /* 18px */
-  --fs-xl: 1.4375rem; /* 23px — section headings */
-  --fs-2xl: 1.875rem; /* 30px — screen titles */
-  --fs-3xl: 2.5rem; /* 40px — hero */
-  --fs-4xl: 3.25rem; /* 52px — hero, large viewports */
-
-  /* Headings sit at 600, not 700+. Past semibold a UI face stops reading as
-     confident and starts reading as loud; the hierarchy here is carried by size
-     and tracking instead. */
-  --fw-normal: 400;
-  --fw-medium: 500;
-  --fw-semibold: 600;
-  --fw-bold: 700;
-
-  --lh-tight: 1.15;
-  --lh-snug: 1.3;
-  --lh-normal: 1.55;
-
-  /* Negative tracking on large type only. It is what stops a 40px system-font
-     heading looking like body copy that was zoomed. */
-  --ls-tight: -0.022em;
-  --ls-tighter: -0.032em;
-  --ls-wide: 0.08em; /* uppercase micro-labels */
-
-  /* --- spacing scale ---------------------------------------------------
-     --sp-11/-12 exist for the vertical rhythm *between* page sections, which is
-     most of the difference between an airy layout and a dense one. Inside a
-     component, --sp-1…-10 is still the whole vocabulary. */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 24px;
-  --sp-7: 32px;
-  --sp-8: 40px;
-  --sp-9: 48px;
-  --sp-10: 64px;
-  --sp-11: 80px;
-  --sp-12: 96px;
-
-  /* --- radii -------------------------------------------------------------
-     Moderate and tightly spaced. The step from a control (8px) to a card (12px)
-     to a panel (16px) should be legible but never soft; past ~16px it starts
-     reading as a consumer app rather than a tool. */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-pill: 999px;
-  --radius: var(--radius-md); /* legacy alias */
-
-  /* --- palette: neutrals ---------------------------------------------------
-     A cool-leaning gray ramp. The steps are closer together at the light end
-     than a generic 50–950 scale, because the three light surfaces (page, card,
-     sunken) all live up there and have to stay distinguishable without any of
-     them reading as coloured. */
-  --gray-0: #ffffff;
-  --gray-25: #fbfbfd;
-  --gray-50: #f6f7f9;
-  --gray-100: #eef0f4;
-  --gray-150: #e8e9ee;
-  --gray-200: #dfe1e8;
-  --gray-300: #c9ccd6;
-  --gray-400: #9aa0b0;
-  --gray-500: #6e7484;
-  --gray-600: #545a6b;
-  --gray-700: #3b4050;
-  --gray-800: #23262f;
-  --gray-850: #1a1d23;
-  --gray-900: #131519;
-  --gray-950: #0b0c0f;
-
-  /* --- palette: brand ------------------------------------------------------
-     A rich mid-tone blue with a slight indigo lean — saturated enough to carry
-     a filled button, dark enough at 500 to hold white text at 5.7:1. */
-  --brand-50: #f0f3fe;
-  --brand-100: #dfe6fd;
-  --brand-200: #c4d0fa;
-  --brand-300: #9dadf4;
-  --brand-400: #6d84ea;
-  --brand-500: #3b5bdb;
-  --brand-600: #2f49c0;
-  --brand-700: #2a3f9e;
-  --brand-800: #26377e;
-  --brand-900: #232f63;
-
-  /* --- color: neutrals -------------------------------------------------- */
-  --bg: var(--gray-25);
-  --bg-tint: var(--gray-50); /* the page wash behind the header gradient */
-  --surface: var(--gray-0);
-  --surface-sunken: var(--gray-50);
-  --surface-hover: var(--gray-50);
-  --surface-raised: var(--gray-0); /* menus and popovers, above a card */
-  --border: var(--gray-150);
-  --border-strong: var(--gray-300);
-  --text: #0d0f14;
-  --text-muted: var(--gray-600); /* 7.0:1 on --surface */
-  --text-subtle: var(--gray-500); /* 4.7:1 on --surface — decorative labels */
-
-  /* --- color: accent ---------------------------------------------------- */
-  --accent: var(--brand-500); /* fills only — pair with --accent-contrast */
-  --accent-hover: var(--brand-600);
-  --accent-text: var(--brand-600); /* 7.4:1 on --surface — links, active labels */
-  --accent-text-hover: var(--brand-700); /* links darken on hover in light… */
-  --accent-soft: var(--brand-50);
-  --accent-softer: #f7f9ff;
-  --accent-border: var(--brand-200);
-  --accent-contrast: #ffffff;
-  --accent-2: #6d5cf0; /* gradient partner, never used alone for text */
-  --accent-ring: rgba(59, 91, 219, 0.28);
-
-  /* A filled control is a near-flat vertical gradient plus a one-pixel inner
-     highlight along its top edge. Both are almost invisible in isolation and
-     together are the whole difference between "premium" and "a blue rectangle":
-     the gradient gives the surface a light direction, the highlight gives it an
-     edge. Keep the two stops close — a visible ramp reads as a 2012 button. */
-  --gradient-accent: linear-gradient(180deg, #4d6ae2 0%, var(--brand-500) 100%);
-  --gradient-accent-hover: linear-gradient(180deg, #4462d9 0%, var(--brand-600) 100%);
-  --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  /* Brand-tinted elevation for filled controls: a coloured shadow under a
-     coloured button reads as glow, a neutral one reads as dirt. */
-  --shadow-brand: 0 1px 2px rgba(35, 47, 99, 0.24), 0 2px 6px rgba(35, 47, 99, 0.14);
-  --shadow-brand-hover: 0 2px 4px rgba(35, 47, 99, 0.22),
-    0 8px 20px rgba(35, 47, 99, 0.22);
-
-  /* Two soft radial pools rather than a linear fade: a linear gradient over a
-     fixed-height band leaves a visible seam where the band ends, because the
-     gradient line is longer than the box and never reaches its transparent
-     stop on screen. Radials fade out inside the box, so there's no edge. */
-  --gradient-hero: radial-gradient(
-      1100px 460px at 18% -12%,
-      rgba(59, 91, 219, 0.1),
-      transparent 68%
-    ),
-    radial-gradient(900px 420px at 88% -18%, rgba(109, 92, 240, 0.08), transparent 68%);
-
-  /* --- color: semantic -------------------------------------------------- */
-  --success: #1d7a4c;
-  --success-soft: #ecf8f1;
-  --success-border: #c6e6d4;
-  --warn: #8a5708;
-  --warn-soft: #fdf5e8;
-  --warn-border: #f1dfbd;
-  --danger: #c0392b;
-  --danger-soft: #fdeff0;
-  --danger-border: #f5cfd0;
-
-  /* Score bands. Kept as their own names because they're applied through
-     inline styles from utils/score.js as well as from CSS. */
-  --band-strong: #1d7a4c;
-  --band-strong-soft: #ecf8f1;
-  --band-mixed: #8a5708;
-  --band-mixed-soft: #fdf5e8;
-  --band-weak: #c0392b;
-  --band-weak-soft: #fdeff0;
-
-  /* --- elevation ---------------------------------------------------------
-     Each level is two layers: a tight contact shadow that anchors the element
-     to the surface, and a wide diffuse one that lifts it. A single blurred
-     shadow always reads as either floating or smudged, never resting. Opacities
-     stay under 0.12 in light mode — elevation should be felt, not seen. */
-  --shadow-xs: 0 1px 2px rgba(13, 15, 20, 0.05);
-  --shadow-sm: 0 1px 2px rgba(13, 15, 20, 0.04), 0 2px 6px rgba(13, 15, 20, 0.04);
-  --shadow-md: 0 1px 2px rgba(13, 15, 20, 0.04), 0 4px 14px rgba(13, 15, 20, 0.06);
-  --shadow-lg: 0 2px 4px rgba(13, 15, 20, 0.04), 0 12px 32px rgba(13, 15, 20, 0.1);
-  --shadow-xl: 0 4px 8px rgba(13, 15, 20, 0.06), 0 24px 60px rgba(13, 15, 20, 0.16);
-  --shadow: var(--shadow-md); /* legacy alias */
-
-  /* --- motion ------------------------------------------------------------
-     One ease for everything, and durations short enough that a transition is
-     felt rather than watched. --dur-fast is a press, --dur is hover and colour,
-     --dur-slow is something entering the page. */
-  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast: 0.1s;
-  --dur: 0.16s;
-  --dur-slow: 0.34s;
-
-  /* --- layout ----------------------------------------------------------- */
-  --shell-width: 860px;
-  --shell-width-wide: 1440px;
-  --shell-width-public: 1120px; /* landing page + sign-in */
-  /* Height of the sticky public header, used as scroll-margin so a section
-     scrolled to from the nav isn't tucked underneath it. */
-  --public-header-offset: 88px;
-}
-
-/* Default ("system") viewers: prefers-color-scheme decides, unless the user has
-   explicitly chosen light. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-
-    --bg: var(--gray-950);
-    --bg-tint: #0e1014;
-    --surface: var(--gray-900);
-    --surface-sunken: #0f1115;
-    --surface-hover: var(--gray-850);
-    --surface-raised: var(--gray-850);
-    --border: #242833;
-    --border-strong: #343949;
-    --text: #eceef2;
-    --text-muted: #9ba2b0; /* 7.2:1 on --surface */
-    --text-subtle: #808799; /* 5.1:1 on --surface */
-
-    /* --accent stays dark enough to hold white on a button; --accent-text goes
-       several steps lighter so a link is readable on a near-black surface. This
-       is the one place the two must diverge — see the note at the top. */
-    --accent: var(--brand-500);
-    --accent-hover: #4967e0;
-    --accent-text: var(--brand-300); /* 7.5:1 on --surface */
-    --accent-text-hover: var(--brand-200); /* …and lighten in dark */
-    --accent-soft: #1a2141;
-    --accent-softer: #14172a;
-    --accent-border: #2c3560;
-    --accent-contrast: #ffffff;
-    --accent-2: #9b8bf7;
-    --accent-ring: rgba(109, 132, 234, 0.34);
-
-    --gradient-accent: linear-gradient(180deg, #4d6ae2 0%, var(--brand-500) 100%);
-    --gradient-accent-hover: linear-gradient(180deg, #5a76e8 0%, #4967e0 100%);
-    --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-    --shadow-brand: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(59, 91, 219, 0.3);
-    --shadow-brand-hover: 0 2px 4px rgba(0, 0, 0, 0.5),
-      0 8px 24px rgba(59, 91, 219, 0.42);
-
-    --gradient-hero: radial-gradient(
-        1100px 460px at 18% -12%,
-        rgba(59, 91, 219, 0.2),
-        transparent 68%
-      ),
-      radial-gradient(900px 420px at 88% -18%, rgba(109, 92, 240, 0.14), transparent 68%);
-
-    --success: #4fc389;
-    --success-soft: #11291d;
-    --success-border: #1f4a34;
-    --warn: #e4b95f;
-    --warn-soft: #2a2215;
-    --warn-border: #4e3f21;
-    --danger: #f19089;
-    --danger-soft: #2e1c1c;
-    --danger-border: #55322f;
-
-    --band-strong: #4fc389;
-    --band-strong-soft: #11291d;
-    --band-mixed: #e4b95f;
-    --band-mixed-soft: #2a2215;
-    --band-weak: #f19089;
-    --band-weak-soft: #2e1c1c;
-
-    /* Shadows carry much less information on a dark ground, so the contact
-       layer goes nearly opaque and the border does most of the separating. */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.34);
-    --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.5), 0 6px 18px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.55), 0 16px 40px rgba(0, 0, 0, 0.55);
-    --shadow-xl: 0 4px 10px rgba(0, 0, 0, 0.6), 0 28px 70px rgba(0, 0, 0, 0.66);
-  }
-}
-
-/* An explicit dark choice, regardless of the OS setting. Duplicated rather than
-   shared because a media query can't be re-scoped to an attribute. */
-:root[data-theme="dark"] {
-  color-scheme: dark;
-
-  --bg: var(--gray-950);
-  --bg-tint: #0e1014;
-  --surface: var(--gray-900);
-  --surface-sunken: #0f1115;
-  --surface-hover: var(--gray-850);
-  --surface-raised: var(--gray-850);
-  --border: #242833;
-  --border-strong: #343949;
-  --text: #eceef2;
-  --text-muted: #9ba2b0; /* 7.2:1 on --surface */
-  --text-subtle: #808799; /* 5.1:1 on --surface */
-
-  --accent: var(--brand-500);
-  --accent-hover: #4967e0;
-  --accent-text: var(--brand-300); /* 7.5:1 on --surface */
-  --accent-text-hover: var(--brand-200);
-  --accent-soft: #1a2141;
-  --accent-softer: #14172a;
-  --accent-border: #2c3560;
-  --accent-contrast: #ffffff;
-  --accent-2: #9b8bf7;
-  --accent-ring: rgba(109, 132, 234, 0.34);
-
-  --gradient-accent: linear-gradient(180deg, #4d6ae2 0%, var(--brand-500) 100%);
-  --gradient-accent-hover: linear-gradient(180deg, #5a76e8 0%, #4967e0 100%);
-  --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  --shadow-brand: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(59, 91, 219, 0.3);
-  --shadow-brand-hover: 0 2px 4px rgba(0, 0, 0, 0.5),
-    0 8px 24px rgba(59, 91, 219, 0.42);
-
-  --gradient-hero: radial-gradient(
-      1100px 460px at 18% -12%,
-      rgba(59, 91, 219, 0.2),
-      transparent 68%
-    ),
-    radial-gradient(900px 420px at 88% -18%, rgba(109, 92, 240, 0.14), transparent 68%);
-
-  --success: #4fc389;
-  --success-soft: #11291d;
-  --success-border: #1f4a34;
-  --warn: #e4b95f;
-  --warn-soft: #2a2215;
-  --warn-border: #4e3f21;
-  --danger: #f19089;
-  --danger-soft: #2e1c1c;
-  --danger-border: #55322f;
-
-  --band-strong: #4fc389;
-  --band-strong-soft: #11291d;
-  --band-mixed: #e4b95f;
-  --band-mixed-soft: #2a2215;
-  --band-weak: #f19089;
-  --band-weak-soft: #2e1c1c;
-
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.34);
-  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.5), 0 6px 18px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.55), 0 16px 40px rgba(0, 0, 0, 0.55);
-  --shadow-xl: 0 4px 10px rgba(0, 0, 0, 0.6), 0 28px 70px rgba(0, 0, 0, 0.66);
-}
-
-:root[data-theme="light"] {
-  color-scheme: light;
-}
+@import "./styles/tokens.css";
 
 /* --- base ---------------------------------------------------------------- */
 
@@ -398,17 +29,17 @@ body {
   font-family: var(--font-sans);
   font-size: var(--fs-base);
   line-height: var(--lh-normal);
+  font-feature-settings: "cv11", "ss01"; /* Inter: straight-sided 1, open digits */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* A soft wash at the top of the page so the app isn't a flat grey field. It's
-   fixed rather than scrolled so it reads as ambient light, not content. */
+/* The one gradient: a faint teal pool in the top-left corner, fixed so it
+   reads as ambient light rather than as part of the content. */
 body::before {
   content: "";
   position: fixed;
-  inset: 0 0 auto 0;
-  height: 560px;
+  inset: 0;
   background: var(--gradient-hero);
   pointer-events: none;
   z-index: 0;
@@ -423,10 +54,15 @@ h4 {
   letter-spacing: var(--ls-tight);
 }
 
-/* The largest size gets tighter tracking still. This is optical, not arbitrary:
-   tracking that looks right at 23px looks loose at 52px. */
 h1 {
   letter-spacing: var(--ls-tighter);
+}
+
+a {
+  color: var(--secondary);
+}
+a:hover {
+  color: var(--secondary-hover);
 }
 
 button {
@@ -438,10 +74,20 @@ textarea,
 input,
 select {
   font: inherit;
+  color: inherit;
 }
 
-:where(button, a, input, textarea, select, [tabindex], [contenteditable]):focus-visible {
-  outline: 2px solid var(--accent-text);
+/* Numbers, dates and scores set in mono wherever they're tagged. */
+.mono,
+time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* One focus treatment for everything: a 2px aqua ring, offset so it never
+   sits on top of the control's own border. */
+:where(button, a, input, textarea, select, summary, [tabindex], [contenteditable]):focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -451,14 +97,45 @@ select {
   color: var(--text);
 }
 
+::placeholder {
+  color: var(--text-subtle);
+}
+
+/* Thin scrollbars in the palette, so an inner scroll pane doesn't paint a
+   grey OS gutter across the abyss. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
 /* --- layout shell --------------------------------------------------------- */
 
-.app-shell {
+/* The signed-in frame: sidebar on the left, the page on the right. The frame
+   is the scroll container's parent, so it's pinned to the viewport height and
+   the main column scrolls. */
+.app-frame {
   position: relative;
   z-index: 1;
+  display: flex;
+  min-height: 100%;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* No z-index here: that would make the shell a stacking context and trap the
+   Resume Builder's fixed fullscreen layer beneath the sidebar. .app-frame and
+   .public-site already lift content above the background wash. */
+.app-shell {
+  position: relative;
+  width: 100%;
   max-width: var(--shell-width);
   margin: 0 auto;
-  padding: var(--sp-8) var(--sp-6) var(--sp-11);
+  padding: var(--sp-9) var(--sp-7) var(--sp-9);
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -467,7 +144,7 @@ select {
 /* Side-by-side workspaces (the Resume Builder) need more than reading width. */
 .app-shell--wide {
   max-width: var(--shell-width-wide);
-  padding-bottom: var(--sp-6);
+  padding: var(--sp-6) var(--sp-6) var(--sp-4);
 }
 
 /* Bound the shell to the viewport so the panes inside it can scroll
@@ -491,25 +168,21 @@ select {
   width: 100%;
   flex: 1 0 auto;
   min-height: 0;
-  padding-top: var(--sp-5);
+  padding-top: var(--sp-4);
 }
 
 /* Wrapper for every public page. #root is pinned to height: 100%, and a sticky
    header can only stick within its parent's box — so the header's parent must
    be this auto-height column that grows with the page, not #root itself. */
 .public-site {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-height: 100%;
 }
 
-/* Phones get back the gutter the desktop shell spends on breathing room: at
-   380px wide, a 24px margin either side is an eighth of the screen. The public
-   header also wraps its links onto a second row down here. */
 @media (max-width: 680px) {
-  :root {
-    --public-header-offset: 116px;
-  }
   .app-shell {
     padding: var(--sp-6) var(--sp-4) var(--sp-9);
   }
@@ -525,24 +198,28 @@ select {
   min-height: 0;
 }
 
-/* Every screen fades up on mount. `key` on the slot in App.jsx restarts it per
-   navigation, which gives the screen switch a sense of direction without a
-   router or an animation library. The animation ends on `transform: none` so it
-   leaves behind no containing block for the Resume Builder's fixed-position
-   fullscreen layer. */
+/* Screens used to fade up on mount. Motion is now reserved for hover, focus
+   and collapse, so the class stays (AppWorkspace still keys the slot) but
+   animates nothing — and in particular leaves no transform behind to become a
+   containing block for the Resume Builder's fixed fullscreen layer. */
 .screen-enter {
-  animation: screenIn var(--dur-slow) var(--ease-out) both;
+  animation: none;
 }
 
-@keyframes screenIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+/* The header row every signed-in page opens with: title left, primary action
+   right. Screens apply it through their own module class where they need
+   more, but a plain page can use it as is. */
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-6);
+}
+.page-head h1 {
+  margin: 0;
+  font-size: var(--fs-2xl);
 }
 
 /* --- surfaces ------------------------------------------------------------- */
@@ -551,16 +228,36 @@ select {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+}
+
+/* --- form controls -------------------------------------------------------
+   One look for every text field: raised fill, 1px border, aqua edge + ring on
+   focus. Scoped with :where() so a module class always wins. */
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select) {
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):hover {
+  border-color: var(--border-strong);
+}
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
 }
 
 /* --- buttons --------------------------------------------------------------
-   Every button shares one gesture: colour and shadow move on hover, and the
-   element lifts by a single pixel. One pixel is the entire effect — felt as
-   responsiveness rather than seen as motion, and anything larger makes a
-   toolbar look like it is breathing. On press it returns to 0 rather than
-   dropping below rest, so the travel is always hover -> rest and a click never
-   overshoots. */
+   Primary: solid aqua, dark text. Secondary (.btn-ghost): transparent with a
+   border. Subtle: no border until hovered. Colour moves on hover; nothing
+   lifts, bounces or scales. */
 
 .btn-primary,
 .btn-ghost,
@@ -570,108 +267,79 @@ select {
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  border-radius: var(--radius-md);
+  min-height: var(--control-height);
+  border-radius: var(--radius-sm);
   font-size: var(--fs-md);
   font-weight: var(--fw-medium);
-  letter-spacing: -0.005em;
+  line-height: 1;
   white-space: nowrap;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
-    transform var(--dur-fast) var(--ease);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
 }
 
 .btn-primary {
-  background: var(--gradient-accent);
+  background: var(--accent);
   color: var(--accent-contrast);
-  border: 1px solid transparent;
-  padding: 9px var(--sp-5);
-  font-weight: var(--fw-semibold);
-  box-shadow: var(--shadow-brand), var(--inner-highlight);
+  border: 1px solid var(--accent);
+  padding: 0 var(--sp-4);
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--gradient-accent-hover);
-  box-shadow: var(--shadow-brand-hover), var(--inner-highlight);
-  transform: translateY(-1px);
-}
-.btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: var(--shadow-brand), var(--inner-highlight);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 .btn-primary:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
 }
 
 .btn-ghost {
-  background: var(--surface);
-  color: var(--text-muted);
+  background: transparent;
+  color: var(--text);
   border: 1px solid var(--border);
-  padding: 8px var(--sp-4);
-  box-shadow: var(--shadow-xs);
+  padding: 0 var(--sp-3);
 }
 .btn-ghost:hover:not(:disabled) {
-  color: var(--text);
   border-color: var(--border-strong);
-  background: var(--surface-hover);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
-}
-.btn-ghost:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: var(--shadow-xs);
+  background: var(--surface-raised);
 }
 .btn-ghost:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
 }
 
-/* Chrome that sits on a card and shouldn't read as a control until you reach
-   for it (toolbar items, dismissals). The only button with neither a border nor
-   elevation at rest — giving it either turns every card into a control panel. */
 .btn-subtle {
   background: transparent;
   color: var(--text-muted);
   border: 1px solid transparent;
-  padding: 7px var(--sp-3);
+  padding: 0 var(--sp-2);
 }
 .btn-subtle:hover:not(:disabled) {
-  background: var(--surface-sunken);
+  background: var(--surface-raised);
   color: var(--text);
 }
 .btn-subtle:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .btn-danger {
-  background: var(--danger);
-  color: #fff;
-  border: 1px solid transparent;
-  padding: 8px var(--sp-4);
-  font-weight: var(--fw-semibold);
-  box-shadow: var(--shadow-xs), var(--inner-highlight);
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+  padding: 0 var(--sp-3);
 }
 .btn-danger:hover:not(:disabled) {
-  filter: brightness(1.07);
-  box-shadow: var(--shadow-sm), var(--inner-highlight);
-  transform: translateY(-1px);
-}
-.btn-danger:active:not(:disabled) {
-  transform: translateY(0);
+  background: var(--danger-soft);
+  border-color: var(--danger);
 }
 .btn-danger:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
 }
 
 .btn-sm {
-  padding: 5px var(--sp-3);
+  min-height: 28px;
+  padding: 0 var(--sp-2);
   font-size: var(--fs-sm);
 }
 
@@ -679,25 +347,23 @@ select {
   width: 100%;
 }
 
-/* Text-styled action inside a sentence. The rule is carried by
-   text-decoration-color so it can strengthen on hover without the text
-   reflowing, which a border-bottom would do. */
+/* Text-styled action inside a sentence. */
 .link-btn {
   background: transparent;
   border: none;
   padding: 0;
   font: inherit;
   font-weight: var(--fw-medium);
-  color: var(--accent-text);
+  color: var(--secondary);
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--accent-text) 38%, transparent);
+  text-decoration-color: transparent;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
   transition: color var(--dur) var(--ease),
     text-decoration-color var(--dur) var(--ease);
 }
 .link-btn:hover {
-  color: var(--accent-hover);
+  color: var(--secondary-hover);
   text-decoration-color: currentColor;
 }
 
@@ -710,8 +376,8 @@ select {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: var(--sp-3);
-  border-radius: var(--radius-md);
-  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3) var(--sp-4);
   font-size: var(--fs-md);
   line-height: var(--lh-snug);
 }
@@ -722,7 +388,7 @@ select {
   border: 1px solid var(--danger-border);
 }
 
-/* Amber, not blue: a warning must not look like ordinary chrome. */
+/* Amber, not aqua: a warning must not look like ordinary chrome. */
 .warn-banner {
   background: var(--warn-soft);
   color: var(--warn);
@@ -730,7 +396,7 @@ select {
 }
 
 .info-banner {
-  background: var(--accent-soft);
+  background: var(--accent-softer);
   color: var(--text);
   border: 1px solid var(--accent-border);
 }
@@ -738,10 +404,11 @@ select {
 .error-banner .btn-ghost,
 .warn-banner .btn-ghost,
 .info-banner .btn-ghost {
-  padding: 3px var(--sp-3);
+  min-height: 24px;
+  padding: 0 var(--sp-2);
   font-size: var(--fs-sm);
-  background: transparent;
-  box-shadow: none;
+  color: inherit;
+  border-color: currentColor;
 }
 
 /* --- loading skeletons ----------------------------------------------------- */
@@ -749,20 +416,15 @@ select {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--surface-sunken);
-  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  border-radius: var(--radius-sm);
 }
 .skeleton::after {
   content: "";
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(127, 140, 165, 0.14),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, var(--accent-softer), transparent);
   animation: shimmer 1.6s infinite;
 }
 
@@ -786,32 +448,29 @@ select {
   border: 0;
 }
 
-/* Skip link: hidden until focused, then a real button over the header. The
-   public pages put a wordmark, three nav links, a theme control and a sign-in
-   button in front of the content, which is a lot to tab past on every page. */
+/* Skip link: hidden until focused, then a real button over the header. */
 .skip-link {
   position: absolute;
   left: var(--sp-4);
   top: -100px;
   z-index: 100;
   padding: var(--sp-2) var(--sp-4);
-  border-radius: var(--radius-md);
-  background: var(--gradient-accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
   color: var(--accent-contrast);
   font-size: var(--fs-md);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   text-decoration: none;
-  box-shadow: var(--shadow-lg);
-  transition: top var(--dur) var(--ease);
 }
 .skip-link:focus {
   top: var(--sp-4);
 }
 
-/* Uppercase micro-label used above grouped controls and section headers. */
+/* Mono micro-label used above grouped controls and section headers. */
 .eyebrow {
+  font-family: var(--font-mono);
   font-size: var(--fs-2xs);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   text-transform: uppercase;
   letter-spacing: var(--ls-wide);
   color: var(--text-subtle);
@@ -825,17 +484,6 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-  .screen-enter {
-    animation: none;
-  }
-  /* The 1px hover lift is a transform, and the blanket rule above only makes it
-     instant — which is a jump, the exact thing reduced motion is asking to be
-     spared. Remove the displacement itself; the colour and shadow still move. */
-  .btn-primary:hover:not(:disabled),
-  .btn-ghost:hover:not(:disabled),
-  .btn-danger:hover:not(:disabled) {
-    transform: none;
-  }
 }
 
 @media print {
@@ -843,12 +491,14 @@ select {
   .no-print {
     display: none !important;
   }
+  .app-frame {
+    display: block;
+  }
   .app-shell {
     max-width: none;
     padding: 0;
   }
   .card {
-    box-shadow: none;
     break-inside: avoid;
   }
 }

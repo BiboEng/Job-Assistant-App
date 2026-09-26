@@ -68,16 +68,17 @@
 }
 
 .linkLabel {
+  font-family: var(--font-mono);
   font-size: var(--fs-2xs);
-  font-weight: 700;
+  font-weight: var(--fw-medium);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ls-wide);
   color: var(--text-subtle);
 }
 
 .linkValue {
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: var(--fw-medium);
   overflow-wrap: anywhere;
 }
 

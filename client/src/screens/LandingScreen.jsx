@@ -151,10 +151,10 @@ export default function LandingScreen() {
             <div className={styles.heroActions}>
               <Link to={primaryCta.to} className={`btn-primary ${styles.ctaLink}`}>
                 {primaryCta.label}
-                <Icon name="chevronRight" size={16} />
+                <Icon name="chevronRight" />
               </Link>
               <Link to={PATHS.howItWorks} className={`btn-ghost ${styles.ctaLink}`}>
-                <Icon name="play" size={14} />
+                <Icon name="play" />
                 See how it works
               </Link>
             </div>
@@ -181,7 +181,7 @@ export default function LandingScreen() {
             {ABOUT_PILLARS.map((p) => (
               <li key={p.title} className={styles.pillar}>
                 <span className={styles.pillarIcon} aria-hidden="true">
-                  <Icon name={p.icon} size={19} />
+                  <Icon name={p.icon} />
                 </span>
                 <h3 className={styles.pillarTitle}>{p.title}</h3>
                 <p className={styles.pillarBody}>{p.body}</p>
@@ -216,7 +216,7 @@ export default function LandingScreen() {
               >
                 <div className={styles.walkCopy}>
                   <span className={styles.walkIcon} aria-hidden="true">
-                    <Icon name={f.icon} size={18} />
+                    <Icon name={f.icon} />
                   </span>
                   <h3 id={`${f.id}-heading`} className={styles.walkTitle}>
                     {f.title}
@@ -257,7 +257,7 @@ export default function LandingScreen() {
           </p>
           <Link to={primaryCta.to} className={`btn-primary ${styles.ctaLink}`}>
             {user ? "Open your dashboard" : "Get started"}
-            <Icon name="chevronRight" size={16} />
+            <Icon name="chevronRight" />
           </Link>
         </section>
       </main>
@@ -280,7 +280,7 @@ function HeroPreview() {
         <span className={styles.previewDot} />
         <span className={styles.previewDot} />
         <span className={styles.previewStatus}>
-          <Icon name="clock" size={13} />
+          <Icon name="clock" />
           Question 2 of 4 · 2:14
         </span>
       </div>

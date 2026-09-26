@@ -12,17 +12,17 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .field:focus-within {
-  border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .input {
   width: 100%;
   border: none;
+  box-shadow: none;
   background: transparent;
   color: var(--text);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -66,39 +66,37 @@
 /* Only appears near the cap, so it can afford to be quiet until it isn't. */
 .count {
   color: var(--text-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .countFull {
   color: var(--warn);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .listening {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--danger);
 }
 
 .pulse {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--danger);
-  animation: pulse 1.2s ease-in-out infinite;
+  animation: recBlink 1.6s steps(1, end) infinite;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+/* A plain on/off blink, the way a recorder's REC light does it. It's status,
+   not decoration, so it stays, but it neither scales nor glows. */
+@keyframes recBlink {
   50% {
-    transform: scale(1.6);
-    opacity: 0.4;
+    opacity: 0.35;
   }
 }
 
@@ -107,7 +105,7 @@
   border: none;
   padding: 0;
   font-size: var(--fs-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-subtle);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -127,11 +125,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 38px;
+  width: var(--control-height);
+  height: var(--control-height);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--text-muted);
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
     border-color var(--dur) var(--ease);
@@ -150,17 +148,6 @@
   background: var(--danger-soft);
   border-color: var(--danger);
   color: var(--danger);
-  animation: micGlow 1.4s ease-in-out infinite;
-}
-
-@keyframes micGlow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 var(--danger-soft);
-  }
-  50% {
-    box-shadow: 0 0 0 6px transparent;
-  }
 }
 
 /* --- notes / errors -------------------------------------------------------- */
@@ -182,7 +169,8 @@
 .note {
   color: var(--text-subtle);
   background: var(--surface-sunken);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   padding: var(--sp-2) var(--sp-3);
 }
 
@@ -201,13 +189,12 @@
   color: var(--text-subtle);
 }
 .noteClose:hover {
-  background: var(--border);
+  background: var(--surface-raised);
   color: var(--text);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulse,
-  .micOn {
+  .pulse {
     animation: none;
   }
 }

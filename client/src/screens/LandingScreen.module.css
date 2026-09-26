@@ -38,32 +38,22 @@
 }
 
 .title {
-  margin: var(--sp-2) 0 var(--sp-4);
+  margin: var(--sp-2) 0 var(--sp-3);
   font-size: var(--fs-3xl);
   line-height: var(--lh-tight);
-  letter-spacing: -0.025em;
-  max-width: 17ch;
+  letter-spacing: var(--ls-tighter);
+  max-width: 20ch;
 }
 
-@media (min-width: 720px) {
-  .title {
-    font-size: var(--fs-4xl);
-  }
-}
-
-/* Same treatment as the dashboard hero's "the job": the gradient carries the
-   promise, not decoration. */
+/* The phrase the headline turns on, in the accent colour. */
 .grad {
-  background: var(--gradient-accent);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent);
 }
 
 .lede {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--fs-lg);
+  font-size: var(--fs-md);
   line-height: var(--lh-normal);
   max-width: 50ch;
 }
@@ -80,8 +70,7 @@
 .preview {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -95,9 +84,9 @@
 }
 
 .previewDot {
-  width: 9px;
-  height: 9px;
-  border-radius: var(--radius-pill);
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round);
   background: var(--border-strong);
 }
 
@@ -106,8 +95,9 @@
   align-items: center;
   gap: var(--sp-1);
   margin-left: auto;
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--fw-medium);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -130,26 +120,28 @@
 
 .bubbleQ {
   align-self: flex-start;
-  background: var(--surface-sunken);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   color: var(--text);
   border-top-left-radius: var(--radius-xs);
 }
 
 .bubbleA {
   align-self: flex-end;
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  color: var(--text);
   border-top-right-radius: var(--radius-xs);
 }
 
 .bubbleRole {
   display: block;
   margin-bottom: 2px;
+  font-family: var(--font-mono);
   font-size: var(--fs-2xs);
-  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.75;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
 }
 
 .previewScore {
@@ -166,11 +158,12 @@
 .scoreChip {
   flex-shrink: 0;
   padding: 3px var(--sp-2);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
   background: var(--band-strong-soft);
   color: var(--band-strong);
   font-size: var(--fs-sm);
-  font-weight: 700;
+  font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -198,14 +191,6 @@
 .sectionTitle {
   margin: var(--sp-2) 0 var(--sp-3);
   font-size: var(--fs-2xl);
-  letter-spacing: -0.02em;
-}
-
-@media (min-width: 720px) {
-  .sectionTitle {
-    font-size: var(--fs-3xl);
-    line-height: var(--lh-tight);
-  }
 }
 
 .sectionLede {
@@ -240,7 +225,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
 }
 
 .pillarIcon,
@@ -248,19 +232,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--accent);
   margin-bottom: var(--sp-1);
 }
 
 .pillarTitle {
   margin: 0;
-  font-size: var(--fs-lg);
-  font-weight: 650;
-  letter-spacing: -0.012em;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0;
 }
 
 .pillarBody {
@@ -313,7 +298,6 @@
 .walkTitle {
   margin: var(--sp-1) 0 var(--sp-2);
   font-size: var(--fs-xl);
-  letter-spacing: -0.015em;
 }
 
 .walkSummary {
@@ -346,11 +330,13 @@
   width: 22px;
   height: 22px;
   margin-top: 1px;
-  border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--accent);
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: var(--fw-medium);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -369,15 +355,14 @@
   gap: var(--sp-2);
   padding: var(--sp-8) var(--sp-5);
   text-align: center;
-  border: 1px solid var(--accent-soft);
-  border-radius: var(--radius-xl);
-  background: linear-gradient(180deg, var(--accent-softer), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
 }
 
 .closingTitle {
   margin: 0;
-  font-size: var(--fs-2xl);
-  letter-spacing: -0.02em;
+  font-size: var(--fs-xl);
 }
 
 .closingBody {

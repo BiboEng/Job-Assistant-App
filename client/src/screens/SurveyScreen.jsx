@@ -155,12 +155,12 @@ export default function SurveyScreen({ onDone, onExit }) {
     return (
       <div className={styles.wrap}>
         <div className="error-banner" role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>{loadError}</span>
         </div>
         <div>
           <button type="button" className="btn-ghost" onClick={onExit}>
-            <Icon name="arrowLeft" size={15} />
+            <Icon name="arrowLeft" />
             Back to dashboard
           </button>
         </div>
@@ -224,7 +224,7 @@ export default function SurveyScreen({ onDone, onExit }) {
 
       {saveError && (
         <div className="error-banner" role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>{saveError}</span>
         </div>
       )}
@@ -237,7 +237,7 @@ export default function SurveyScreen({ onDone, onExit }) {
             onClick={goBack}
             disabled={index === 0 || busy}
           >
-            <Icon name="arrowLeft" size={15} />
+            <Icon name="arrowLeft" />
             Back
           </button>
         </div>
@@ -255,19 +255,19 @@ export default function SurveyScreen({ onDone, onExit }) {
               disabled={busy}
             >
               {saving === "completed" ? "Submitting…" : "Submit"}
-              <Icon name="check" size={15} />
+              <Icon name="check" />
             </button>
           ) : (
             <button type="button" className="btn-primary" onClick={goNext} disabled={busy}>
               Next
-              <Icon name="chevronRight" size={15} />
+              <Icon name="chevronRight" />
             </button>
           )}
         </div>
       </div>
 
       <p className={styles.note}>
-        <Icon name="lock" size={14} />
+        <Icon name="lock" />
         <span>
           Your answers are stored on your account and are only used to shape the
           product. They aren't used by the interviewer, the feedback, the resume
@@ -332,7 +332,7 @@ function QuestionBody({
               }
             >
               <span className={styles.chipMark} aria-hidden="true">
-                {checked && <Icon name="check" size={13} />}
+                {checked && <Icon name="check" />}
               </span>
               {o.label}
             </button>

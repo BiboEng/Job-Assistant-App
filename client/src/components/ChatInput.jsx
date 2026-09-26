@@ -297,7 +297,7 @@ export default function ChatInput({
                 aria-label={listening ? "Stop recording" : "Start recording your answer"}
                 title={listening ? "Stop recording" : "Speak your answer"}
               >
-                <Icon name="mic" size={19} />
+                <Icon name="mic" />
               </button>
             )}
 
@@ -311,7 +311,7 @@ export default function ChatInput({
               disabled={disabled}
               title="Move on without answering"
             >
-              <Icon name="skipForward" size={15} />
+              <Icon name="skipForward" />
               Skip
             </button>
 
@@ -322,7 +322,7 @@ export default function ChatInput({
               disabled={disabled || !hasText}
               title="Submit this answer"
             >
-              <Icon name="send" size={15} />
+              <Icon name="send" />
               Send
             </button>
           </div>
@@ -331,7 +331,7 @@ export default function ChatInput({
 
       {error && (
         <p className={styles.error} role="alert">
-          <Icon name="alert" size={15} />
+          <Icon name="alert" />
           {error}
         </p>
       )}
@@ -344,7 +344,7 @@ export default function ChatInput({
 
       {!disabled && voiceMode && !noteSeen && (
         <p className={styles.note} id="voice-note">
-          <Icon name="alert" size={14} />
+          <Icon name="alert" />
           <span>
             Voice uses your browser's speech recognition, which sends audio to its
             provider (Google, in Chrome) to transcribe. Switch to typing to keep it
@@ -358,7 +358,7 @@ export default function ChatInput({
             onClick={dismissNote}
             aria-label="Dismiss voice privacy note"
           >
-            <Icon name="x" size={14} />
+            <Icon name="x" />
           </button>
         </p>
       )}

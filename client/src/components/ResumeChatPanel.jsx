@@ -108,7 +108,7 @@ export default function ResumeChatPanel({
                 className={styles.suggestion}
                 onClick={() => useSuggestion(s)}
               >
-                <Icon name="sparkles" size={14} />
+                <Icon name="sparkles" />
                 <span>{s}</span>
               </button>
             ))}
@@ -118,7 +118,7 @@ export default function ResumeChatPanel({
 
       {error && (
         <div className={`error-banner ${styles.error}`} role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>{error}</span>
           {onRetry && (
             <button type="button" className="btn-ghost" onClick={onRetry}>
@@ -156,12 +156,12 @@ export default function ResumeChatPanel({
 
           {busy ? (
             <button type="button" className={styles.stopBtn} onClick={onStop}>
-              <Icon name="stop" size={15} />
+              <Icon name="stop" />
               Stop
             </button>
           ) : (
             <button type="submit" className="btn-primary" disabled={!canSend}>
-              <Icon name="send" size={15} />
+              <Icon name="send" />
               Send
             </button>
           )}

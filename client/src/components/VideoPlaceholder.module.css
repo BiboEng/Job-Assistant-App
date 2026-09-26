@@ -32,36 +32,31 @@
   text-align: center;
   border-style: dashed;
   border-color: var(--border-strong);
-  box-shadow: none;
-  background: radial-gradient(
-      circle at 50% 42%,
-      var(--accent-soft),
-      transparent 70%
-    ),
-    var(--surface);
+  background: var(--surface-sunken);
 }
 
 .play {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  padding-left: 3px; /* optically centre the triangle */
-  border-radius: var(--radius-pill);
-  background: var(--gradient-accent);
-  color: #fff;
-  box-shadow: var(--shadow-md);
+  width: 40px;
+  height: 40px;
+  padding-left: 2px; /* optically centre the triangle */
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-round);
+  background: var(--accent-soft);
+  color: var(--accent);
   margin-bottom: var(--sp-1);
 }
 
 .label {
   font-size: var(--fs-md);
-  font-weight: 650;
+  font-weight: var(--fw-medium);
   color: var(--text);
 }
 
 .hint {
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
   color: var(--text-subtle);
 }

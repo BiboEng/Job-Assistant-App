@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import JobCard from "../components/JobCard.jsx";
+import JobRow from "../components/JobRow.jsx";
 import Icon from "../components/Icon.jsx";
 import { searchJobs, scoreJobs } from "../api/jobsApi.js";
 import { extractResumeText } from "../utils/parseResume.js";
@@ -408,41 +408,46 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
 
   return (
     <div className={styles.wrap}>
-      {onBack && (
-        <button type="button" className={`btn-ghost btn-sm ${styles.back}`} onClick={onBack}>
-          <Icon name="arrowLeft" size={15} />
-          Back to home
-        </button>
-      )}
+      <header className="page-head">
+        <h1>Job Matches</h1>
+        {collapsed && (
+          <button type="button" className="btn-ghost" onClick={() => setFormOpen(true)}>
+            <Icon name="search" />
+            Change search
+          </button>
+        )}
+      </header>
 
       {/* Once results are on screen the form is no longer the point of the page,
           so it folds into a one-line summary instead of holding ~450px above
           every result. */}
       {collapsed ? (
         <div className={styles.searchSummary}>
-          <span className={styles.summaryText}>
-            <Icon name="fileText" size={14} />
-            <strong>{fileName || "Your resume"}</strong>
-            <span aria-hidden="true">·</span>
-            <Icon name="mapPin" size={14} />
+          <span className={styles.summaryItem}>
+            <Icon name="fileText" />
+            {fileName || "Your resume"}
+          </span>
+          <span className={styles.summaryItem}>
+            <Icon name="mapPin" />
             {result?.city || city}
             {countryLabel ? `, ${countryLabel}` : ""}
           </span>
-          <button type="button" className="btn-ghost btn-sm" onClick={() => setFormOpen(true)}>
-            Change search
-          </button>
+          {result?.profile?.field && (
+            <span className={styles.summaryItem}>
+              <Icon name="target" />
+              {[result.profile.seniority, result.profile.field].filter(Boolean).join(" · ")}
+            </span>
+          )}
         </div>
       ) : (
       <div className={styles.card}>
-        <p className="eyebrow">Powered by live listings</p>
-        <h2 className={styles.heading}>Job matches</h2>
         <p className={styles.sub}>
           Your resume becomes the search. It is never shown on screen or saved.
         </p>
 
         {parseError && (
           <div className="error-banner" role="alert">
-            <Icon name="alert" size={16} />
+            <Icon name="alert" />
             <span>{parseError}</span>
           </div>
         )}
@@ -460,7 +465,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
           {fileName ? (
             <div className={styles.confirm}>
               <span className={styles.check} aria-hidden="true">
-                <Icon name="check" size={14} />
+                <Icon name="check" />
               </span>
               <span className={styles.confirmText}>
                 <strong>{fileName}</strong>
@@ -495,7 +500,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
               aria-label="Upload your resume — PDF or plain text"
             >
               <span className={styles.dropIcon} aria-hidden="true">
-                <Icon name={parsing ? "refresh" : "upload"} size={20} />
+                <Icon name={parsing ? "refresh" : "upload"} />
               </span>
               <span className={styles.dropTitle}>
                 {parsing ? "Reading your resume…" : "Drop your resume here"}
@@ -547,7 +552,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
             onClick={handleSearch}
             disabled={!canSearch}
           >
-            <Icon name="search" size={16} />
+            <Icon name="search" />
             {running ? "Finding matches…" : "Find job matches"}
           </button>
         </div>
@@ -601,45 +606,27 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
 
       {status === "error" && (
         <div className="error-banner" role="alert">
-          <Icon name="alert" size={16} />
+          <Icon name="alert" />
           <span>{error}</span>
         </div>
       )}
 
       {result && (status === "scoring" || status === "done") && (
         <div className={styles.results}>
-          {/* Keeps the search visible once you've scrolled past the form. */}
-          <div className={styles.context}>
-            <span className={styles.contextItem}>
-              <Icon name="mapPin" size={14} />
-              {result.city}
-              {countryLabel ? `, ${countryLabel}` : ""}
-            </span>
-            {result.profile?.field && (
-              <span className={styles.contextItem}>
-                <Icon name="target" size={14} />
-                Matched as{" "}
-                <strong>
-                  {[result.profile.seniority, result.profile.field]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </strong>
-              </span>
-            )}
-            {result.profile?.keywords?.length > 0 && (
-              <span className={styles.keywords}>
-                {result.profile.keywords.slice(0, 6).map((k) => (
-                  <span key={k} className={styles.keyword}>
-                    {k}
-                  </span>
-                ))}
-              </span>
-            )}
-          </div>
+          {/* The profile the model pulled from the resume — what was searched. */}
+          {result.profile?.keywords?.length > 0 && (
+            <div className={styles.keywords} aria-label="Search keywords">
+              {result.profile.keywords.slice(0, 6).map((k) => (
+                <span key={k} className={styles.keyword}>
+                  {k}
+                </span>
+              ))}
+            </div>
+          )}
 
           {result.warnings?.length > 0 && (
             <div className="warn-banner" role="status">
-              <Icon name="alert" size={16} />
+              <Icon name="alert" />
               <div>
                 {result.warnings.map((w, i) => (
                   <div key={i}>{w}</div>
@@ -650,9 +637,6 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
 
           {jobs.length === 0 ? (
             <div className={styles.empty}>
-              <span className={styles.emptyIcon} aria-hidden="true">
-                <Icon name="briefcase" size={22} />
-              </span>
               <p className={styles.emptyTitle}>
                 {result.message || "No matching jobs found."}
               </p>
@@ -743,7 +727,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
 
               {status === "done" && unscoredCount > 0 && (
                 <div className="warn-banner" role="status">
-                  <Icon name="alert" size={16} />
+                  <Icon name="alert" />
                   <span>
                     {unscoredCount} role{unscoredCount === 1 ? " couldn't" : "s couldn't"} be
                     scored (the AI service was rate limited).
@@ -766,15 +750,15 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
                   </button>
                 </div>
               ) : (
-                <div className={styles.list}>
+                <ul className={styles.list}>
                   {sortedJobs.map((job) => (
-                    <JobCard
+                    <JobRow
                       key={job.id}
                       job={job}
                       scoring={status === "scoring" && !job.settled}
                     />
                   ))}
-                </div>
+                </ul>
               )}
             </>
           )}

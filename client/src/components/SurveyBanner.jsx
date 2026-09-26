@@ -16,25 +16,24 @@ export default function SurveyBanner({ onTake, onSkip }) {
   return (
     <section className={styles.banner} aria-labelledby="survey-banner-title">
       <span className={styles.icon} aria-hidden="true">
-        <Icon name="sparkles" size={19} />
+        <Icon name="clipboard" />
       </span>
 
       <div className={styles.copy}>
         <h2 id="survey-banner-title" className={styles.title}>
-          Help us personalize your experience
+          Career survey
         </h2>
         <p className={styles.body}>
-          Fifteen quick questions about your job search — takes 2 minutes, and every
-          one is optional.
+          15 optional questions about your job search. About 2 minutes.
         </p>
       </div>
 
       <div className={styles.actions}>
-        <button type="button" className="btn-primary btn-sm" onClick={onTake}>
-          Take survey
-        </button>
         <button type="button" className="btn-ghost btn-sm" onClick={onSkip}>
           Skip for now
+        </button>
+        <button type="button" className="btn-primary btn-sm" onClick={onTake}>
+          Take survey
         </button>
       </div>
     </section>

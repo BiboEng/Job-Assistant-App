@@ -1,0 +1,155 @@
+/* Column template, shared with HomeScreen's `.columns` header:
+   role | answered | date | score, then the 40px action cell outside the
+   button. Keep the two in step. */
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  transition: background-color var(--dur) var(--ease);
+}
+.row:hover,
+.row:focus-within {
+  background: var(--surface-raised);
+}
+
+.open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 112px 56px;
+  align-items: center;
+  gap: var(--sp-4);
+  min-height: var(--row-height);
+  padding: 0 0 0 var(--sp-4);
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.open:focus-visible {
+  outline-offset: -2px;
+}
+
+.role {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.title {
+  flex-shrink: 0;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
+.snippet {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.answered,
+.date {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.scoreCell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 22px;
+  padding: 0 var(--sp-2);
+  border-radius: var(--radius-xs);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+}
+
+/* --- actions --------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  justify-content: center;
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-subtle);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+.row:hover .deleteBtn,
+.deleteBtn:focus-visible {
+  opacity: 1;
+}
+.deleteBtn:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+/* Touch screens have no hover to reveal it. */
+@media (hover: none) {
+  .deleteBtn {
+    opacity: 1;
+  }
+}
+
+/* The confirm sits over the right end of the row rather than reflowing it. */
+.confirm {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2) 0 var(--sp-4);
+  background: var(--surface-raised);
+  border-left: 1px solid var(--border);
+}
+
+.confirmText {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .open {
+    grid-template-columns: minmax(0, 1fr) 96px 48px;
+    gap: var(--sp-3);
+  }
+  .answered {
+    display: none;
+  }
+  .snippet {
+    display: none;
+  }
+  .title {
+    max-width: none;
+  }
+}

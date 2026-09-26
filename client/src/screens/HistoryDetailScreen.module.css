@@ -4,11 +4,13 @@
   gap: var(--sp-4);
 }
 
-.topBar {
+.wrap > :global(.page-head) {
+  margin-bottom: 0;
+}
+
+.headActions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   flex-wrap: wrap;
 }
 
@@ -16,7 +18,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -26,7 +27,7 @@
   justify-content: space-between;
   gap: var(--sp-3);
   width: 100%;
-  padding: var(--sp-4) var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
   background: transparent;
   border: none;
   color: inherit;
@@ -34,7 +35,10 @@
   text-align: left;
 }
 .jdToggle:hover {
-  background: var(--surface-hover);
+  background: var(--surface-raised);
+}
+.jdToggle:focus-visible {
+  outline-offset: -2px;
 }
 
 .jdHeadText {
@@ -45,11 +49,12 @@
 }
 
 .jdHeading {
-  font-size: var(--fs-base);
-  font-weight: 650;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
 }
 
 .date {
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
   color: var(--text-subtle);
 }
@@ -64,7 +69,7 @@
 }
 
 .jdBody {
-  padding: 0 var(--sp-5) var(--sp-5);
+  padding: 0 var(--sp-4) var(--sp-4);
   border-top: 1px solid var(--border);
 }
 

@@ -30,6 +30,8 @@
 }
 .progressLabel strong {
   color: var(--text);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-medium);
   font-variant-numeric: tabular-nums;
 }
 
@@ -40,8 +42,8 @@
 
 .segment {
   width: 26px;
-  height: 5px;
-  border-radius: var(--radius-pill);
+  height: 3px;
+  border-radius: var(--radius-xs);
   background: var(--border);
   transition: background var(--dur) var(--ease);
 }
@@ -63,13 +65,13 @@
   padding: var(--sp-2) var(--sp-3);
   background: var(--danger-soft);
   border: 1px solid var(--danger-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .confirmText {
   font-size: var(--fs-sm);
   color: var(--danger);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 /* --- transcript ----------------------------------------------------------- */
@@ -81,8 +83,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: var(--sp-5);
+  padding: var(--sp-4);
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
@@ -97,7 +98,7 @@
   padding: var(--sp-3) var(--sp-4);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   color: var(--text-muted);
   transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
@@ -110,8 +111,9 @@
 }
 
 .timerValue {
+  font-family: var(--font-mono);
   font-size: var(--fs-lg);
-  font-weight: 700;
+  font-weight: var(--fw-medium);
   font-variant-numeric: tabular-nums;
   color: var(--text);
   transition: color var(--dur) var(--ease);
@@ -119,12 +121,13 @@
 
 .timerNote {
   color: var(--text-subtle);
-  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
 }
 
 .timerTrack {
-  height: 5px;
-  border-radius: var(--radius-pill);
+  height: 2px;
+  border-radius: var(--radius-xs);
   background: var(--surface-sunken);
   overflow: hidden;
 }
@@ -133,7 +136,6 @@
    second. transform-origin left makes it deplete from the right. */
 .timerFill {
   height: 100%;
-  border-radius: var(--radius-pill);
   background: var(--accent);
   transform-origin: left center;
   transition: transform 0.5s linear, background var(--dur) var(--ease);
@@ -156,26 +158,12 @@
 }
 .urgent .timerValue {
   color: var(--band-weak);
-  animation: pulse 1s ease-in-out infinite;
 }
 .urgent .timerFill {
   background: var(--band-weak);
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .urgent .timerValue {
-    animation: none;
-  }
   .timerFill {
     transition: none;
   }

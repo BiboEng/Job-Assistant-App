@@ -1,6 +1,6 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate, useOutletContext, useParams } from "react-router";
-import AppHeader from "./components/AppHeader.jsx";
+import Sidebar from "./components/Sidebar.jsx";
 import HomeScreen from "./screens/HomeScreen.jsx";
 import JobDescriptionScreen from "./screens/JobDescriptionScreen.jsx";
 import ChatScreen from "./screens/ChatScreen.jsx";
@@ -54,12 +54,12 @@ const RESUMABLE = new Set([PATHS.chat, PATHS.results]);
 // Builder is a side-by-side workspace, not a document.
 const WIDE_PATHS = new Set([PATHS.resume]);
 
-// Which header nav item is lit for a path. The nav addresses sections, not
-// screens: everything in the interview flow belongs to "practice".
+// Which sidebar item is lit for a path. The nav addresses sections, not
+// screens: everything in the live interview flow belongs to "practice", and a
+// saved interview is opened from â€” so belongs to â€” Home.
 function sectionOf(pathname) {
-  if (pathname.startsWith("/interview") || pathname.startsWith("/history/")) {
-    return "practice";
-  }
+  if (pathname === PATHS.dashboard || pathname.startsWith("/history/")) return "home";
+  if (pathname.startsWith("/interview")) return "practice";
   if (pathname === PATHS.jobs) return "jobs";
   if (pathname === PATHS.resume) return "resume";
   return undefined;
@@ -250,12 +250,14 @@ export default function AppWorkspace() {
   }
 
   /**
-   * Header nav. Disabled during a live interview, so the interview needs no
+   * Sidebar nav. Disabled during a live interview, so the interview needs no
    * guard here; the Resume Builder registers one because its document is
    * session-only and leaving throws it away.
    */
   function navigateSection(section) {
-    if (section === "practice") {
+    if (section === "home") {
+      if (pathname !== PATHS.dashboard) goHome();
+    } else if (section === "practice") {
       if (pathname !== PATHS.setup) startNew();
     } else if (section === "jobs") {
       if (pathname !== PATHS.jobs) openJobMatches();
@@ -299,24 +301,28 @@ export default function AppWorkspace() {
   };
 
   return (
-    <div className={`app-shell ${WIDE_PATHS.has(pathname) ? "app-shell--wide" : ""}`}>
-      <AppHeader
-        onHome={goHome}
+    <div className="app-frame">
+      <Sidebar
         onNavigate={navigateSection}
         onSignOut={handleSignOut}
         onOpenSurvey={openSurvey}
         surveyState={survey.state}
-        userEmail={user?.email}
+        user={user}
         active={sectionOf(pathname)}
         interactive={pathname !== PATHS.chat}
       />
 
-      {/* Keyed so each navigation replays the enter animation. */}
-      <div key={pathname} className="screen-slot screen-enter">
-        <Suspense fallback={null}>
-          <Outlet context={workspace} />
-        </Suspense>
-      </div>
+      <main
+        id="main-content"
+        className={`app-main app-shell ${WIDE_PATHS.has(pathname) ? "app-shell--wide" : ""}`}
+      >
+        {/* Keyed so each screen mounts fresh on navigation. */}
+        <div key={pathname} className="screen-slot screen-enter">
+          <Suspense fallback={null}>
+            <Outlet context={workspace} />
+          </Suspense>
+        </div>
+      </main>
     </div>
   );
 }

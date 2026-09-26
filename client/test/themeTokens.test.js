@@ -1,101 +1,102 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * index.css declares every dark value twice, and the two copies are not
- * interchangeable:
+ * The design-token contract, checked as text — no bundler, no DOM.
  *
- *   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }
- *       -> the viewer left the theme on "system" and their OS is dark
- *   :root[data-theme="dark"]
- *       -> the viewer explicitly picked Dark from the ThemeToggle
- *
- * A token added to one and not the other is invisible in whichever of those two
- * paths you happen to be testing in. That is not hypothetical: --accent-text-hover
- * was added to the media block only, so a hovered link in the *toggle* path fell
- * back to the light-mode value and rendered at 2.0:1 on a near-black surface,
- * while OS-dark looked perfect. A plain string replace had matched the 4-space
- * media-block line, because "  --x:" is a substring of "    --x:".
- *
- * These tests are cheap and text-only — no bundler, no DOM — which is the whole
- * reason they can guard a stylesheet at all.
+ * styles/tokens.css is the single source of every visual value; module CSS
+ * styles through its names. These tests catch the two ways that erodes:
+ * a module reaching for a raw colour, and a rule referencing a token that no
+ * longer exists (which fails silently in the browser — the property just
+ * falls back to its initial value).
  */
 
-const CSS = readFileSync(
-  fileURLToPath(new URL("../src/index.css", import.meta.url)),
-  "utf8"
-).split("\r\n").join("\n");
+const SRC = fileURLToPath(new URL("../src/", import.meta.url));
+const read = (p) => readFileSync(p, "utf8").split("\r\n").join("\n");
 
-/** Slice out a top-level block by brace balance, starting at a matching line. */
-function blockStartingWith(prefix) {
-  const lines = CSS.split("\n");
-  const start = lines.findIndex((l) => l.startsWith(prefix));
-  assert.notEqual(start, -1, `no top-level block starting with ${prefix}`);
-  let depth = 0;
+const TOKENS = read(join(SRC, "styles/tokens.css"));
+const INDEX = read(join(SRC, "index.css"));
+
+// The resume sheet is paper: it must look identical in the app and in the
+// exported PDF, so it is the one place allowed its own literal colours.
+const PAPER = new Set(["ResumePreview.module.css", "EditableText.module.css"]);
+
+function moduleFiles(dir) {
   const out = [];
-  for (let i = start; i < lines.length; i++) {
-    depth += (lines[i].match(/\{/g) || []).length;
-    depth -= (lines[i].match(/\}/g) || []).length;
-    out.push(lines[i]);
-    if (depth === 0 && i > start) return out.join("\n");
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) out.push(...moduleFiles(full));
+    else if (entry.endsWith(".module.css")) out.push(full);
   }
-  throw new Error(`unbalanced braces after ${prefix}`);
+  return out;
 }
 
-/** Custom-property names declared anywhere inside a block. */
-function declaredTokens(block) {
-  return new Set([...block.matchAll(/^\s+(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]));
-}
+const declared = new Set(
+  [...TOKENS.matchAll(/^\s+(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1])
+);
 
-const root = blockStartingWith(":root {");
-const mediaDark = blockStartingWith("@media (prefers-color-scheme: dark)");
-const attrDark = blockStartingWith(':root[data-theme="dark"]');
-
-test("both dark blocks declare exactly the same tokens", () => {
-  const a = declaredTokens(mediaDark);
-  const b = declaredTokens(attrDark);
-  const onlyMedia = [...a].filter((t) => !b.has(t));
-  const onlyAttr = [...b].filter((t) => !a.has(t));
-  assert.deepEqual(
-    onlyMedia,
-    [],
-    `declared for OS-dark but not for the Dark toggle: ${onlyMedia.join(", ")}`
-  );
-  assert.deepEqual(
-    onlyAttr,
-    [],
-    `declared for the Dark toggle but not for OS-dark: ${onlyAttr.join(", ")}`
-  );
+test("the palette from the design brief is declared as specified", () => {
+  const expected = {
+    "--bg": "#070d14",
+    "--surface": "#0c1622",
+    "--surface-raised": "#122030",
+    "--border": "#1c2e40",
+    "--text": "#e3eef5",
+    "--text-muted": "#7f97a8",
+    "--accent": "#4fd1c5",
+    "--accent-soft": "rgba(79, 209, 197, 0.12)",
+    "--secondary": "#7aa7ff",
+    "--good": "#5fd39a",
+    "--okay": "#e3b85c",
+    "--weak": "#e8787a",
+  };
+  for (const [name, value] of Object.entries(expected)) {
+    const m = TOKENS.match(new RegExp(`^\\s+${name}:\\s*([^;]+);`, "m"));
+    assert.ok(m, `${name} is not declared in tokens.css`);
+    assert.equal(m[1].trim(), value, `${name} drifted from the brief`);
+  }
 });
 
-test("every token a dark block overrides also has a light default in :root", () => {
-  const base = declaredTokens(root);
-  const missing = [...declaredTokens(attrDark)].filter((t) => !base.has(t));
-  assert.deepEqual(
-    missing,
-    [],
-    `dark-only tokens with no :root fallback: ${missing.join(", ")}`
-  );
+test("index.css imports the tokens and declares no custom properties itself", () => {
+  assert.match(INDEX, /@import\s+["']\.\/styles\/tokens\.css["']/);
+  const own = [...INDEX.matchAll(/^\s+(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]);
+  assert.deepEqual(own, [], `tokens declared outside tokens.css: ${own.join(", ")}`);
 });
 
-test("--accent-text is defined wherever --accent is overridden", () => {
-  // The fill colour and the ink colour diverge in dark mode. A theme that
-  // redefines one without the other silently reintroduces the low-contrast
-  // link this split exists to prevent.
-  for (const [name, block] of [
-    ["media-query dark", mediaDark],
-    ["data-theme dark", attrDark],
+test("there is no light theme left to half-support", () => {
+  for (const [name, css] of [
+    ["tokens.css", TOKENS],
+    ["index.css", INDEX],
   ]) {
-    const t = declaredTokens(block);
+    assert.ok(!/data-theme/.test(css), `${name} still has a data-theme block`);
     assert.ok(
-      !t.has("--accent") || t.has("--accent-text"),
-      `${name} overrides --accent without --accent-text`
-    );
-    assert.ok(
-      !t.has("--accent-text") || t.has("--accent-text-hover"),
-      `${name} overrides --accent-text without --accent-text-hover`
+      !/prefers-color-scheme/.test(css),
+      `${name} still branches on prefers-color-scheme`
     );
   }
+});
+
+test("module CSS uses no raw colours", () => {
+  const offenders = [];
+  for (const file of moduleFiles(SRC)) {
+    if (PAPER.has(file.split(/[\\/]/).pop())) continue;
+    const css = read(file).replace(/\/\*[\s\S]*?\*\//g, "");
+    const hit = css.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/);
+    if (hit) offenders.push(`${file.slice(SRC.length)}: ${hit[0]}`);
+  }
+  assert.deepEqual(offenders, [], `raw colours in module CSS:\n${offenders.join("\n")}`);
+});
+
+test("every var(--token) referenced in CSS is declared", () => {
+  const files = [join(SRC, "index.css"), ...moduleFiles(SRC)];
+  const missing = new Set();
+  for (const file of files) {
+    for (const m of read(file).matchAll(/var\((--[a-z0-9-]+)/g)) {
+      if (!declared.has(m[1])) missing.add(`${m[1]} (${file.slice(SRC.length)})`);
+    }
+  }
+  assert.deepEqual([...missing], [], `undeclared tokens:\n${[...missing].join("\n")}`);
 });

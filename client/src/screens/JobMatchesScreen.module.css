@@ -5,55 +5,25 @@
   align-items: stretch;
 }
 
-.back {
-  align-self: flex-start;
+/* The page-head's own bottom margin plus this column's gap would double up. */
+.wrap > :global(.page-head) {
+  margin-bottom: var(--sp-2);
 }
+
+/* --- search form ------------------------------------------------------------ */
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   padding: var(--sp-6);
 }
 
-.heading {
-  margin: var(--sp-1) 0 var(--sp-1);
-  font-size: var(--fs-xl);
-}
-
 .sub {
-  margin: 0 0 var(--sp-5);
+  margin: 0 0 var(--sp-4);
   color: var(--text-muted);
   font-size: var(--fs-md);
   max-width: 62ch;
-}
-
-/* The collapsed form: what was searched, and a way back to change it. */
-.searchSummary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
-  padding: var(--sp-3) var(--sp-4);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-}
-
-.summaryText {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-  min-width: 0;
-  font-size: var(--fs-md);
-  color: var(--text-muted);
-}
-.summaryText strong {
-  color: var(--text);
-  overflow-wrap: anywhere;
 }
 
 .controls {
@@ -67,6 +37,31 @@
   align-self: flex-start;
 }
 
+/* The collapsed form: what was searched, as one line of mono-labelled facts. */
+.searchSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-6);
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.summaryItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.summaryItem:first-child {
+  color: var(--text);
+}
+
 /* --- dropzone -------------------------------------------------------------- */
 
 .dropzone {
@@ -75,61 +70,46 @@
   align-items: center;
   justify-content: center;
   gap: var(--sp-1);
-  padding: var(--sp-7) var(--sp-5);
-  border: 2px dashed var(--border-strong);
+  padding: var(--sp-7) var(--sp-4);
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-lg);
-  background: var(--surface-hover);
+  background: var(--surface-sunken);
   cursor: pointer;
   text-align: center;
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
 }
-.dropzone:hover {
-  border-color: var(--accent-text);
-  background: var(--accent-softer);
-}
-
+.dropzone:hover,
 .dropzoneActive {
-  border-color: var(--accent-text);
-  border-style: solid;
-  background: var(--accent-soft);
+  border-color: var(--accent);
+  background: var(--accent-softer);
 }
 
 .dropIcon {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  margin-bottom: var(--sp-1);
-}
-.dropzoneActive .dropIcon {
-  background: var(--surface);
+  margin-bottom: var(--sp-2);
+  color: var(--accent);
 }
 
 .dropTitle {
-  font-size: var(--fs-base);
-  font-weight: 600;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
 }
 
 .dropHint {
-  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   color: var(--text-subtle);
 }
 
-/* --- uploaded confirmation ------------------------------------------------- */
-
+/* Upload confirmation: filename + count, never the text itself. */
 .confirm {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  flex-wrap: wrap;
-  background: var(--success-soft);
-  border: 1px solid var(--success-border);
-  border-radius: var(--radius-md);
   padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
 }
 
 .check {
@@ -138,10 +118,10 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  background: var(--success);
-  color: #fff;
   flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--success-soft);
+  color: var(--success);
 }
 
 .confirmText {
@@ -151,129 +131,113 @@
   flex-direction: column;
   font-size: var(--fs-md);
 }
-
-.confirmCount {
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
+.confirmText strong {
+  font-weight: var(--fw-medium);
+  overflow-wrap: anywhere;
 }
 
-/* --- location -------------------------------------------------------------- */
+.confirmCount {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+/* --- location fields ------------------------------------------------------- */
 
 .locationRow {
-  display: flex;
-  gap: var(--sp-4);
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--sp-3);
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
-  flex: 1;
-  min-width: 190px;
+  min-width: 0;
 }
 
 .fieldLabel {
-  font-size: var(--fs-md);
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
 }
 
-.city,
-.select {
+.select,
+.city {
+  height: var(--control-height);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-md);
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 10px var(--sp-3);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--fs-md);
-  outline: none;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-.city:focus,
-.select:focus {
-  border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
-/* --- progress -------------------------------------------------------------- */
+@media (max-width: 520px) {
+  .locationRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- progress ---------------------------------------------------------------- */
 
 .progressCard {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
-  background: var(--surface);
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: var(--sp-4) var(--sp-5);
+  background: var(--surface);
 }
 
 .progressLabel {
-  font-size: var(--fs-md);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   color: var(--text-muted);
 }
 
 .track {
   position: relative;
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-sunken);
+  height: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--border);
   overflow: hidden;
 }
 
 .trackFill {
   height: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--gradient-accent);
+  background: var(--accent);
   transition: width var(--dur-slow) var(--ease);
 }
 
-/* The batch currently in flight, pulsing just ahead of the solid fill. Scores
-   only land a whole batch at a time, so without this the bar is motionless for
-   the twenty-odd seconds each batch takes. */
 .trackPending {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  opacity: 0.35;
-  animation: pulseTrack 1.4s var(--ease) infinite;
-  transition: left var(--dur-slow) var(--ease), width var(--dur-slow) var(--ease);
+  background: var(--accent-border);
 }
 
-@keyframes pulseTrack {
-  0%,
-  100% {
-    opacity: 0.18;
-  }
-  50% {
-    opacity: 0.45;
-  }
-}
-
-/* The Adzuna call has no progress to report, so the bar says "working" rather
-   than pretending to know how far along it is. */
+/* Searching has no known length; a short segment slides across instead. */
 .trackIndeterminate .trackBlip {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 35%;
-  border-radius: var(--radius-pill);
-  background: var(--gradient-accent);
-  animation: slide 1.3s var(--ease) infinite;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  background: var(--accent);
+  animation: blip 1.4s linear infinite;
 }
 
-@keyframes slide {
-  0% {
-    transform: translateX(-100%);
+@keyframes blip {
+  from {
+    left: -30%;
   }
-  100% {
-    transform: translateX(320%);
+  to {
+    left: 100%;
   }
 }
 
-/* --- results --------------------------------------------------------------- */
+/* --- results -------------------------------------------------------------- */
 
 .results {
   display: flex;
@@ -281,54 +245,39 @@
   gap: var(--sp-3);
 }
 
-.context {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  flex-wrap: wrap;
-  font-size: var(--fs-md);
-  color: var(--text-muted);
-}
-
-.contextItem {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-}
-.contextItem strong {
-  color: var(--text);
-  font-weight: 600;
-}
-
 .keywords {
-  display: inline-flex;
-  gap: var(--sp-1);
+  display: flex;
   flex-wrap: wrap;
+  gap: var(--sp-1);
 }
 
 .keyword {
   padding: 2px var(--sp-2);
-  border-radius: var(--radius-pill);
-  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
   color: var(--text-muted);
-  font-size: var(--fs-xs);
 }
 
+/* The compact toolbar: count on the left, filters on the right. */
 .resultsBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
   flex-wrap: wrap;
+  min-height: var(--control-height);
 }
 
 .resultCount {
-  font-size: var(--fs-md);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   color: var(--text-muted);
 }
 .resultCount strong {
   color: var(--text);
-  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-medium);
 }
 
 .filters {
@@ -339,98 +288,66 @@
 }
 
 .filterField {
-  display: inline-flex;
+  display: flex;
 }
 
 .filterSelect {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 5px var(--sp-2);
-  background: var(--surface);
-  color: var(--text-muted);
+  height: 28px;
+  padding: 0 var(--sp-2);
   font-size: var(--fs-sm);
-  outline: none;
-}
-.filterSelect:focus {
-  border-color: var(--accent-text);
 }
 
 .filterToggle {
-  padding: 5px var(--sp-3);
+  height: 28px;
+  padding: 0 var(--sp-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--text-muted);
   font-size: var(--fs-sm);
-  font-weight: 500;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease),
     border-color var(--dur) var(--ease);
 }
 .filterToggle:hover {
-  color: var(--text);
   border-color: var(--border-strong);
+  color: var(--text);
 }
 
-.filterToggleOn {
+.filterToggleOn,
+.filterToggleOn:hover {
   background: var(--accent-soft);
-  border-color: var(--accent-text);
-  color: var(--accent-text);
-  font-weight: 600;
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
 .list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
 }
-
-/* --- empty ----------------------------------------------------------------- */
 
 .empty {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--sp-2);
-  background: var(--surface);
-  border: 1px dashed var(--border-strong);
+  align-items: flex-start;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--sp-8) var(--sp-6);
-  text-align: center;
-}
-
-.emptyIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-sunken);
-  color: var(--text-muted);
-  margin-bottom: var(--sp-1);
+  background: var(--surface);
 }
 
 .emptyTitle {
   margin: 0;
-  font-size: var(--fs-base);
-  font-weight: 600;
+  font-size: var(--fs-md);
 }
 
 .emptyHint {
   margin: 0;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
-  font-size: var(--fs-md);
-  max-width: 46ch;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .trackIndeterminate .trackBlip {
-    animation: none;
-    width: 100%;
-    opacity: 0.5;
-  }
-  .trackPending {
-    animation: none;
-    opacity: 0.35;
-  }
 }

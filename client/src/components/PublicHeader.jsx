@@ -1,7 +1,5 @@
 import { Link, NavLink, useLocation } from "react-router";
 import Icon from "./Icon.jsx";
-import BrandMark from "./BrandMark.jsx";
-import ThemeToggle from "./ThemeToggle.jsx";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import { PATHS } from "../routes.js";
 import styles from "./PublicHeader.module.css";
@@ -37,8 +35,7 @@ export default function PublicHeader() {
       </a>
       <div className={styles.inner}>
         <Link to={PATHS.home} className={styles.wordmark}>
-          <BrandMark />
-          <span className={styles.wordmarkText}>Mock Interview</span>
+          Jobassist
         </Link>
 
         <nav className={styles.nav} aria-label="Site">
@@ -56,20 +53,17 @@ export default function PublicHeader() {
         </nav>
 
         <div className={styles.tail}>
-          <span className={styles.theme}>
-            <ThemeToggle />
-          </span>
           {!onSignIn &&
             !loading &&
             (user ? (
               <Link to={PATHS.dashboard} className={`btn-primary btn-sm ${styles.cta}`}>
                 Dashboard
-                <Icon name="chevronRight" size={15} />
+                <Icon name="chevronRight" />
               </Link>
             ) : (
               <Link to={PATHS.signIn} className={`btn-primary btn-sm ${styles.cta}`}>
-                <Icon name="logIn" size={15} />
-                Sign In
+                <Icon name="logIn" />
+                Sign in
               </Link>
             ))}
         </div>

@@ -1,0 +1,163 @@
+/* Pinned to the viewport while the main column scrolls beside it. */
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  height: 100vh;
+  padding: var(--sp-3) var(--sp-2);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  transition: width var(--dur-slow) var(--ease);
+}
+
+.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+/* --- top: wordmark + collapse toggle ------------------------------------ */
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-height: var(--control-height);
+  padding-left: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+.collapsed .top {
+  justify-content: center;
+  padding-left: 0;
+}
+
+.wordmark {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tighter);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.toggle:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+/* --- nav ------------------------------------------------------------------- */
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  height: var(--control-height);
+  padding: 0 var(--sp-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  white-space: nowrap;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.collapsed .item {
+  justify-content: center;
+  padding: 0;
+}
+
+.item:hover:not(:disabled) {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.item:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Active: aqua on aqua-tint, with a 2px bar on the left edge. */
+.active,
+.active:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--sp-2);
+  bottom: var(--sp-2);
+  width: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--accent);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collapsed-rail tooltip: the label, to the right of the icon, on hover or
+   keyboard focus. Instant rather than the browser's slow `title`. */
+.tip {
+  position: absolute;
+  left: calc(100% + var(--sp-2));
+  top: 50%;
+  transform: translateY(-50%);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur-fast) var(--ease), visibility var(--dur-fast) var(--ease);
+}
+.item:hover .tip,
+.item:focus-visible .tip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* --- bottom: account -------------------------------------------------------- */
+
+.bottom {
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+}
