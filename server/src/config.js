@@ -162,6 +162,34 @@ export const config = {
     modelConcurrency: num(process.env.RESUME_MODEL_CONCURRENCY, 4),
   },
 
+  // Progress. Two kinds of model call: naming each saved interview's role (a
+  // batch of job descriptions per call, once per interview, then stored on the
+  // record) and aggregating one role's feedback into recurring themes (cached
+  // in memory per owner + role + interview set). Both run in their own pool.
+  progress: {
+    // Per-IP requests/minute for /api/progress.
+    rateLimitMax: num(process.env.PROGRESS_RATE_LIMIT_MAX, 30),
+    // Its own model-call pool, so Progress can't starve live interviews.
+    modelConcurrency: num(process.env.PROGRESS_MODEL_CONCURRENCY, 2),
+    // Job descriptions named per role-label call.
+    labelBatchSize: num(process.env.PROGRESS_LABEL_BATCH_SIZE, 10),
+    // Role-label calls one GET /api/progress may make to backfill unlabelled
+    // history. Anything left over is labelled on a later visit; until then it
+    // is grouped by the job description's first line.
+    maxLabelCallsPerRequest: num(process.env.PROGRESS_MAX_LABEL_CALLS, 2),
+    // How long GET /api/progress waits on that labelling before answering with
+    // the first-line grouping (and `labelling: true`) — well inside the
+    // client's request timeout. Labelling carries on in the background.
+    labelWaitMs: num(process.env.PROGRESS_LABEL_WAIT_MS, 20_000),
+    // After a role-label call fails, don't retry for this owner for this long —
+    // otherwise every visit to Progress re-spends a call on a broken model.
+    labelRetryAfterMs: num(process.env.PROGRESS_LABEL_RETRY_MS, 5 * 60 * 1000),
+    // Most recent interviews per role whose feedback feeds the themes call.
+    maxThemeInterviews: num(process.env.PROGRESS_MAX_THEME_INTERVIEWS, 12),
+    // Aggregated-theme results kept in memory (oldest evicted first).
+    themeCacheMax: num(process.env.PROGRESS_THEME_CACHE_MAX, 500),
+  },
+
   // Per-question answer time budget (seconds). The exact value for each question
   // is estimated from its text; these are the clamps.
   answerSeconds: { min: 60, max: 300 },

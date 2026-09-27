@@ -1,5 +1,12 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Outlet, useLocation, useNavigate, useOutletContext, useParams } from "react-router";
+import {
+  Outlet,
+  useLocation,
+  useNavigate,
+  useOutletContext,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import Sidebar from "./components/Sidebar.jsx";
 import HomeScreen from "./screens/HomeScreen.jsx";
 import JobDescriptionScreen from "./screens/JobDescriptionScreen.jsx";
@@ -9,6 +16,7 @@ import HistoryDetailScreen from "./screens/HistoryDetailScreen.jsx";
 import JobMatchesScreen from "./screens/JobMatchesScreen.jsx";
 import ResumeBuilderScreen from "./screens/ResumeBuilderScreen.jsx";
 import SurveyScreen from "./screens/SurveyScreen.jsx";
+import ProgressScreen from "./screens/ProgressScreen.jsx";
 import { useAuth } from "./auth/AuthProvider.jsx";
 import { useSurvey } from "./survey/useSurvey.js";
 import { saveInterview } from "./api/historyApi.js";
@@ -35,6 +43,7 @@ import { PATHS } from "./routes.js";
  *   /history/:interviewId   HistoryDetailScreen
  *   /jobs                   JobMatchesScreen
  *   /resume                 ResumeBuilderScreen
+ *   /progress               ProgressScreen (?role=<key> selects a role)
  *
  * An in-progress interview (/interview, /interview/results) is mirrored to
  * sessionStorage, so a refresh on those paths resumes it; every other path
@@ -56,12 +65,17 @@ const WIDE_PATHS = new Set([PATHS.resume]);
 
 // Which sidebar item is lit for a path. The nav addresses sections, not
 // screens: everything in the live interview flow belongs to "practice", and a
-// saved interview is opened from â€” so belongs to â€” Home.
-function sectionOf(pathname) {
-  if (pathname === PATHS.dashboard || pathname.startsWith("/history/")) return "home";
+// saved interview is opened from — so belongs to — Home, unless it was opened
+// from Progress (`from` in router state), in which case it belongs there.
+function sectionOf(pathname, from) {
+  if (pathname.startsWith("/history/")) {
+    return typeof from === "string" && from.startsWith(PATHS.progress) ? "progress" : "home";
+  }
+  if (pathname === PATHS.dashboard) return "home";
   if (pathname.startsWith("/interview")) return "practice";
   if (pathname === PATHS.jobs) return "jobs";
   if (pathname === PATHS.resume) return "resume";
+  if (pathname === PATHS.progress) return "progress";
   return undefined;
 }
 
@@ -233,8 +247,15 @@ export default function AppWorkspace() {
     persistInterview(savingIdRef.current);
   }
 
+  // `from` rides in router state so the review's Back button can return to
+  // where it was opened (Progress, with its selected role) instead of Home.
   function openInterview(id) {
-    guarded(() => navigate(PATHS.history(id)));
+    const from = pathname === PATHS.progress ? pathname + location.search : null;
+    guarded(() => navigate(PATHS.history(id), from ? { state: { from } } : undefined));
+  }
+
+  function openProgress() {
+    guarded(() => navigate(PATHS.progress));
   }
 
   function openJobMatches() {
@@ -259,6 +280,8 @@ export default function AppWorkspace() {
       if (pathname !== PATHS.dashboard) goHome();
     } else if (section === "practice") {
       if (pathname !== PATHS.setup) startNew();
+    } else if (section === "progress") {
+      if (pathname !== PATHS.progress) openProgress();
     } else if (section === "jobs") {
       if (pathname !== PATHS.jobs) openJobMatches();
     } else if (section === "resume") {
@@ -295,6 +318,7 @@ export default function AppWorkspace() {
     openInterview,
     openJobMatches,
     openResumeBuilder,
+    openProgress,
     openSurvey,
     survey,
     setLeaveGuard,
@@ -308,7 +332,7 @@ export default function AppWorkspace() {
         onOpenSurvey={openSurvey}
         surveyState={survey.state}
         user={user}
-        active={sectionOf(pathname)}
+        active={sectionOf(pathname, location.state?.from)}
         interactive={pathname !== PATHS.chat}
       />
 
@@ -393,7 +417,18 @@ export function ResultsRoute() {
 export function HistoryDetailRoute() {
   const w = useWorkspace();
   const { interviewId } = useParams();
-  return <HistoryDetailScreen interviewId={interviewId} onBack={w.goHome} />;
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Only ever a same-app path we put there ourselves (see openInterview).
+  const from = location.state?.from;
+  const backToProgress = typeof from === "string" && from.startsWith(PATHS.progress);
+  return (
+    <HistoryDetailScreen
+      interviewId={interviewId}
+      onBack={backToProgress ? () => navigate(from) : w.goHome}
+      backLabel={backToProgress ? "Back to progress" : "Back to home"}
+    />
+  );
 }
 
 export function JobMatchesRoute() {
@@ -423,6 +458,20 @@ export function SurveyRoute() {
         w.goHome();
       }}
       onExit={w.goHome}
+    />
+  );
+}
+
+export function ProgressRoute() {
+  const w = useWorkspace();
+  const [params, setParams] = useSearchParams();
+  return (
+    <ProgressScreen
+      onStartNew={w.startNew}
+      onOpenInterview={w.openInterview}
+      selectedRole={params.get("role")}
+      // Replace, not push: flipping between roles shouldn't fill the Back stack.
+      onSelectRole={(key) => setParams({ role: key }, { replace: true })}
     />
   );
 }

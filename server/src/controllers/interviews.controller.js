@@ -5,6 +5,7 @@ import {
   deleteInterview,
 } from "../services/history.service.js";
 import { getSession } from "../services/session.service.js";
+import { ensureRoleLabels } from "../services/progress.service.js";
 import { assertOwner } from "../middleware/auth.js";
 
 /**
@@ -73,6 +74,11 @@ export async function createInterview(req, res, next) {
     session.savedInterviewId = record.id;
 
     res.status(201).json(record);
+
+    // Name the role for the Progress section now, in the background, so the
+    // save itself stays a plain write and Progress usually has nothing left
+    // to label. Never throws; if it fails, GET /api/progress retries it.
+    ensureRoleLabels(req.clientId);
   } catch (err) {
     next(err);
   }

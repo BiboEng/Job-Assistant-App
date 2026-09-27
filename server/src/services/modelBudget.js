@@ -5,10 +5,11 @@ import { config } from "../config.js";
  * who rotates past the per-IP limiter) can't run up an unbounded bill or pin the
  * event loop on dozens of in-flight fetches.
  *
- * Three independent concurrency pools:
+ * Four independent concurrency pools:
  *   - "interview" — the live interview flow (start / answer / feedback)
  *   - "jobs"      — Job Matches profiling + scoring, which fans out widely
  *   - "resume"    — Resume Builder chat turns
+ *   - "progress"  — Progress role labels + recurring feedback themes
  * They don't share slots, so a rush of Job Matches or Resume Builder traffic can
  * never starve a live interview of its budget (or vice versa). The daily call
  * ceiling is global across all three.
@@ -21,6 +22,7 @@ const pools = {
   interview: { inFlight: 0, max: () => config.limits.maxConcurrentModelCalls },
   jobs: { inFlight: 0, max: () => config.jobMatch.modelConcurrency },
   resume: { inFlight: 0, max: () => config.resume.modelConcurrency },
+  progress: { inFlight: 0, max: () => config.progress.modelConcurrency },
 };
 
 let windowStart = Date.now();
@@ -46,7 +48,7 @@ function budgetError(message, status) {
  * Runs `fn` if there's headroom in the given pool, otherwise throws a user-safe
  * 503.
  * @param {() => Promise<T>} fn
- * @param {{ kind?: "interview" | "jobs" | "resume" }} [opts]
+ * @param {{ kind?: "interview" | "jobs" | "resume" | "progress" }} [opts]
  * @returns {Promise<T>}
  */
 export async function withModelBudget(fn, { kind = "interview" } = {}) {
@@ -83,6 +85,7 @@ export function budgetSnapshot() {
     interviewInFlight: pools.interview.inFlight,
     jobsInFlight: pools.jobs.inFlight,
     resumeInFlight: pools.resume.inFlight,
+    progressInFlight: pools.progress.inFlight,
     callsThisWindow,
     windowStart,
   };

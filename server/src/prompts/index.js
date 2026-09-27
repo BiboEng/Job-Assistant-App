@@ -266,3 +266,103 @@ export function transcriptForEvaluator(qaPairs) {
     })
     .join("\n\n");
 }
+
+/**
+ * Progress — names the role each job description is for, a batch at a time.
+ * Strict JSON out.
+ *
+ * `existingTitles` are the role titles this user's history already carries.
+ * Handing them over is what makes grouping semantic rather than lexical: the
+ * model reuses "Frontend Engineer" for a "UI Engineer" posting, which no
+ * synonym table would catch. roleKey() then canonicalises whatever comes back,
+ * so the model's spelling doesn't have to be perfectly stable either.
+ *
+ * @param {string[]} existingTitles
+ */
+export function roleLabelSystemPrompt(existingTitles = []) {
+  const existing = existingTitles.length
+    ? `\nThe candidate has already practised for these roles:\n${existingTitles
+        .map((t) => `- ${t}`)
+        .join("\n")}\nIf a posting is the same kind of job as one of these, return that title EXACTLY as written above, rather than a new variation.\n`
+    : "";
+
+  return `You name the role a job posting is for, so a candidate's practice interviews can be grouped by role.
+
+You will receive one or more job postings, each numbered.
+${existing}
+Return ONLY valid JSON (no markdown, no code fences) with exactly this shape:
+{
+  "roles": [{ "n": <posting number>, "title": "<role title>" }]
+}
+
+Rules for "title":
+- A plain, widely used job title of 1-4 words in Title Case, e.g. "Frontend Engineer", "Data Analyst", "Product Manager".
+- Leave out seniority (senior, junior, lead, staff, principal, intern, II), the company, the team or product area, the location, and employment type.
+- Postings that are the same kind of job get the SAME title, both within this batch and with the existing roles above — "Front-End Developer" and "Frontend Engineer" are one role.
+- Different jobs stay different: "Data Analyst" and "Data Scientist" are not the same role.
+- Include exactly one entry per posting.`;
+}
+
+/**
+ * The user message for a role-label batch. Only the head of each posting is
+ * sent: the title and the opening responsibilities are what name a role, and
+ * the tail is benefits boilerplate that just costs tokens.
+ * @param {Array<{ n: number, jobDescription: string }>} items
+ */
+export function roleLabelUserMessage(items) {
+  return `${items
+    .map(
+      (it) =>
+        `--- POSTING ${it.n} ---\n${String(it.jobDescription || "").trim().slice(0, 1200)}`
+    )
+    .join("\n\n")}\n\nReturn the JSON.`;
+}
+
+/**
+ * Progress — aggregates the evaluator's strengths and weaknesses across every
+ * interview for one role into recurring themes. Strict JSON out.
+ *
+ * The model only says WHICH interviews each theme came from; the server
+ * validates those numbers against the real list and does the counting itself,
+ * so "Mentioned in 4 of 5 interviews" is never a figure the model made up.
+ *
+ * Scope is answer content. Speak-mode feedback can mention pace, pauses or
+ * eye contact, and the Progress section deliberately leaves delivery out, so
+ * those remarks are excluded here too.
+ */
+export function feedbackThemesSystemPrompt() {
+  return `You analyse the written feedback from several mock interviews a candidate did for the same kind of role, and identify the themes that come up again and again.
+
+You will receive the interviews numbered in date order (1 = oldest). Each lists the strengths and weaknesses an evaluator wrote for that interview.
+
+Return ONLY valid JSON (no markdown, no code fences) with exactly this shape:
+{
+  "strengths": [{ "theme": "<short phrase>", "interviews": [<interview numbers>] }],
+  "weaknesses": [{ "theme": "<short phrase>", "interviews": [<interview numbers>] }]
+}
+
+Rules:
+- Merge bullets that make the same underlying point even when worded differently: "lacked concrete examples" and "answers stayed too general" are ONE theme.
+- For each theme, list EVERY interview number whose feedback expresses it, and only those. Never add an interview whose feedback doesn't say it.
+- Write each theme in your own words as a short, general observation (max 12 words), e.g. "Gives specific, measurable examples" or "Could explain trade-offs in more depth". Don't quote a single bullet verbatim.
+- Put the themes that span the most interviews first. At most 6 per list.
+- Ignore any remark about speaking pace, pauses, eye contact, looking at the camera, or other delivery — this summary covers the content of the answers only.
+- Never invent feedback that isn't in the input. If a list has nothing, return [].`;
+}
+
+/**
+ * The user message for a themes call: each interview's own strengths and
+ * weaknesses, numbered oldest-first. Nothing else from the record is sent —
+ * no answers, no job description, no delivery metrics.
+ * @param {Array<{ strengths: string[], weaknesses: string[] }>} interviews
+ */
+export function feedbackThemesUserMessage(interviews) {
+  const list = (items) =>
+    items.length ? items.map((s) => `  - ${s}`).join("\n") : "  (none)";
+  return `${interviews
+    .map(
+      (it, i) =>
+        `INTERVIEW ${i + 1}\nStrengths:\n${list(it.strengths)}\nWeaknesses:\n${list(it.weaknesses)}`
+    )
+    .join("\n\n")}\n\nReturn the JSON.`;
+}

@@ -120,6 +120,7 @@ const SUBJECT_BY_KIND = {
   interview: "feedback",
   jobs: "a usable match score",
   resume: "a usable answer",
+  progress: "a usable summary",
 };
 
 export async function chatCompletionJson(messages, options = {}) {

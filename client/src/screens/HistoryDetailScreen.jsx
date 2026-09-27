@@ -11,7 +11,7 @@ function formatDateTime(ts) {
   });
 }
 
-export default function HistoryDetailScreen({ interviewId, onBack }) {
+export default function HistoryDetailScreen({ interviewId, onBack, backLabel = "Back to home" }) {
   const [record, setRecord] = useState(null);
   const [error, setError] = useState("");
   const [jdOpen, setJdOpen] = useState(false);
@@ -39,7 +39,7 @@ export default function HistoryDetailScreen({ interviewId, onBack }) {
         <div className={`${styles.headActions} no-print`}>
           <button type="button" className="btn-ghost" onClick={onBack}>
             <Icon name="arrowLeft" />
-            Back to home
+            {backLabel}
           </button>
           {record && (
             <button className="btn-ghost" onClick={() => window.print()}>

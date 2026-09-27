@@ -5,6 +5,7 @@ import { interviewRouter } from "./routes/interview.routes.js";
 import { interviewsRouter } from "./routes/interviews.routes.js";
 import { jobsRouter } from "./routes/jobs.routes.js";
 import { resumeRouter } from "./routes/resume.routes.js";
+import { progressRouter } from "./routes/progress.routes.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { requireApiToken, attachClientId } from "./middleware/auth.js";
 import { ensureHistoryReady } from "./services/history.service.js";
@@ -99,6 +100,19 @@ app.use(
   requireApiToken,
   attachClientId,
   resumeRouter
+);
+
+// Progress: history grouped by role + recurring feedback themes. Its model
+// calls (role labels, themes) run in the separate "progress" budget pool.
+app.use(
+  "/api/progress",
+  rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.progress.rateLimitMax,
+  }),
+  requireApiToken,
+  attachClientId,
+  progressRouter
 );
 
 // 404

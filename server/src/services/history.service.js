@@ -183,3 +183,42 @@ export async function deleteInterview(id, ownerId) {
 
   return removed;
 }
+
+/**
+ * Every full record an owner has, oldest first — for the Progress section,
+ * which needs job descriptions (to name roles) and feedback (for themes).
+ * Callers must treat the records as read-only; mutations go through the write
+ * queue below.
+ */
+export async function listOwnerRecords(ownerId) {
+  if (!ownerId) return [];
+  const all = await ensureLoaded();
+  return all
+    .filter((it) => it.ownerId === ownerId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/**
+ * Stamps role labels onto an owner's records: `rolesById` maps interview id →
+ * `{ title, source, labelledAt }`. Records that belong to someone else, or
+ * were deleted meanwhile, are skipped. Returns how many were updated.
+ * @param {string} ownerId
+ * @param {Map<string, { title: string, source: string, labelledAt: number }>} rolesById
+ */
+export async function setInterviewRoles(ownerId, rolesById) {
+  await ensureLoaded();
+  if (!ownerId || !rolesById?.size) return 0;
+
+  let updated = 0;
+  await enqueueWrite(async () => {
+    for (const record of cache) {
+      if (record.ownerId !== ownerId) continue;
+      const role = rolesById.get(record.id);
+      if (!role) continue;
+      record.role = role;
+      updated += 1;
+    }
+    if (updated) await persist();
+  });
+  return updated;
+}

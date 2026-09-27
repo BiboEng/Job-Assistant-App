@@ -25,6 +25,7 @@ import styles from "./Sidebar.module.css";
 const NAV = [
   { id: "home", label: "Home", icon: "home" },
   { id: "practice", label: "New Interview", icon: "messageSquare" },
+  { id: "progress", label: "Progress", icon: "trendingUp" },
   { id: "jobs", label: "Job Matches", icon: "briefcase" },
   { id: "resume", label: "Resume", icon: "fileText" },
 ];

@@ -156,3 +156,8 @@ export function nextId() {
   counter += 1;
   return `${Date.now().toString(36)}-${counter}`;
 }
+
+// Progress. GET /api/progress waits up to 20s on role labelling server-side
+// (PROGRESS_LABEL_WAIT_MS); a themes call is one model request that may retry
+// once on an unparseable reply, so it gets more headroom than the default.
+export const PROGRESS_REQUEST_TIMEOUT_MS = 90000;

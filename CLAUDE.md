@@ -21,7 +21,14 @@ A third feature, **Resume Builder**, is a split screen: chat on the left, a live
 ATS-friendly resume on the right. Both the AI and the user's own inline edits
 write to one shared document. See "Resume Builder" below.
 
-All three sit behind **sign-in** (Supabase email/password). Signed-out visitors
+A fourth, **Progress**, turns the saved interview history into per-role score
+trends: interviews are grouped by the role they were for (the model names each
+one's role once; similar titles like "Front-End Developer" and "Frontend
+Engineer" land in the same group), and each role shows a score line plus the
+strengths and weaknesses that keep recurring across its feedback. No new data
+entry — the setup flow is unchanged. See "Progress" below.
+
+All four sit behind **sign-in** (Supabase email/password). Signed-out visitors
 get a public **landing page** — hero, About, How It Works (a tutorial-video slot
 per feature) and a Contact footer. See "Routing", "Authentication" and "Landing
 page" below.
@@ -61,16 +68,18 @@ mock-interview/
 │       ├── controllers/             request validation + orchestration
 │       ├── services/
 │       │   ├── openrouter.service.js  the ONLY module that talks to OpenRouter
-│       │   ├── modelBudget.js         3 model-call pools (interview/jobs/resume) + daily cap
+│       │   ├── modelBudget.js         4 model-call pools (interview/jobs/resume/progress) + daily cap
 │       │   ├── session.service.js     in-memory live sessions (Map), 1h TTL
 │       │   ├── history.service.js     flat-file completed-interview store
 │       │   ├── jobs.service.js        Adzuna fetcher + normalizer
-│       │   └── resume.service.js      resume doc shape: normalize + model-turn interpreter
+│       │   ├── resume.service.js      resume doc shape: normalize + model-turn interpreter
+│       │   ├── roleLabel.js           pure: role title → grouping key, first-line fallback, groupByRole
+│       │   └── progress.service.js    role labelling (model, stored per interview) + recurring themes
 │       ├── middleware/
 │       │   ├── auth.js              requireApiToken + attachClientId + assertOwner
 │       │   └── rateLimit.js         in-memory per-key sliding window
-│       ├── controllers/            interview, interviews, jobs, resume
-│       └── prompts/index.js         interviewer + evaluator + job-match + resume prompts
+│       ├── controllers/            interview, interviews, jobs, resume, progress
+│       └── prompts/index.js         interviewer + evaluator + job-match + resume + progress prompts
 │   └── test/                        node:test unit tests (`npm test`)
 └── client/
     └── src/
@@ -94,14 +103,16 @@ mock-interview/
         ├── screens/                 Landing (public), SignIn, ResetPassword (public), Home
         │                            (dashboard + history), JobDescription
         │                            (JD + options), Chat, Results, HistoryDetail, JobMatches,
-        │                            ResumeBuilder, Survey (the optional career survey)
+        │                            ResumeBuilder, Progress (per-role trends + themes),
+        │                            Survey (the optional career survey)
         ├── components/              Sidebar (app nav + AccountMenu), AccountMenu (avatar,
         │                            email, survey link, sign out), SurveyBanner (the one-time prompt),
         │                            PublicHeader (site nav + Sign In),
         │                            SiteFooter (Contact), VideoPlaceholder,
         │                            AppSkeleton (pre-render placeholder for protected pages),
         │                            ChatInput (voice/text), ChatMessage, FeedbackReport,
-        │                            InterviewRow, JobRow, CameraPreview (speak-mode self-view), ResumePreview,
+        │                            InterviewRow, JobRow, ScoreTrendChart (Progress's SVG line),
+        │                            CameraPreview (speak-mode self-view), ResumePreview,
         │                            ResumeChatPanel, EditableText, and the shared primitives:
         │                            Icon (lucide map), SegmentedControl, Toast
         ├── utils/score.js           score → { color, soft, label } band, shared by every score chip
@@ -110,6 +121,7 @@ mock-interview/
         ├── utils/resumeExport.js    PDF / print-PDF / JPG / PNG / TXT (lazy html2canvas + jsPDF)
         ├── utils/deliveryMetrics.js pure: loudness samples → pause count/total + speaking time + wpm
         ├── utils/faceTracker.js     MediaPipe Face Landmarker → on-camera % (lazy, fails soft to null)
+        ├── utils/trendChart.js      pure: Progress chart geometry (fixed 0–100 y, per-interview x)
         ├── hooks/useSpeechRecognition.js   Web Speech API wrapper, client-only
         └── hooks/useDeliveryCapture.js     owns the camera+mic stream, analyser and face tracker
     └── test/                        node:test unit tests for the pure utils (`npm test`)
@@ -136,7 +148,7 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
   `VITE_API_BASE_URL` (no proxy) or `VITE_API_TOKEN` (server has `API_TOKEN` set).
 - Tests: `cd server && npm test`, and `cd client && npm test` (node:test, no
   bundler — so it covers only what imports cleanly outside Vite: the pure utils
-  (`utils/deliveryMetrics.js`), the design-token contract, and the survey's questions ↔
+  (`utils/deliveryMetrics.js`, `utils/trendChart.js`), the design-token contract, and the survey's questions ↔
   migration ↔ row mapping. There is still no component/DOM test runner. Anything
   reading `import.meta.env` — the Supabase client, and so `survey/surveyApi.js`
   — throws under plain node, which is why the survey's pure half lives in its
@@ -262,6 +274,7 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
   so state survives navigation exactly as it did with the old `screen` string.
   Children read it via `useOutletContext()` in the thin `*Route` components at
   the bottom of `AppWorkspace.jsx`, which pass each screen **the same callback
+| `/progress` (`?role=<key>`) | protected | `ProgressScreen` (per-role score trend + recurring feedback) |
   props it always had** — the screens know nothing about URLs.
 - **The signed-in app is a lazy chunk.** `App.jsx` `React.lazy`s the layout and
   each `*Route` export from the same module, so landing-page visitors don't
@@ -768,6 +781,138 @@ the dashboard and reachable afterwards from the account menu. Route: `/survey` �
 > feedback, not the resume builder, not job matching. It is collected now so it
 > can be wired into personalization later, as its own piece of work. The whole
 > feature lives client-side against Supabase; **nothing in `server/` knows the
+## Progress
+
+Its own sidebar item ("Progress", after New Interview). Route: `/progress` →
+`ProgressScreen`, with the selected role in `?role=<key>` (replaced, not pushed,
+so flipping roles doesn't fill the Back stack). It reads the existing interview
+history and nothing else — **no survey data, no speak-mode delivery metrics**,
+and no new data entry: the setup screen is exactly as it was.
+
+The screen is **per role only** — there is deliberately no combined view, since
+a data-analyst score says nothing about progress towards a frontend role. Left,
+the roles as a vertical tablist (title, interview count, latest date, latest
+score pill; a horizontal strip under 860px). Right, the selected role: a stats
+strip (latest / average / best / change since first), the score trend, and the
+recurring feedback.
+
+### Grouping interviews by role
+
+Two layers, because neither alone is good enough:
+
+1. **The model names each interview's role once**, and it is stored on the
+   history record as `role: { title, source: "model", labelledAt }`. The
+   prompt (`roleLabelSystemPrompt`) asks for a plain 1–4 word title with no
+   seniority, company, team or location, and — the important part — is **handed
+   the titles this user already has**, told to reuse one verbatim when a posting
+   is the same kind of job. That is what makes grouping semantic: "UI Engineer"
+   joins "Frontend Engineer", which no synonym table would catch. Postings are
+   sent in batches (`labelBatchSize`, default 10, the first 1200 chars of each)
+   so a backlog is a couple of calls, not one per interview.
+2. **`roleKey()` (`services/roleLabel.js`, pure, unit-tested) canonicalises the
+   title into the grouping key**: lowercase, "front-end"/"front end" →
+   "frontend" (likewise backend/fullstack/devops), seniority words and level
+   numerals dropped, parentheticals dropped, and a deliberately small synonym
+   table (developer/dev/programmer → engineer, swe → software engineer, pm →
+   product manager, ml → machine learning, …). So "Senior Front-End Developer
+   (Remote)" and "Frontend Engineer" both key to `frontend engineer`, while
+   "Data Analyst" and "Data Scientist" stay apart. The model's wording drifts
+   between calls; this is what keeps the groups stable anyway. **The key is
+   computed at read time, never stored**, so improving these rules regroups
+   existing history with no migration.
+
+- **When labelling runs:** in the background right after `POST /api/interviews`
+  responds (so a save stays a plain write), and again as a backfill on
+  `GET /api/progress` for anything still unlabelled (legacy history, a failed
+  call) — up to `maxLabelCallsPerRequest` batches, newest interviews first.
+  One labelling pass per owner at a time (an in-flight promise map), so the
+  post-save label and a page load can't both pay for the same interviews.
+- **Fallbacks.** An interview with no stored label is grouped by
+  `heuristicTitle()` — the job description's first line minus a "Job title:"
+  prefix, a trailing "— team" / "at Company" / "| place", brackets and leading
+  seniority words — through the same `roleKey`. If a labelling call *succeeds*
+  but skips a posting, that posting is stamped `source: "fallback"` with the
+  heuristic title so it isn't re-sent on every visit. A *failed* call backs off
+  for that owner for `labelRetryAfterMs` (5 min).
+- **`GET /api/progress` never waits long.** It waits at most `labelWaitMs` (20s)
+  on labelling, then answers with whatever grouping it has plus
+  `labelling: true`; labels keep landing in the background and the screen
+  re-polls every 6s (up to 5 times) with a quiet "still sorting" line.
+- **A group's name** is its most common model title (ties → most recent),
+  falling back to heuristic titles only when nothing in the group has a model
+  label yet.
+
+`GET /api/progress` →
+`{ roles: [{ key, title, count, averageScore, bestScore, latestScore, change,
+latestAt, interviews: [{ id, createdAt, overallScore, jobTitle }] }], labelling }`.
+Groups are ordered by most recent interview; each group's interviews are oldest
+first. `change` (latest − first) is **`null` for a single interview**, never 0 —
+one data point has no trend. The payload carries no feedback text, answers or
+delivery data (a test asserts it).
+
+### Recurring feedback themes
+
+`POST /api/progress/themes { roleKey }` collects `feedback.strengths` and
+`feedback.weaknesses` from the role's interviews (the most recent
+`maxThemeInterviews`, default 12, numbered 1 = oldest) and asks the model
+(`feedbackThemesSystemPrompt`) to merge bullets that make the same point into
+short themes, each listing **which interview numbers** it came from. The prompt
+also tells it to ignore pace / pause / eye-contact remarks, since speak-mode
+feedback text can contain them and Progress is content-only.
+
+```js
+{
+  roleKey, interviewCount, totalCount, interviewIds /* oldest first */, single,
+  strengths:  [{ theme, interviewIds, count }],
+  weaknesses: [{ theme, interviewIds, count }],
+}
+```
+
+- **The model never supplies a number the user sees.** `normalizeThemes`
+  validates every interview number against the real list, de-duplicates, and
+  **computes `count` itself** — so "Mentioned in 4 of 5 interviews" is a fact
+  about the input. Themes left with no valid interview are dropped, identically
+  worded ones merged, the rest sorted by count and capped at 6 per side.
+- **A role with one interview makes no model call**: its own bullets come back
+  as-is with `single: true`, and the UI shows them as "Feedback from this
+  interview" with no counts, plus "Complete more interviews for this role to see
+  your trend" in place of the chart.
+- **Cached in memory**, keyed by owner + role key + the exact ordered list of
+  interview ids (bounded LRU, `themeCacheMax`), with in-flight de-duplication.
+  A new or deleted interview changes the key, so there's no invalidation
+  bookkeeping. The client keeps its own per-tab cache on the same key, so
+  flipping between roles doesn't refetch.
+- In the UI, themes in 2+ interviews lead, each with a row of dots (one per
+  interview, oldest first, filled where it came up) — so a weakness that has
+  stopped appearing reads as fixed. One-off themes fold into a muted
+  "Mentioned once:" line.
+
+### The chart
+
+`components/ScoreTrendChart.jsx`, hand-drawn SVG (no chart library), geometry in
+pure `utils/trendChart.js`. **The y-axis is fixed at 0–100** so a 62 → 66
+wobble isn't drawn as a climb, and **points are spaced by interview, not by
+date**, so a burst of practice doesn't bunch into a clump (dates are on the
+axis, in the tooltip and in the table). One series, so no legend; the line is
+the accent at 2px with ringed markers and one direct label (the latest score).
+Hover gives a snapping crosshair + tooltip; the chart is one tab stop with
+←/→/Home/End to step and Enter to open an interview; click opens one too; a
+visually hidden table and an `aria-live` line carry the values for screen
+readers. Drawn at the container's measured pixel width so text never stretches.
+
+Opening an interview from Progress passes `state.from`, so the review's Back
+button reads "Back to progress" (returning to the same role) and the sidebar
+keeps Progress lit.
+
+### Endpoints and budget
+
+Both endpoints sit behind `requireApiToken` + `attachClientId` + a per-IP limit
+(`PROGRESS_RATE_LIMIT_MAX`, default 30/min), scoped to the caller's owner id
+like all history (another owner's role key is a 404). Model calls run in their
+own `progress` pool (`PROGRESS_MODEL_CONCURRENCY`, default 2). Tuning knobs are
+`PROGRESS_*` in `server/.env.example`; the client timeout is
+`PROGRESS_REQUEST_TIMEOUT_MS` (90s).
+
 > table exists**, so no prompt can reach it even by accident.
 > `client/test/survey.test.js` greps `server/src` for any reference and fails if
 > one appears — that tripwire is there so switching this on becomes a decision
@@ -966,11 +1111,13 @@ server, two mechanisms stand in:
 
 Other guards already in place:
 - Per-IP sliding-window rate limit on `/api/interview` (`RATE_LIMIT_MAX`, default
-  30/min), a looser one on `/api/interviews` and `/api/health`, and one on
-  `/api/jobs` (`JOB_MATCH_RATE_LIMIT_MAX`, default 20/min).
-- `modelBudget.js`: three independent concurrency pools —
+  30/min), a looser one on `/api/interviews` and `/api/health`, one on
+  `/api/jobs` (`JOB_MATCH_RATE_LIMIT_MAX`, default 20/min), and one on
+  `/api/progress` (`PROGRESS_RATE_LIMIT_MAX`, default 30/min).
+- `modelBudget.js`: four independent concurrency pools —
   `MAX_CONCURRENT_MODEL_CALLS` for interviews, `JOB_MATCH_MODEL_CONCURRENCY` for
-  Job Matches, `RESUME_MODEL_CONCURRENCY` for the Resume Builder — plus a global
+  Job Matches, `RESUME_MODEL_CONCURRENCY` for the Resume Builder,
+  `PROGRESS_MODEL_CONCURRENCY` for Progress — plus a global
   `MODEL_CALLS_PER_DAY` ceiling (**defaults to 5000**
   now, not off) so a burst or an abuser rotating IPs can't run an unbounded
   OpenRouter bill.
@@ -1040,13 +1187,21 @@ Other guards already in place:
 - **Live sessions:** in-memory `Map` in `session.service.js`. Lost on restart.
   1-hour inactivity TTL. The client mirrors an in-progress interview to
   `sessionStorage`, so a browser refresh resumes it *if* the server hasn't
+- **Progress role groups can't be corrected by the user.** Grouping is the
+  model's judgement plus `roleKey`; if it files an interview under the wrong
+  role there is no rename/merge control. Fixing a label today means editing
+  `role` in `interviews.json` (or deleting it, which re-labels on the next visit).
+  Themes are also only as specific as the evaluator's bullets they summarise.
   restarted.
 - **Completed interviews:** a single JSON file, `<DATA_DIR>/interviews.json`
   (default `server/data/`), loaded into memory once, mutations serialized through
   a queue with atomic temp-file+rename writes. Set `DATA_DIR` to a mounted volume
   on hosts with an ephemeral filesystem, or the history vanishes on redeploy.
-- **Single process only.** Sessions, the rate limiter, and the model budget are
-  all in-process. Do not run more than one instance without swapping these for
+  Each record may carry a Progress `role` label (`{ title, source, labelledAt }`)
+  — the only thing Progress writes. Its aggregated themes are an in-memory cache,
+  lost on restart and recomputed on demand.
+- **Single process only.** Sessions, the rate limiter, the model budget and the
+  Progress theme cache / labelling locks are all in-process. Do not run more than one instance without swapping these for
   shared stores. `history.service.js` is deliberately isolated behind the same
   function signatures so it can be replaced with a DB module without touching
   controllers — that's the intended next step for a real deployment.

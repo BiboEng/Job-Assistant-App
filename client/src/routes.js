@@ -21,6 +21,8 @@ export const PATHS = {
   history: (id) => `/history/${encodeURIComponent(id)}`,
   jobs: "/jobs",
   resume: "/resume",
+  // Interview scores over time, grouped by role. `?role=<key>` selects one.
+  progress: "/progress",
   // The optional career survey. Protected: it is per-account data.
   survey: "/survey",
 };
