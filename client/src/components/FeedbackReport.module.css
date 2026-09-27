@@ -3,6 +3,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
 }
 
 .section {
@@ -27,6 +28,35 @@
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+.scoreCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  flex-shrink: 0;
+  width: 120px;
+}
+
+/* A thin track under the number: how far along the 100 it got. */
+.scoreBar {
+  display: block;
+  height: 3px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.scoreBar span {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  animation: bar-in 700ms var(--ease) both;
+}
+
+@keyframes bar-in {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 .scoreNum {

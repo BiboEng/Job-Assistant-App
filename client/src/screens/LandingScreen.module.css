@@ -1,5 +1,6 @@
 .page {
-  gap: var(--sp-10);
+  gap: calc(var(--sp-9) * 2);
+  padding-bottom: var(--sp-9);
 }
 
 /* Sections scrolled to from the nav clear the sticky header. */
@@ -19,50 +20,104 @@
   text-decoration: none;
 }
 
-/* --- hero ----------------------------------------------------------------- */
+/* --- hero -----------------------------------------------------------------
+   Left-aligned copy against a live product preview. Asymmetric on purpose:
+   the copy column is wider, and the preview sits a step lower. */
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   align-items: center;
   gap: var(--sp-9);
-  padding-top: var(--sp-8);
+  padding-top: var(--sp-9);
 }
 
 @media (max-width: 880px) {
   .hero {
     grid-template-columns: 1fr;
     gap: var(--sp-8);
-    padding-top: var(--sp-5);
+    padding-top: var(--sp-6);
+  }
+}
+
+.heroCopy {
+  animation: rise var(--dur-enter) var(--ease) both;
+}
+
+.heroEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* A slow "breathing" dot — the one perpetual motion on the page outside the
+   preview, and gone under reduced motion. */
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--accent);
+  animation: breathe 2.4s var(--ease) infinite;
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
 }
 
 .title {
-  margin: var(--sp-2) 0 var(--sp-3);
-  font-size: var(--fs-3xl);
-  line-height: var(--lh-tight);
-  letter-spacing: var(--ls-tighter);
-  max-width: 20ch;
+  margin: var(--sp-4) 0 var(--sp-5);
+  font-size: var(--fs-display);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-display);
+  letter-spacing: var(--ls-display);
+  max-width: 14ch;
+  text-wrap: balance;
 }
 
-/* The phrase the headline turns on, in the accent colour. */
-.grad {
+/* The phrase the headline turns on: a flat accent colour, never a gradient. */
+.accentWord {
   color: var(--accent);
 }
 
 .lede {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--fs-md);
+  font-size: var(--fs-lg);
   line-height: var(--lh-normal);
-  max-width: 50ch;
+  max-width: 44ch;
 }
 
 .heroActions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-3);
-  margin-top: var(--sp-6);
+  margin-top: var(--sp-7);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-5);
+  margin: var(--sp-6) 0 0;
+  padding: var(--sp-4) 0 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  color: var(--text-subtle);
+}
+.facts .mono {
+  color: var(--text);
 }
 
 /* --- hero preview --------------------------------------------------------- */
@@ -71,7 +126,16 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
   overflow: hidden;
+  margin-top: var(--sp-8);
+  animation: rise var(--dur-enter) var(--ease) 120ms both;
+}
+
+@media (max-width: 880px) {
+  .preview {
+    margin-top: 0;
+  }
 }
 
 .previewBar {
@@ -128,7 +192,7 @@
 
 .bubbleA {
   align-self: flex-end;
-  background: var(--accent-soft);
+  background: var(--accent-softer);
   border: 1px solid var(--accent-border);
   color: var(--text);
   border-top-right-radius: var(--radius-xs);
@@ -144,6 +208,69 @@
   color: var(--text-subtle);
 }
 
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* A little speech-level meter, standing in for Speak mode's live capture. */
+.meterRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  align-self: flex-end;
+}
+
+.recDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--danger);
+  animation: breathe 1.6s var(--ease) infinite;
+}
+
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+}
+.meter span {
+  width: 2px;
+  height: 100%;
+  border-radius: var(--radius-xs);
+  background: var(--accent);
+  opacity: 0.7;
+  transform-origin: center;
+  animation: level 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes level {
+  from {
+    transform: scaleY(0.2);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.meterLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-subtle);
+}
+
 .previewScore {
   display: flex;
   align-items: center;
@@ -152,7 +279,7 @@
   padding: var(--sp-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--surface);
+  background: var(--surface-sunken);
 }
 
 .scoreChip {
@@ -181,39 +308,52 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-7);
+  gap: var(--sp-8);
 }
 
 .sectionHead {
-  max-width: 64ch;
+  max-width: 60ch;
 }
 
 .sectionTitle {
-  margin: var(--sp-2) 0 var(--sp-3);
-  font-size: var(--fs-2xl);
+  margin: var(--sp-3) 0 var(--sp-3);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  text-wrap: balance;
 }
 
 .sectionLede {
   margin: 0;
-  font-size: var(--fs-base);
+  font-size: var(--fs-lg);
   color: var(--text-muted);
   line-height: var(--lh-normal);
 }
 
-/* --- about pillars -------------------------------------------------------- */
+/* --- about: a bento, the interview tile tall on the left ------------------ */
 
 .pillars {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  grid-template-rows: auto auto;
   gap: var(--sp-4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
+.pillars > :first-child {
+  grid-row: span 2;
+  justify-content: flex-end;
+  min-height: 280px;
+}
 
 @media (max-width: 760px) {
   .pillars {
     grid-template-columns: 1fr;
+  }
+  .pillars > :first-child {
+    grid-row: auto;
+    min-height: 0;
   }
 }
 
@@ -221,10 +361,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: var(--sp-5);
+  padding: var(--sp-6);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
+  transition: border-color var(--dur) var(--ease);
+}
+.pillar:hover {
+  border-color: var(--border-strong);
 }
 
 .pillarIcon,
@@ -238,14 +383,17 @@
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
   color: var(--accent);
-  margin-bottom: var(--sp-1);
+}
+
+.pillarIcon {
+  margin-bottom: var(--sp-2);
 }
 
 .pillarTitle {
   margin: 0;
-  font-size: var(--fs-md);
+  font-size: var(--fs-lg);
   font-weight: var(--fw-semibold);
-  letter-spacing: 0;
+  letter-spacing: var(--ls-tight);
 }
 
 .pillarBody {
@@ -253,6 +401,25 @@
   font-size: var(--fs-md);
   color: var(--text-muted);
   line-height: var(--lh-normal);
+  max-width: 48ch;
+}
+
+.pillarTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pillarTags li {
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-muted);
 }
 
 /* --- how it works --------------------------------------------------------- */
@@ -260,27 +427,28 @@
 .walkthroughs {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-9);
+  gap: calc(var(--sp-9) + var(--sp-6));
 }
 
 .walkthrough {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   align-items: center;
-  gap: var(--sp-8);
+  gap: var(--sp-9);
 }
 
 /* Alternate the video side down the page so three rows don't read as a table.
    Only the visual order flips — the copy still comes first in the DOM. */
 .flipped {
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
 }
 .flipped .walkCopy {
   order: 2;
 }
 
 @media (max-width: 880px) {
-  .walkthrough {
+  .walkthrough,
+  .flipped {
     grid-template-columns: 1fr;
     gap: var(--sp-5);
   }
@@ -295,31 +463,43 @@
   align-items: flex-start;
 }
 
+.walkIndex {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
 .walkTitle {
-  margin: var(--sp-1) 0 var(--sp-2);
-  font-size: var(--fs-xl);
+  margin: var(--sp-4) 0 var(--sp-2);
+  font-size: var(--fs-2xl);
+  letter-spacing: var(--ls-tighter);
 }
 
 .walkSummary {
   margin: 0;
-  font-size: var(--fs-base);
+  font-size: var(--fs-md);
   color: var(--text-muted);
   line-height: var(--lh-normal);
 }
 
 .steps {
   list-style: none;
-  margin: var(--sp-4) 0 0;
+  margin: var(--sp-5) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  width: 100%;
+  border-top: 1px solid var(--border);
 }
 
 .steps li {
   display: flex;
-  align-items: flex-start;
-  gap: var(--sp-3);
+  align-items: baseline;
+  gap: var(--sp-4);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
   font-size: var(--fs-md);
   color: var(--text);
   line-height: var(--lh-normal);
@@ -327,46 +507,92 @@
 
 .stepNum {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  margin-top: 1px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  background: var(--surface);
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   font-weight: var(--fw-medium);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .walkVideo {
   min-width: 0;
 }
 
-/* --- closing -------------------------------------------------------------- */
+/* --- closing: copy left, action right ------------------------------------- */
 
 .closing {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-8) var(--sp-5);
-  text-align: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-5);
+  padding: var(--sp-8);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--inner-highlight);
+}
+
+@media (max-width: 680px) {
+  .closing {
+    padding: var(--sp-6);
+  }
 }
 
 .closingTitle {
-  margin: 0;
-  font-size: var(--fs-xl);
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-2xl);
+  letter-spacing: var(--ls-tighter);
 }
 
 .closingBody {
-  margin: 0 0 var(--sp-3);
+  margin: 0;
   color: var(--text-muted);
-  font-size: var(--fs-base);
+  font-size: var(--fs-md);
+}
+
+/* The interview tile's score trend: five bars that grow in once. */
+.trend {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  height: 140px;
+  margin-bottom: var(--sp-6);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.trendCol {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  gap: var(--sp-1);
+}
+
+.trendValue {
+  font-size: var(--fs-2xs);
+  color: var(--text-subtle);
+}
+
+.trendBar {
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  transform-origin: bottom;
+  animation: grow var(--dur-enter) var(--ease) both;
+}
+
+.trendBarLast {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+
+@keyframes grow {
+  from {
+    transform: scaleY(0);
+  }
 }

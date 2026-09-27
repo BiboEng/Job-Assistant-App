@@ -29,7 +29,7 @@ body {
   font-family: var(--font-sans);
   font-size: var(--fs-base);
   line-height: var(--lh-normal);
-  font-feature-settings: "cv11", "ss01"; /* Inter: straight-sided 1, open digits */
+  font-feature-settings: "ss01"; /* Geist: open alternates */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -159,6 +159,12 @@ time {
   }
 }
 
+/* The Application Tracker's board: as wide as the Resume Builder, but it
+   scrolls as a normal page — its columns grow with their cards. */
+.app-shell--board {
+  max-width: var(--shell-width-wide);
+}
+
 /* The public site (landing page, sign-in): wider than the reading column, and
    it scrolls as a normal page rather than bounding itself to the viewport. */
 .app-shell--public {
@@ -198,13 +204,42 @@ time {
   min-height: 0;
 }
 
-/* Screens used to fade up on mount. Motion is now reserved for hover, focus
-   and collapse, so the class stays (AppWorkspace still keys the slot) but
-   animates nothing — and in particular leaves no transform behind to become a
-   containing block for the Resume Builder's fixed fullscreen layer. */
+/* Each screen fades in on mount. Opacity only, deliberately: a transform —
+   even mid-animation — would make the slot a containing block for the Resume
+   Builder's fixed fullscreen layer. */
 .screen-enter {
-  animation: none;
+  animation: fade-in var(--dur-enter) var(--ease) both;
 }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Lists and grids arrive as a short waterfall rather than all at once. Rows
+   past the twelfth share the last delay so a long list never feels slow. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.stagger > * {
+  animation: rise-in var(--dur-enter) var(--ease) both;
+}
+.stagger > :nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
+.stagger > :nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+.stagger > :nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+.stagger > :nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+.stagger > :nth-child(6) { animation-delay: calc(var(--stagger) * 5); }
+.stagger > :nth-child(7) { animation-delay: calc(var(--stagger) * 6); }
+.stagger > :nth-child(8) { animation-delay: calc(var(--stagger) * 7); }
+.stagger > :nth-child(9) { animation-delay: calc(var(--stagger) * 8); }
+.stagger > :nth-child(10) { animation-delay: calc(var(--stagger) * 9); }
+.stagger > :nth-child(11) { animation-delay: calc(var(--stagger) * 10); }
+.stagger > :nth-child(n + 12) { animation-delay: calc(var(--stagger) * 11); }
 
 /* The header row every signed-in page opens with: title left, primary action
    right. Screens apply it through their own module class where they need
@@ -220,6 +255,58 @@ time {
 .page-head h1 {
   margin: 0;
   font-size: var(--fs-2xl);
+  letter-spacing: var(--ls-tighter);
+}
+/* Optional one-line description under a page title. */
+.page-sub {
+  margin: var(--sp-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  max-width: 65ch;
+}
+
+/* --- forms: label above, hint and error below, 8px apart --------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.field-label {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+.field-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+.field-error {
+  font-size: var(--fs-xs);
+  color: var(--danger);
+}
+
+/* --- empty state: an icon, one sentence, one action -------------------- */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-9) var(--sp-7);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+}
+.empty-state h2,
+.empty-state h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+.empty-state p {
+  margin: 0;
+  max-width: 52ch;
 }
 
 /* --- surfaces ------------------------------------------------------------- */
@@ -228,6 +315,7 @@ time {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
 }
 
 /* --- form controls -------------------------------------------------------
@@ -274,7 +362,15 @@ input[type="radio"] {
   line-height: 1;
   white-space: nowrap;
   transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease);
+    border-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+/* A physical press: every button gives a little under the click. */
+.btn-primary:active:not(:disabled),
+.btn-ghost:active:not(:disabled),
+.btn-danger:active:not(:disabled),
+.btn-subtle:active:not(:disabled) {
+  transform: scale(var(--press-scale));
 }
 
 .btn-primary {
@@ -282,6 +378,7 @@ input[type="radio"] {
   color: var(--accent-contrast);
   border: 1px solid var(--accent);
   padding: 0 var(--sp-4);
+  font-weight: var(--fw-semibold);
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
@@ -293,7 +390,8 @@ input[type="radio"] {
 }
 
 .btn-ghost {
-  background: transparent;
+  background: var(--surface);
+  box-shadow: var(--inner-highlight);
   color: var(--text);
   border: 1px solid var(--border);
   padding: 0 var(--sp-3);
@@ -335,6 +433,13 @@ input[type="radio"] {
 .btn-danger:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Larger call-to-action, for public pages only. */
+.btn-lg {
+  min-height: 40px;
+  padding: 0 var(--sp-5);
+  font-size: var(--fs-md);
 }
 
 .btn-sm {

@@ -143,7 +143,10 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
       {/* This screen IS the whole setup — "Step 1 of 2" promised a second step
           that never existed. */}
       <header className="page-head">
-        <h1>New Interview</h1>
+        <div>
+          <h1>New Interview</h1>
+          <p className="page-sub">Paste the job you want. Every question is written for it.</p>
+        </div>
         {!text && (
           <button
             type="button"

@@ -28,7 +28,14 @@ Engineer" land in the same group), and each role shows a score line plus the
 strengths and weaknesses that keep recurring across its feedback. No new data
 entry — the setup flow is unchanged. See "Progress" below.
 
-All four sit behind **sign-in** (Supabase email/password). Signed-out visitors
+A fifth, **Application Tracker** ("Applications" in the sidebar), is a Kanban
+board of the roles the user is pursuing — Saved → Applied → Interviewing →
+Accepted / Rejected. Cards come from Job Matches ("Track this" on any result)
+or are typed in by hand, and live in a Supabase table under RLS. Standalone:
+no link to mock interviews or Progress, and no reminders. See "Application
+Tracker" below.
+
+All five sit behind **sign-in** (Supabase email/password). Signed-out visitors
 get a public **landing page** — hero, About, How It Works (a tutorial-video slot
 per feature) and a Contact footer. See "Routing", "Authentication" and "Landing
 page" below.
@@ -54,8 +61,9 @@ no AI prompt touches it today. See "Career survey" below.
 mock-interview/
 ├── supabase/
 │   ├── README.md                    how to apply a migration (by hand — nothing does it for you)
-│   └── migrations/                  the career-survey table, and the rating tables the
-│                                    n8n email writes to; see "Career survey"
+│   └── migrations/                  the career-survey table, the rating tables the
+│                                    n8n email writes to, and the Application Tracker's
+│                                    user_applications; see "Career survey" / "Application Tracker"
 ├── n8n/                             two importable workflows: the post-survey rating
 │                                    email and the webhook that records the answer.
 │                                    Outside the app entirely — see "Website ratings"
@@ -94,6 +102,12 @@ mock-interview/
         │                            surveyMapping.js (pure answers ↔ row), surveyApi.js
         │                            (the table), useSurvey.js (prompt/completed state).
         │                            Read by no AI prompt — see "Career survey"
+        ├── applications/            the Application Tracker's Supabase half, same split as
+        │                            survey/: applicationModel.js (pure: stages, columns,
+        │                            row mapping, validation, interview flag, grouping),
+        │                            applicationsApi.js (the table), useApplications.js
+        │                            (board state, optimistic writes), useTrackedJobs.js
+        │                            (Job Matches' "Track this")
         ├── styles/tokens.css        every design token (dark only) — see "Design system"
         ├── index.css                imports the tokens; base styles, app frame, shared classes
         ├── identity.js              owner id → X-Client-Id (Supabase user id when
@@ -104,6 +118,7 @@ mock-interview/
         │                            (dashboard + history), JobDescription
         │                            (JD + options), Chat, Results, HistoryDetail, JobMatches,
         │                            ResumeBuilder, Progress (per-role trends + themes),
+        │                            Tracker (the Application Tracker board),
         │                            Survey (the optional career survey)
         ├── components/              Sidebar (app nav + AccountMenu), AccountMenu (avatar,
         │                            email, survey link, sign out), SurveyBanner (the one-time prompt),
@@ -112,6 +127,7 @@ mock-interview/
         │                            AppSkeleton (pre-render placeholder for protected pages),
         │                            ChatInput (voice/text), ChatMessage, FeedbackReport,
         │                            InterviewRow, JobRow, ScoreTrendChart (Progress's SVG line),
+        │                            KanbanColumn, ApplicationCard, ApplicationDialog (tracker),
         │                            CameraPreview (speak-mode self-view), ResumePreview,
         │                            ResumeChatPanel, EditableText, and the shared primitives:
         │                            Icon (lucide map), SegmentedControl, Toast
@@ -148,20 +164,24 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
   `VITE_API_BASE_URL` (no proxy) or `VITE_API_TOKEN` (server has `API_TOKEN` set).
 - Tests: `cd server && npm test`, and `cd client && npm test` (node:test, no
   bundler — so it covers only what imports cleanly outside Vite: the pure utils
-  (`utils/deliveryMetrics.js`, `utils/trendChart.js`), the design-token contract, and the survey's questions ↔
-  migration ↔ row mapping. There is still no component/DOM test runner. Anything
+  (`utils/deliveryMetrics.js`, `utils/trendChart.js`), the design-token contract, the survey's questions ↔
+  migration ↔ row mapping, and the Application Tracker's model ↔ migration
+  (`test/applications.test.js`). There is still no component/DOM test runner. Anything
   reading `import.meta.env` — the Supabase client, and so `survey/surveyApi.js`
-  — throws under plain node, which is why the survey's pure half lives in its
-  own module.)
+  and `applications/applicationsApi.js` — throws under plain node, which is why
+  the survey's and the tracker's pure halves live in their own modules.)
 - **The career survey needs a migration applied by hand** before it does
   anything: `supabase/migrations/` → Supabase SQL Editor. Without it the feature
-  switches itself off rather than erroring. See "Career survey".
+  switches itself off rather than erroring. See "Career survey". **So does the
+  Application Tracker** (`20260927100000_user_applications.sql`): until it's
+  applied, `/applications` says the table is missing and Job Matches hides
+  "Track this". Apply migrations in filename order.
 
 ## Design system
 
-**Jobassist** is dark-only: a dense, Linear/Vercel-style dev-tool look over an
-"underwater" palette — abyssal blues, with a soft aqua accent used sparingly
-(primary buttons, the active nav item, focus rings, key numbers).
+**Jobassist** is dark-only: an "instrument panel" look — a desaturated
+blue-grey ink base, Geist type, and one soft aqua accent used sparingly
+(primary buttons, the active nav icon, focus rings, key numbers).
 
 `client/src/styles/tokens.css` is the single source of visual truth;
 `index.css` `@import`s it and holds only base styles, the layout shell and the
@@ -172,9 +192,10 @@ this: the brief's palette values, no custom properties declared outside
 `tokens.css`, no raw colours in module CSS, and no `var(--x)` that isn't
 declared (an undeclared token fails silently in the browser).
 
-- **Palette:** `--bg` #070d14, `--surface` #0c1622, `--surface-raised`
-  #122030, `--border` #1c2e40, `--text`, `--text-muted`, `--accent` #4fd1c5,
-  `--accent-soft`, `--secondary` #7aa7ff (links, sparingly), and score colours
+- **Palette:** `--bg` #0a0e13, `--surface` #0f141b, `--surface-raised`
+  #151c25, `--border` #212a35, `--text`, `--text-muted`, `--accent` #5ccfc0,
+  `--accent-soft`, `--secondary` #b9c7d6 (links — a light steel, so aqua stays
+  the only accent), and score colours
   `--good/--okay/--weak`. Everything else (`--surface-sunken`, `--border-strong`,
   `--text-subtle`, `--accent-border`, semantics, `--band-*`) derives from those.
   Score bands keep their own names because `utils/score.js` applies them inline.
@@ -183,21 +204,30 @@ declared (an undeclared token fails silently in the browser).
   `--sp-5/8/10/11/12` names survive, snapped onto it); radii 6px for controls
   (`--radius-sm/md`), 10px for cards (`--radius-lg/xl`), nothing rounder —
   `--radius-pill` is 6px under its old name, and `--radius-round` (50%) is for
-  avatars and dots only. Base size 14px. Inter for UI, JetBrains Mono (`.mono`,
+  avatars and dots only. Base size 14px. Geist for UI, Geist Mono (`.mono`,
   `<time>`, `--font-mono`) for numbers, scores, dates and small uppercase labels.
-  Both fonts load from Google Fonts in `index.html`.
+  Both load from Google Fonts in `index.html`. `--fs-display` (a clamp, 36–56px)
+  is for the landing hero only.
 - **No shadows, no gradients.** Separation is a 1px `--border`. Every
   `--shadow-*` is `none` except `--shadow-popover` (floating menus only).
+  Raised surfaces (cards, the report, the active nav row, ghost buttons) carry
+  `--inner-highlight`, a 1px inset top edge — not a shadow.
   The one gradient is `--gradient-hero`, a faint teal pool in the page corner
   (`body::before`); `--gradient-accent` is a flat colour under an old name. No
   gradient text, no blur/glass, no `backdrop-filter`.
-- **Motion:** transitions on hover/focus/collapse only, 120–180ms ease-out.
-  Nothing lifts, scales or fades in on mount. The only animations left are
-  status indicators: skeleton shimmer, typing dots, the Job Matches progress
-  bar, and a steps() REC blink while recording.
 - **Buttons:** `.btn-primary` = solid aqua with dark text (`--accent-contrast`);
-  `.btn-ghost` = transparent with a border (the "secondary" button);
-  `.btn-subtle`; `.btn-danger` (outlined red). 32px (`--control-height`).
+  `.btn-ghost` = surface fill with a border (the "secondary" button);
+  `.btn-subtle`; `.btn-danger` (outlined red). 32px (`--control-height`);
+  `.btn-lg` (40px) on public pages only. Every button presses to
+  `--press-scale` on `:active`.
+- **Motion** is one curve (`--ease`, a long ease-out), transform + opacity
+  only. Screens fade in (`.screen-enter` — opacity only, so it can never become a
+  containing block for the Resume Builder's fixed fullscreen layer); lists with
+  `.stagger` rise in as a short waterfall; chat messages settle in. The only
+  perpetual loops are decorative ones on the landing page.
+- **Page furniture:** `.page-sub` (one line under a page title), `.field` /
+  `.field-label` / `.field-hint` / `.field-error` (label above, 8px gaps), and
+  `.empty-state` (dashed box: icon, heading, one sentence, one action).
 - **Form controls** get one global look in `index.css` (raised fill, border,
   aqua edge + soft ring on focus) through a zero-specificity `:where()`, so any
   module class overrides it. Every interactive element gets the 2px aqua focus
@@ -223,6 +253,10 @@ declared (an undeclared token fails silently in the browser).
   otherwise) sits at its foot and opens upward — or rightward from the rail.
   **`.app-shell` must not get a `z-index`**: that makes it a stacking context
   and traps the Resume Builder's fixed fullscreen layer under the sidebar.
+  Width modifiers are chosen by `shellClass()` in `AppWorkspace`:
+  `.app-shell--wide` (Resume Builder — wide *and* bounded to the viewport) and
+  `.app-shell--board` (Application Tracker — wide, but scrolls as a normal page,
+  because its columns grow with their cards).
 - **Never render nothing while waiting.** `components/AppSkeleton.jsx` is the
   fallback for both pre-render waits on a protected route — `RequireAuth` while
   the stored session is read, and `App.jsx`'s `<Suspense>` while the workspace
@@ -230,7 +264,7 @@ declared (an undeclared token fails silently in the browser).
 - **Screen slot:** each route's screen renders into `.screen-slot.screen-enter`
   keyed on the pathname. The slot must stay a growing flex column —
   ChatScreen and ResumeBuilderScreen depend on `flex: 1; min-height: 0` to
-  scroll internally. `.screen-enter` no longer animates.
+  scroll internally. `.screen-enter` fades opacity only — never add a transform.
 - **Lists are dense rows, not cards.** Home's history (`InterviewRow`) and Job
   Matches (`JobRow`) are table-style rows inside one bordered surface, hover
   highlighted, with mono dates and small mono score pills. Home's column header
@@ -264,6 +298,8 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
 | `/history/:interviewId` | protected | `HistoryDetailScreen` |
 | `/jobs` | protected | `JobMatchesScreen` |
 | `/resume` | protected | `ResumeBuilderScreen` |
+| `/progress` (`?role=<key>`) | protected | `ProgressScreen` (per-role score trend + recurring feedback) |
+| `/applications` | protected | `TrackerScreen` (the Application Tracker's Kanban board) |
 | `/survey` | protected | `SurveyScreen` (the optional career survey) |
 | `*` | — | redirect to `/` |
 
@@ -274,7 +310,6 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
   so state survives navigation exactly as it did with the old `screen` string.
   Children read it via `useOutletContext()` in the thin `*Route` components at
   the bottom of `AppWorkspace.jsx`, which pass each screen **the same callback
-| `/progress` (`?role=<key>`) | protected | `ProgressScreen` (per-role score trend + recurring feedback) |
   props it always had** — the screens know nothing about URLs.
 - **The signed-in app is a lazy chunk.** `App.jsx` `React.lazy`s the layout and
   each `*Route` export from the same module, so landing-page visitors don't
@@ -605,6 +640,11 @@ re-spend model calls.
    title, location, salary (in the country's own currency), `postedAt` as a
    relative label, score band (`utils/score.js`), the one-line reason, and a
    validated http(s) link. All of it is model-/API-sourced text — text only.
+6. **"Track this"** on each row copies the listing into the Application
+   Tracker's Saved column — company, title and link, plus the listing's `id`
+   as `source_job_id`. It then reads "Tracked" and opens the board when
+   clicked. It's shown only once `useTrackedJobs` has confirmed the table
+   exists. See "Application Tracker" → "From Job Matches".
 
 ### Data source — and why not LinkedIn/Indeed
 
@@ -771,16 +811,6 @@ plain text.
   `maxHistoryMessages * maxMessageLength + maxResumeJsonLength` stays under the
   64kb `express.json` limit — `server/test/resume.test.js` asserts this.
 
-## Career survey
-
-An optional fifteen-question survey about the user's job search, offered once on
-the dashboard and reachable afterwards from the account menu. Route: `/survey` →
-`SurveyScreen`.
-
-> **This data is not used by any AI feature.** Not interview questions, not
-> feedback, not the resume builder, not job matching. It is collected now so it
-> can be wired into personalization later, as its own piece of work. The whole
-> feature lives client-side against Supabase; **nothing in `server/` knows the
 ## Progress
 
 Its own sidebar item ("Progress", after New Interview). Route: `/progress` →
@@ -913,6 +943,132 @@ own `progress` pool (`PROGRESS_MODEL_CONCURRENCY`, default 2). Tuning knobs are
 `PROGRESS_*` in `server/.env.example`; the client timeout is
 `PROGRESS_REQUEST_TIMEOUT_MS` (90s).
 
+## Application Tracker
+
+Its own sidebar item ("Applications", after Job Matches). Route:
+`/applications` → `TrackerScreen`, in the `.app-shell--board` width. A Kanban
+board of every role the user is pursuing, with four columns: **Saved ·
+Applied · Interviewing · Accepted / Rejected**.
+
+> **Standalone by design.** It isn't linked to mock interviews or Progress:
+> an "Interviewing" card doesn't point at a practice session. There are also
+> no notifications. An upcoming interview is flagged on its card, and nothing
+> is emailed or pushed. Like the survey, the data never goes through the
+> Express server and no AI prompt reads it. `client/test/applications.test.js`
+> greps `server/src` for the table name and fails if it appears, so wiring it
+> in has to be a deliberate change.
+
+### The table — `public.user_applications`
+
+`supabase/migrations/20260927100000_user_applications.sql`, **applied by hand**
+like the survey's (Supabase → SQL Editor → paste → Run; see
+`supabase/README.md`). The storage pattern is the survey's: a Supabase table,
+written and read from the browser, scoped to the account by RLS. The shape
+differs: the survey is a profile (one row per user, `user_id` as the primary
+key), while this is a list, so each row has its own uuid.
+
+| column | type | notes |
+| --- | --- | --- |
+| `id` | `uuid` PK | `gen_random_uuid()` |
+| `user_id` | `uuid not null` | `default auth.uid()`, FK `auth.users` `on delete cascade` |
+| `company` | `text not null` | 1–120 chars |
+| `job_title` | `text not null` | 1–160 chars |
+| `posting_url` | `text` | null, or `^https?://` and ≤ 2048. It's rendered as an `href`, so the check is a real guard |
+| `stage` | `text not null` | `'saved' \| 'applied' \| 'interviewing' \| 'accepted' \| 'rejected'`, default `'saved'` |
+| `notes` | `text not null` | default `''`, ≤ 4000 |
+| `applied_on` | `date` | the application date; a date, not a timestamp |
+| `interview_at` | `timestamptz` | optional; drives the card's interview flag |
+| `source` | `text not null` | `'manual' \| 'job_matches'`, default `'manual'` |
+| `source_job_id` | `text` | the Job Matches listing id (`adzuna:…`), ≤ 300 |
+| `created_at`, `updated_at` | `timestamptz` | `updated_at` set by trigger. It also orders each column |
+
+- **Five stages, four columns.** "Accepted / Rejected" is one column holding
+  two stage values, so every card keeps its outcome (an Accepted / Rejected
+  badge). `COLUMNS` in `applicationModel.js` maps columns → stages. A drop on
+  that column has to name an outcome, so while a card is being dragged it
+  shows two drop zones ("Drop as accepted" / "Drop as rejected").
+- **RLS**: four `auth.uid() = user_id` policies, the same as the survey. The
+  anon key is public, so RLS is the only access boundary.
+- **Partial unique index** on `(user_id, source_job_id) where source_job_id is
+  not null`: one listing can't be tracked twice, whether from two tabs or a
+  double click that beats the button's disabled state. Manual entries have no
+  `source_job_id` and aren't constrained.
+- **Keep the model and the migration in step.** `STAGES` and
+  `APPLICATION_LIMITS` must match the CHECK constraints.
+  `test/applications.test.js` reads the SQL and fails if they drift (stages,
+  every `char_length` cap, every written column, the four policies).
+
+### Adding applications
+
+1. **From Job Matches:** "Track this" on a `JobRow` → `useTrackedJobs().track(job)`
+   → `createApplication(draftFromJob(job))`. That's a Saved card with the
+   listing's company, title and validated link, `source: 'job_matches'`, and
+   `source_job_id` set to the listing id. A unique violation (`23505`) counts
+   as success: the listing is already on the board. On mount, Job Matches
+   reads the set of tracked `source_job_id`s, so tracked rows stay "Tracked"
+   across reloads and new searches. Deleting the card makes the listing
+   trackable again. If the table is missing or the read fails, the button is
+   hidden rather than showing an error.
+2. **Manual:** "Add application" on the board opens `ApplicationDialog` in
+   `add` mode, with the same fields as the detail view. Company and title are
+   required; the link is optional but must be http(s).
+
+### The board
+
+- `TrackerScreen` owns `useApplications()`: `status` (`loading | ready |
+  unavailable | error`), `applications`, and `add / update / move / remove`.
+  **Writes are optimistic.** The card moves on the drop, not after the round
+  trip. A failed write reverts only the fields it touched, and only if nothing
+  has changed them since, then rejects so the screen can show a toast. On
+  success, only the patched fields plus `updatedAt` are taken from the server
+  row. Taking the whole row would let two edits resolving out of order undo
+  the newer one.
+- **Moving a card:** native HTML5 drag and drop (mouse only, no library), or
+  the stage `<select>` in each card's footer. The select is the keyboard and
+  touch alternative and makes the same call. An `aria-live` line announces
+  each move. Moving out of Saved fills in an empty `applied_on` with today
+  (`stagePatch`), but never overwrites an existing date.
+- **Order within a column:** cards with an interview still ahead come first,
+  soonest at the top, then the rest by most recently updated, so a card you
+  just moved lands at the top (`groupByColumn`).
+- **The interview flag** (`interviewFlag`, uses calendar days in local time):
+  `today` gets a solid accent pill ("Interview today · 2:30 PM"); `soon`
+  (tomorrow, or within `INTERVIEW_SOON_DAYS` = 7) gets accent ink on an accent
+  wash; `upcoming` is neutral ("Interview on Tue, Oct 20"); `past` is quiet
+  and dashed ("Interviewed Fri, Sep 25"). An interview earlier today counts as
+  past. The screen re-renders every minute so the flag stays current in an
+  open tab.
+- **Cards** (`ApplicationCard`) follow the no-shadow system: raised surface,
+  1px border, inner highlight. The source card dims to a dashed placeholder
+  while it's dragged. Clicking anywhere opens the detail view through one
+  stretched `<button>` (the pattern `JobRow` uses for its link). The posting
+  link and the stage select sit above it at `z-index: 1`.
+- **The detail view** (`ApplicationDialog`, `edit` mode) is a native `<dialog>`
+  opened with `showModal()`, which provides the focus trap, the inert
+  background, Escape and focus return. Every field saves itself: text on blur
+  or Enter, selects and dates on change, and closing commits anything still
+  dirty (invalid values, like an emptied company, are dropped rather than
+  saved). A header status reads "Saving…" / "Saved". Delete asks for
+  confirmation inline, not with `window.confirm`. A backdrop click closes the
+  dialog only if the press also *started* on the backdrop, so dragging a text
+  selection out of a field doesn't dismiss it.
+- **Missing table** → `status: "unavailable"` → an empty state naming the
+  migration file. **No applications yet** → an empty state with "Add
+  application" and a link to Job Matches.
+- Every field is user-typed or copied from an Adzuna listing, so all of it is
+  **rendered as text only**. The URL is re-validated as http(s) in
+  `rowToApplication` before it can reach an `href`.
+
+## Career survey
+
+An optional fifteen-question survey about the user's job search, offered once on
+the dashboard and reachable afterwards from the account menu. Route: `/survey` →
+`SurveyScreen`.
+
+> **This data is not used by any AI feature.** Not interview questions, not
+> feedback, not the resume builder, not job matching. It is collected now so it
+> can be wired into personalization later, as its own piece of work. The whole
+> feature lives client-side against Supabase; **nothing in `server/` knows the
 > table exists**, so no prompt can reach it even by accident.
 > `client/test/survey.test.js` greps `server/src` for any reference and fails if
 > one appears — that tripwire is there so switching this on becomes a decision
@@ -1177,6 +1333,11 @@ Other guards already in place:
   reading something off to the side scores as fully on-camera. Thresholds (25°
   yaw / 20° pitch) are deliberately loose; tightening them trades false negatives
   for false accusations, which is the worse error here.
+- **Progress role groups can't be corrected by the user.** Grouping is the
+  model's judgement plus `roleKey`; if it files an interview under the wrong
+  role there is no rename/merge control. Fixing a label today means editing
+  `role` in `interviews.json` (or deleting it, which re-labels on the next visit).
+  Themes are also only as specific as the evaluator's bullets they summarise.
 - **Delivery metrics have no UI.** They reach the model and are stored on
   `qaPairs`, but nothing renders them, so a candidate can't check an AI claim
   about their pace against the number behind it. That was a deliberate scoping
@@ -1187,11 +1348,6 @@ Other guards already in place:
 - **Live sessions:** in-memory `Map` in `session.service.js`. Lost on restart.
   1-hour inactivity TTL. The client mirrors an in-progress interview to
   `sessionStorage`, so a browser refresh resumes it *if* the server hasn't
-- **Progress role groups can't be corrected by the user.** Grouping is the
-  model's judgement plus `roleKey`; if it files an interview under the wrong
-  role there is no rename/merge control. Fixing a label today means editing
-  `role` in `interviews.json` (or deleting it, which re-labels on the next visit).
-  Themes are also only as specific as the evaluator's bullets they summarise.
   restarted.
 - **Completed interviews:** a single JSON file, `<DATA_DIR>/interviews.json`
   (default `server/data/`), loaded into memory once, mutations serialized through
@@ -1205,9 +1361,11 @@ Other guards already in place:
   shared stores. `history.service.js` is deliberately isolated behind the same
   function signatures so it can be replaced with a DB module without touching
   controllers — that's the intended next step for a real deployment.
-- **The one exception is the career survey**, which is a real Postgres table in
-  Supabase, written from the client and protected by RLS. The Express server has
-  no part in it. See "Career survey".
+- **The exceptions are the career survey and the Application Tracker**, which
+  are real Postgres tables in Supabase (`user_survey_responses`,
+  `user_applications`), written from the client and protected by RLS. The
+  Express server has no part in either. See "Career survey" and "Application
+  Tracker".
 
 ## Conventions
 

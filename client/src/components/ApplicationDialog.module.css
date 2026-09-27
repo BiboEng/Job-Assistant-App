@@ -1,0 +1,175 @@
+/* The native <dialog>: no padding of its own, so a click anywhere on it that
+   isn't the panel is a click on the backdrop. */
+.dialog {
+  width: min(600px, calc(100vw - 2 * var(--sp-4)));
+  max-height: calc(100vh - 2 * var(--sp-6));
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-popover), var(--inner-highlight);
+  overflow: auto;
+}
+.dialog[open] {
+  animation: dialog-in var(--dur-enter) var(--ease) both;
+}
+.dialog::backdrop {
+  background: var(--scrim);
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  padding: var(--sp-6);
+}
+
+/* --- head ------------------------------------------------------------------ */
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.headText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.origin {
+  margin: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  letter-spacing: var(--ls-tighter);
+  line-height: var(--lh-tight);
+  overflow-wrap: anywhere;
+}
+
+.sub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  overflow-wrap: anywhere;
+}
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.saveState {
+  font-size: var(--fs-2xs);
+  color: var(--text-subtle);
+  min-width: 6ch;
+  text-align: right;
+}
+
+.close {
+  width: var(--control-height);
+  padding: 0;
+}
+
+/* --- fields ------------------------------------------------------------------ */
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+}
+
+.span2 {
+  grid-column: 1 / -1;
+}
+
+.grid input,
+.grid select {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-md);
+}
+
+.grid textarea {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  font: inherit;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  resize: vertical;
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.inline input {
+  flex: 1;
+  min-width: 0;
+}
+.inline a {
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.optional {
+  margin-left: var(--sp-1);
+  font-weight: var(--fw-normal);
+  color: var(--text-subtle);
+  font-size: var(--fs-xs);
+}
+
+/* --- foot -------------------------------------------------------------------- */
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+/* The add form has only right-hand buttons. */
+form .foot {
+  justify-content: flex-end;
+}
+
+.confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  width: 100%;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.confirm > span {
+  flex: 1;
+  min-width: 180px;
+}
+
+@media (max-width: 560px) {
+  .panel {
+    padding: var(--sp-4);
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

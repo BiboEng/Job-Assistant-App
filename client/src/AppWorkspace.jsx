@@ -17,6 +17,7 @@ import JobMatchesScreen from "./screens/JobMatchesScreen.jsx";
 import ResumeBuilderScreen from "./screens/ResumeBuilderScreen.jsx";
 import SurveyScreen from "./screens/SurveyScreen.jsx";
 import ProgressScreen from "./screens/ProgressScreen.jsx";
+import TrackerScreen from "./screens/TrackerScreen.jsx";
 import { useAuth } from "./auth/AuthProvider.jsx";
 import { useSurvey } from "./survey/useSurvey.js";
 import { saveInterview } from "./api/historyApi.js";
@@ -44,6 +45,7 @@ import { PATHS } from "./routes.js";
  *   /jobs                   JobMatchesScreen
  *   /resume                 ResumeBuilderScreen
  *   /progress               ProgressScreen (?role=<key> selects a role)
+ *   /applications           TrackerScreen (the Application Tracker board)
  *
  * An in-progress interview (/interview, /interview/results) is mirrored to
  * sessionStorage, so a refresh on those paths resumes it; every other path
@@ -63,6 +65,17 @@ const RESUMABLE = new Set([PATHS.chat, PATHS.results]);
 // Builder is a side-by-side workspace, not a document.
 const WIDE_PATHS = new Set([PATHS.resume]);
 
+// Paths that need the wide width but scroll as a normal page. The tracker's
+// four columns want room, but its columns grow with their cards — bounding it
+// to the viewport like the Resume Builder would give every column a scrollbar.
+const BOARD_PATHS = new Set([PATHS.applications]);
+
+function shellClass(pathname) {
+  if (WIDE_PATHS.has(pathname)) return "app-shell--wide";
+  if (BOARD_PATHS.has(pathname)) return "app-shell--board";
+  return "";
+}
+
 // Which sidebar item is lit for a path. The nav addresses sections, not
 // screens: everything in the live interview flow belongs to "practice", and a
 // saved interview is opened from — so belongs to — Home, unless it was opened
@@ -76,6 +89,7 @@ function sectionOf(pathname, from) {
   if (pathname === PATHS.jobs) return "jobs";
   if (pathname === PATHS.resume) return "resume";
   if (pathname === PATHS.progress) return "progress";
+  if (pathname === PATHS.applications) return "applications";
   return undefined;
 }
 
@@ -266,6 +280,10 @@ export default function AppWorkspace() {
     guarded(() => navigate(PATHS.resume));
   }
 
+  function openTracker() {
+    guarded(() => navigate(PATHS.applications));
+  }
+
   function openSurvey() {
     guarded(() => navigate(PATHS.survey));
   }
@@ -284,6 +302,8 @@ export default function AppWorkspace() {
       if (pathname !== PATHS.progress) openProgress();
     } else if (section === "jobs") {
       if (pathname !== PATHS.jobs) openJobMatches();
+    } else if (section === "applications") {
+      if (pathname !== PATHS.applications) openTracker();
     } else if (section === "resume") {
       // Guard the no-op too: without this, clicking "Resume" while already in
       // the Resume Builder asks whether you want to abandon the document you
@@ -319,6 +339,7 @@ export default function AppWorkspace() {
     openJobMatches,
     openResumeBuilder,
     openProgress,
+    openTracker,
     openSurvey,
     survey,
     setLeaveGuard,
@@ -338,7 +359,7 @@ export default function AppWorkspace() {
 
       <main
         id="main-content"
-        className={`app-main app-shell ${WIDE_PATHS.has(pathname) ? "app-shell--wide" : ""}`}
+        className={`app-main app-shell ${shellClass(pathname)}`}
       >
         {/* Keyed so each screen mounts fresh on navigation. */}
         <div key={pathname} className="screen-slot screen-enter">
@@ -438,6 +459,7 @@ export function JobMatchesRoute() {
       onBack={w.goHome}
       cachedResult={w.jobsResult}
       onResult={w.setJobsResult}
+      onOpenTracker={w.openTracker}
     />
   );
 }
@@ -474,4 +496,9 @@ export function ProgressRoute() {
       onSelectRole={(key) => setParams({ role: key }, { replace: true })}
     />
   );
+}
+
+export function TrackerRoute() {
+  const w = useWorkspace();
+  return <TrackerScreen onFindJobs={w.openJobMatches} />;
 }

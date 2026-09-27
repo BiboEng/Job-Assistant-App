@@ -33,6 +33,7 @@ const JobMatchesRoute = pick("JobMatchesRoute");
 const ResumeBuilderRoute = pick("ResumeBuilderRoute");
 const SurveyRoute = pick("SurveyRoute");
 const ProgressRoute = pick("ProgressRoute");
+const TrackerRoute = pick("TrackerRoute");
 
 export default function App() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
         <Route path={PATHS.jobs} element={<JobMatchesRoute />} />
         <Route path={PATHS.resume} element={<ResumeBuilderRoute />} />
         <Route path={PATHS.progress} element={<ProgressRoute />} />
+        <Route path={PATHS.applications} element={<TrackerRoute />} />
         <Route path={PATHS.survey} element={<SurveyRoute />} />
       </Route>
 

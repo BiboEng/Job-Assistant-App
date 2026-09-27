@@ -40,18 +40,18 @@ const declared = new Set(
 
 test("the palette from the design brief is declared as specified", () => {
   const expected = {
-    "--bg": "#070d14",
-    "--surface": "#0c1622",
-    "--surface-raised": "#122030",
-    "--border": "#1c2e40",
-    "--text": "#e3eef5",
-    "--text-muted": "#7f97a8",
-    "--accent": "#4fd1c5",
-    "--accent-soft": "rgba(79, 209, 197, 0.12)",
-    "--secondary": "#7aa7ff",
-    "--good": "#5fd39a",
-    "--okay": "#e3b85c",
-    "--weak": "#e8787a",
+    "--bg": "#0a0e13",
+    "--surface": "#0f141b",
+    "--surface-raised": "#151c25",
+    "--border": "#212a35",
+    "--text": "#e8edf2",
+    "--text-muted": "#8d99a7",
+    "--accent": "#5ccfc0",
+    "--accent-soft": "rgba(92, 207, 192, 0.12)",
+    "--secondary": "#b9c7d6",
+    "--good": "#5fcf97",
+    "--okay": "#e0b45e",
+    "--weak": "#e57a7c",
   };
   for (const [name, value] of Object.entries(expected)) {
     const m = TOKENS.match(new RegExp(`^\\s+${name}:\\s*([^;]+);`, "m"));

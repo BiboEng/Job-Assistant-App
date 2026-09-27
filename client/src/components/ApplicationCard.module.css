@@ -1,0 +1,201 @@
+/* A board card: raised surface, 1px border, the inset top highlight — never a
+   drop shadow (see the design system). The one lift is while it's dragged. */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
+  cursor: grab;
+  transition: border-color var(--dur) var(--ease), opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.card:hover {
+  border-color: var(--border-strong);
+}
+.card:active {
+  cursor: grabbing;
+}
+.card:has(.open:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The source card while its ghost is being dragged: a placeholder, so the
+   column doesn't reflow under the pointer. */
+.dragging {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+.rejected {
+  background: var(--surface);
+}
+.rejected .title,
+.rejected .company {
+  color: var(--text-muted);
+}
+
+/* --- head ------------------------------------------------------------------ */
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.title {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight);
+  overflow-wrap: anywhere;
+}
+
+/* The one "open" control, stretched over the whole card. */
+.open {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: inherit;
+}
+.open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.open:focus-visible {
+  outline: none;
+}
+
+.outcome {
+  flex-shrink: 0;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-xs);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+}
+.accepted {
+  color: var(--success);
+  background: var(--success-soft);
+}
+.rejectedBadge {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.company {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* --- interview flag ---------------------------------------------------------- */
+
+.flag {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-1) 0 0;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--text-muted);
+  align-self: flex-start;
+}
+
+/* Today: the loudest thing on the board. */
+.today {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+/* This week: accent ink on a soft accent wash. */
+.soon {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+.upcoming {
+  color: var(--text);
+}
+.past {
+  color: var(--text-subtle);
+  border-style: dashed;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- foot -------------------------------------------------------------------- */
+
+/* Wraps rather than truncating: on a narrow column the date drops the
+   controls onto their own line instead of losing its day to an ellipsis. */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.when {
+  font-size: var(--fs-2xs);
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+/* Controls sit above the stretched open button. */
+.actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-shrink: 0;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--text-subtle);
+  transition: color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.link:hover {
+  color: var(--accent);
+  background: var(--surface);
+}
+
+.stage {
+  height: 28px;
+  padding: 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  background: var(--surface);
+}

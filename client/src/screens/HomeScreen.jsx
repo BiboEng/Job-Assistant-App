@@ -97,7 +97,10 @@ export default function HomeScreen({
   return (
     <div className={styles.wrap}>
       <header className="page-head">
-        <h1>Home</h1>
+        <div>
+          <h1>Home</h1>
+          <p className="page-sub">Your practice record, newest first.</p>
+        </div>
         <button type="button" className="btn-primary" onClick={onStartNew}>
           <Icon name="plus" />
           New interview
@@ -197,9 +200,17 @@ export default function HomeScreen({
         {loading && <p className="sr-only">Loading your practice history…</p>}
 
         {!loading && !hasHistory && !error && (
-          <div className={styles.empty}>
-            <p>No interviews yet.</p>
+          <div className="empty-state">
+            <span className={styles.emptyIcon} aria-hidden="true">
+              <Icon name="messageSquare" />
+            </span>
+            <h3>No interviews yet</h3>
+            <p>
+              Paste a job description and answer questions written for it. Each
+              scored interview is saved here so you can track your progress.
+            </p>
             <button type="button" className="btn-primary" onClick={onStartNew}>
+              <Icon name="plus" />
               Start new interview
             </button>
           </div>
@@ -214,7 +225,7 @@ export default function HomeScreen({
               </button>
             </p>
           ) : (
-            <div className={styles.table} role="list">
+            <div className={`${styles.table} stagger`} role="list">
               <div className={styles.columns} aria-hidden="true">
                 <span>Role</span>
                 <span className={styles.colAnswered}>Answered</span>

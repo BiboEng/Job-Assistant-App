@@ -18,7 +18,77 @@
   flex-direction: column;
   gap: var(--sp-4);
   width: 100%;
-  max-width: 360px;
+  max-width: 400px;
+  padding: var(--sp-7);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
+  animation: card-in var(--dur-enter) var(--ease) both;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: var(--sp-5);
+  }
+}
+
+/* --- sign-in split: brand copy left, form right (wide screens) ------------ */
+
+.brandPanel {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .split {
+    flex-direction: row;
+    justify-content: center;
+    gap: calc(var(--sp-9) * 2);
+  }
+  .brandPanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    max-width: 380px;
+  }
+}
+
+.brandTitle {
+  margin: 0;
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  text-wrap: balance;
+}
+
+.brandList {
+  display: flex;
+  flex-direction: column;
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+.brandList li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-4);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+}
+.brandList .mono {
+  color: var(--accent);
+  font-size: var(--fs-xs);
 }
 
 /* --- heading -------------------------------------------------------------- */

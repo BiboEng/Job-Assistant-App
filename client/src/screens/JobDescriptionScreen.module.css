@@ -9,6 +9,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
   padding: var(--sp-6);
 }
 
@@ -22,8 +23,8 @@
 
 .heading {
   margin: 0;
-  font-size: var(--fs-md);
-  letter-spacing: 0;
+  font-size: var(--fs-lg);
+  letter-spacing: var(--ls-tight);
 }
 
 .sub {

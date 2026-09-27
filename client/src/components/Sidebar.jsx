@@ -27,6 +27,7 @@ const NAV = [
   { id: "practice", label: "New Interview", icon: "messageSquare" },
   { id: "progress", label: "Progress", icon: "trendingUp" },
   { id: "jobs", label: "Job Matches", icon: "briefcase" },
+  { id: "applications", label: "Applications", icon: "kanban" },
   { id: "resume", label: "Resume", icon: "fileText" },
 ];
 

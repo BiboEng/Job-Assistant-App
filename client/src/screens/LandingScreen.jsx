@@ -37,6 +37,8 @@ const ABOUT_PILLARS = [
     icon: "messageSquare",
     title: "Mock interview practice",
     body: "Answer questions written for a real job description, typed or out loud, and get them scored.",
+    // The lead tile of the bento has room for the options behind that sentence.
+    details: ["Mixed", "Behavioral", "Technical", "System design"],
   },
   {
     icon: "briefcase",
@@ -139,25 +141,33 @@ export default function LandingScreen() {
         {/* --- hero -------------------------------------------------------- */}
         <section className={styles.hero} aria-labelledby="hero-heading">
           <div className={styles.heroCopy}>
-            <p className="eyebrow">Interview prep, end to end</p>
+            <p className={`eyebrow ${styles.heroEyebrow}`}>
+              <span className={styles.liveDot} aria-hidden="true" />
+              Interview prep, end to end
+            </p>
             <h1 id="hero-heading" className={styles.title}>
               Walk into your next interview{" "}
-              <span className={styles.grad}>already practised</span>
+              <span className={styles.accentWord}>already practised</span>
             </h1>
             <p className={styles.lede}>
               Practise on the job you actually want, find roles that fit, and build
               a resume that gets read.
             </p>
             <div className={styles.heroActions}>
-              <Link to={primaryCta.to} className={`btn-primary ${styles.ctaLink}`}>
+              <Link to={primaryCta.to} className={`btn-primary btn-lg ${styles.ctaLink}`}>
                 {primaryCta.label}
                 <Icon name="chevronRight" />
               </Link>
-              <Link to={PATHS.howItWorks} className={`btn-ghost ${styles.ctaLink}`}>
+              <Link to={PATHS.howItWorks} className={`btn-ghost btn-lg ${styles.ctaLink}`}>
                 <Icon name="play" />
                 See how it works
               </Link>
             </div>
+            <ul className={styles.facts} aria-label="At a glance">
+              <li><span className="mono">2–6</span> tailored questions</li>
+              <li>Type or speak</li>
+              <li><span className="mono">19</span> job markets</li>
+            </ul>
           </div>
 
           <HeroPreview />
@@ -177,14 +187,24 @@ export default function LandingScreen() {
             </p>
           </div>
 
+          {/* A bento, not three equal cards: the interview is the core of the
+              product, so it gets the tall tile and the other two stack beside it. */}
           <ul className={styles.pillars}>
             {ABOUT_PILLARS.map((p) => (
               <li key={p.title} className={styles.pillar}>
+                {p.details && <ScoreTrend />}
                 <span className={styles.pillarIcon} aria-hidden="true">
                   <Icon name={p.icon} />
                 </span>
                 <h3 className={styles.pillarTitle}>{p.title}</h3>
                 <p className={styles.pillarBody}>{p.body}</p>
+                {p.details && (
+                  <ul className={styles.pillarTags} aria-label="Interview focus options">
+                    {p.details.map((d) => (
+                      <li key={d}>{d}</li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
@@ -215,8 +235,11 @@ export default function LandingScreen() {
                 aria-labelledby={`${f.id}-heading`}
               >
                 <div className={styles.walkCopy}>
-                  <span className={styles.walkIcon} aria-hidden="true">
-                    <Icon name={f.icon} />
+                  <span className={styles.walkIndex} aria-hidden="true">
+                    <span className={styles.walkIcon}>
+                      <Icon name={f.icon} />
+                    </span>
+                    <span className="mono">{String(i + 1).padStart(2, "0")} / {String(HOW_IT_WORKS.length).padStart(2, "0")}</span>
                   </span>
                   <h3 id={`${f.id}-heading`} className={styles.walkTitle}>
                     {f.title}
@@ -226,7 +249,7 @@ export default function LandingScreen() {
                     {f.steps.map((step, n) => (
                       <li key={n}>
                         <span className={styles.stepNum} aria-hidden="true">
-                          {n + 1}
+                          {String(n + 1).padStart(2, "0")}
                         </span>
                         {step}
                       </li>
@@ -249,13 +272,15 @@ export default function LandingScreen() {
 
         {/* --- closing call to action --------------------------------------- */}
         <section className={styles.closing} aria-labelledby="closing-heading">
-          <h2 id="closing-heading" className={styles.closingTitle}>
-            Ready for the real thing?
-          </h2>
-          <p className={styles.closingBody}>
-            Your first practice interview takes about ten minutes.
-          </p>
-          <Link to={primaryCta.to} className={`btn-primary ${styles.ctaLink}`}>
+          <div>
+            <h2 id="closing-heading" className={styles.closingTitle}>
+              Ready for the real thing?
+            </h2>
+            <p className={styles.closingBody}>
+              Your first practice interview takes about ten minutes.
+            </p>
+          </div>
+          <Link to={primaryCta.to} className={`btn-primary btn-lg ${styles.ctaLink}`}>
             {user ? "Open your dashboard" : "Get started"}
             <Icon name="chevronRight" />
           </Link>
@@ -267,10 +292,30 @@ export default function LandingScreen() {
   );
 }
 
+/** Illustrative scores climbing across five practice runs; decorative only. */
+const TREND = [58, 64, 61, 73, 82];
+
+function ScoreTrend() {
+  return (
+    <div className={styles.trend} aria-hidden="true">
+      {TREND.map((score, i) => (
+        <span key={i} className={styles.trendCol}>
+          <span className={`mono ${styles.trendValue}`}>{score}</span>
+          <span
+            className={`${styles.trendBar} ${i === TREND.length - 1 ? styles.trendBarLast : ""}`}
+            style={{ height: `${(score - 40) * 2}%`, animationDelay: `${i * 60}ms` }}
+          />
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /**
- * Decorative product preview for the hero — a still of an interview question
- * and a scored answer, built from the app's own visual language. Purely
- * illustrative, so it's hidden from assistive tech.
+ * Decorative product preview for the hero — an interview question, an answer
+ * being spoken (a blinking caret and a live level meter) and the score it
+ * earned, built from the app's own visual language. The loops are CSS and stop
+ * under reduced motion. Purely illustrative, so it's hidden from assistive tech.
  */
 function HeroPreview() {
   return (
@@ -294,7 +339,18 @@ function HeroPreview() {
         <div className={styles.bubbleA}>
           <span className={styles.bubbleRole}>You</span>
           We had two weeks to launch checkout. I scoped out saved cards, kept guest
-          checkout, and…
+          checkout, and
+          <span className={styles.caret} />
+        </div>
+
+        <div className={styles.meterRow}>
+          <span className={styles.recDot} />
+          <span className={styles.meter}>
+            {Array.from({ length: 14 }, (_, n) => (
+              <span key={n} style={{ animationDelay: `${(n * 97) % 600}ms` }} />
+            ))}
+          </span>
+          <span className={styles.meterLabel}>142 wpm</span>
         </div>
 
         <div className={styles.previewScore}>

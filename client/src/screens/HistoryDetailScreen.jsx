@@ -35,7 +35,10 @@ export default function HistoryDetailScreen({ interviewId, onBack, backLabel = "
   return (
     <div className={styles.wrap}>
       <header className="page-head">
-        <h1>Interview review</h1>
+        <div>
+          <h1>Interview review</h1>
+          <p className="page-sub">A saved interview, with the feedback it earned.</p>
+        </div>
         <div className={`${styles.headActions} no-print`}>
           <button type="button" className="btn-ghost" onClick={onBack}>
             <Icon name="arrowLeft" />

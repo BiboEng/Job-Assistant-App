@@ -1,0 +1,32 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.wrap :global(.empty-state) code {
+  font-size: var(--fs-xs);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* Four equal columns. Below the point where a card would get too narrow to
+   read, the board scrolls sideways a column at a time rather than stacking —
+   a Kanban board stacked vertically loses the "where is everything" glance
+   that is its whole point. */
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(248px, 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: var(--sp-2);
+}
+.board > * {
+  scroll-snap-align: start;
+}
+
+.skeletonColumn {
+  min-height: 320px;
+  border-radius: var(--radius-lg);
+}

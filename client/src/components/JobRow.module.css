@@ -9,6 +9,10 @@
   border-top: 1px solid var(--border);
   transition: background-color var(--dur) var(--ease);
 }
+/* With "Track this": one more column, before the open icon. */
+.trackable {
+  grid-template-columns: 40px minmax(0, 1fr) 140px 110px auto 16px;
+}
 .row:first-child {
   border-top: none;
 }
@@ -148,6 +152,17 @@
   white-space: nowrap;
 }
 
+/* --- track button: above the stretched link ---------------------------------- */
+
+.track {
+  position: relative;
+  z-index: 1;
+}
+.tracked {
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
 .linkIcon {
   color: var(--text-subtle);
   transition: color var(--dur) var(--ease);
@@ -157,9 +172,14 @@
 }
 
 @media (max-width: 760px) {
-  .row {
+  .row,
+  .trackable {
     grid-template-columns: 40px minmax(0, 1fr) 16px;
     row-gap: var(--sp-1);
+  }
+  .track {
+    grid-column: 2;
+    justify-self: start;
   }
   .salary,
   .postedCell {

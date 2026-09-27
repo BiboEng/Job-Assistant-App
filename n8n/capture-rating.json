@@ -1,0 +1,190 @@
+{
+  "name": "Capture rating",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "rate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "GET /rate",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        -120
+      ],
+      "webhookId": "b2000000-0000-4000-8000-0000000000aa",
+      "notes": "Where the stars in the email point. The PRODUCTION url of this node, minus the trailing /rate, is what goes in the other workflow's Config.webhookBase."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rate-comment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "POST /rate-comment",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        140
+      ],
+      "webhookId": "b2000000-0000-4000-8000-0000000000bb",
+      "notes": "Where the optional comment box on the thank-you page posts to. Same token, so it needs no separate credential."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Both webhooks land here, so everything below deals with one shape.\n// A GET carries the rating in the query string; the comment form posts a body.\n// Neither is trusted: the token is looked up server-side and the rating is\n// re-checked in SQL, so a hand-edited URL gets a polite refusal, not a write.\nconst supabaseUrl = 'https://hsyuaptfaeydnumnjlzs.supabase.co';\n\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  const q = j.query || {};\n  const b = j.body || {};\n\n  const token = String(q.token ?? b.token ?? '').trim();\n  const ratingRaw = q.rating ?? b.rating;\n  const rating = Number.parseInt(ratingRaw, 10);\n  const comment = typeof b.comment === 'string' ? b.comment.slice(0, 1000) : null;\n\n  out.push({\n    json: {\n      supabaseUrl,\n      token,\n      rating: Number.isFinite(rating) ? rating : null,\n      comment,\n      // A comment post with no star is a follow-up to a rating already\n      // recorded; the SQL keeps the existing rating in that case.\n      isComment: Boolean(comment) && !Number.isFinite(rating),\n    },\n  });\n}\nreturn out;"
+      },
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "Read request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.supabaseUrl }}/rest/v1/rpc/record_website_rating",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_token: $json.token, p_rating: $json.rating, p_comment: $json.comment }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        },
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "b2000000-0000-4000-8000-000000000004",
+      "name": "Record rating",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        0
+      ],
+      "notes": "neverError is deliberate: a bad or expired token should reach the page builder below and become a readable sentence, not a red 500 in the user's browser. Auth is a Header Auth credential with header name \"apikey\" and the Supabase SECRET key as the value — this project uses the new sb_secret_ key format, which is not a JWT, so Authorization: Bearer does not work on it."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turn the RPC's (ok, message) into the page the person actually sees.\n// The comment box is only offered on a successful star click — there is no\n// point showing it to someone whose link has expired.\nconst req = $('Read request').first().json;\nconst raw = $input.first().json;\n\n// PostgREST returns a one-row table as an array; be tolerant of either shape.\nconst row = Array.isArray(raw) ? raw[0] : Array.isArray(raw?.data) ? raw.data[0] : raw;\nconst ok = row?.ok === true;\nconst message = row?.message || (ok ? 'Thanks — your rating has been saved.' : 'Something went wrong saving that.');\n\nconst esc = (s) =>\n  String(s).replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n\nconst commentForm =\n  ok && !req.isComment\n    ? `<form method=\"post\" action=\"./rate-comment\" style=\"margin-top:24px;text-align:left;\">\n         <input type=\"hidden\" name=\"token\" value=\"${esc(req.token)}\" />\n         <label for=\"c\" style=\"display:block;font-size:14px;margin-bottom:8px;color:#4b5563;\">Anything you'd like to add? (optional)</label>\n         <textarea id=\"c\" name=\"comment\" rows=\"4\" maxlength=\"1000\" style=\"width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d7dae0;border-radius:8px;font:inherit;font-size:14px;\"></textarea>\n         <button type=\"submit\" style=\"margin-top:12px;padding:10px 18px;border:0;border-radius:8px;background:#3b5bdb;color:#fff;font-size:14px;font-weight:600;cursor:pointer;\">Send</button>\n       </form>`\n    : '';\n\nconst heading = ok ? 'Thank you' : 'That link did not work';\nconst stars = ok && req.rating ? `<p style=\"margin:0 0 4px;font-size:32px;letter-spacing:2px;\">${'\\u2605'.repeat(req.rating)}<span style=\"color:#d7dae0;\">${'\\u2605'.repeat(5 - req.rating)}</span></p>` : '';\n\nconst html = `<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\" /><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /><title>${esc(heading)}</title></head>\n<body style=\"margin:0;padding:32px 16px;background:#f4f6f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23;\">\n  <div style=\"max-width:480px;margin:0 auto;background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:32px;text-align:center;\">\n    ${stars}\n    <h1 style=\"margin:0 0 8px;font-size:22px;\">${esc(heading)}</h1>\n    <p style=\"margin:0;font-size:15px;line-height:1.5;color:#4b5563;\">${esc(message)}</p>\n    ${commentForm}\n  </div>\n</body></html>`;\n\nreturn [{ json: { html, statusCode: ok ? 200 : 400 } }];"
+      },
+      "id": "b2000000-0000-4000-8000-000000000005",
+      "name": "Build page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000006",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "GET /rate": {
+      "main": [
+        [
+          {
+            "node": "Read request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /rate-comment": {
+      "main": [
+        [
+          {
+            "node": "Read request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read request": {
+      "main": [
+        [
+          {
+            "node": "Record rating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record rating": {
+      "main": [
+        [
+          {
+            "node": "Build page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build page": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,111 @@
+/* A column is a sunken well that the raised cards sit in. */
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+  min-height: 240px;
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+/* While a card is in the air, every column it could land in says so… */
+.target {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+/* …and the one under the pointer lights up. */
+.over {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-softer);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-1) 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.count {
+  min-width: 24px;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: var(--fs-2xs);
+  text-align: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--sp-6) var(--sp-3);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-subtle);
+  font-size: var(--fs-xs);
+  text-align: center;
+}
+
+/* --- the two outcome zones in "Accepted / Rejected" ------------------------ */
+
+.zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+}
+
+.zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  padding: var(--sp-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.zone_accepted.zoneOver {
+  border-style: solid;
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}
+.zone_rejected.zoneOver {
+  border-style: solid;
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.zoneHome {
+  opacity: 0.5;
+}

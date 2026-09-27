@@ -14,7 +14,20 @@ import { relativeDay } from "../utils/time.js";
  * from it. The title is the anchor and a stretched pseudo-element makes the
  * row clickable, which keeps one link per row for a screen reader rather than
  * wrapping every cell in an <a>.
+ *
+ * "Track this" (when the Application Tracker is available — `trackState`
+ * undefined hides it) copies the listing's company, title and link into a new
+ * card in the tracker's Saved column. It sits above the stretched link, like
+ * any control inside the row. Once tracked it becomes "Tracked", which opens
+ * the board.
  */
+
+const TRACK_LABEL = {
+  idle: "Track this",
+  saving: "Saving…",
+  error: "Retry",
+  tracked: "Tracked",
+};
 
 /**
  * Past this, an aggregator listing is far more likely to be closed than open.
@@ -22,7 +35,7 @@ import { relativeDay } from "../utils/time.js";
  */
 const STALE_AFTER_DAYS = 60;
 
-export default function JobRow({ job, scoring = false }) {
+export default function JobRow({ job, scoring = false, trackState, onTrack, onOpenTracker }) {
   const { company, title, location, salary, url, source, matchScore, reason, postedAt } =
     job;
   const scored = Number.isFinite(matchScore);
@@ -35,7 +48,7 @@ export default function JobRow({ job, scoring = false }) {
     Date.now() - postedMs > STALE_AFTER_DAYS * 24 * 60 * 60 * 1000;
 
   return (
-    <li className={styles.row}>
+    <li className={`${styles.row} ${trackState ? styles.trackable : ""}`}>
       <span
         className={`${styles.pill} ${scoring ? styles.pillLoading : ""} mono`}
         style={band ? { color: band.color, background: band.soft } : undefined}
@@ -93,6 +106,24 @@ export default function JobRow({ job, scoring = false }) {
           </span>
         )}
       </span>
+
+      {trackState && (
+        <button
+          type="button"
+          className={`btn-ghost btn-sm ${styles.track} ${trackState === "tracked" ? styles.tracked : ""}`}
+          onClick={() => (trackState === "tracked" ? onOpenTracker?.() : onTrack?.(job))}
+          disabled={trackState === "saving"}
+          aria-label={
+            trackState === "tracked"
+              ? `${title} is in your applications. Open the tracker`
+              : `Track ${title} at ${company} in your applications`
+          }
+          title={trackState === "tracked" ? "In your Applications — open the board" : undefined}
+        >
+          <Icon name={trackState === "tracked" ? "bookmarkCheck" : "bookmark"} />
+          {TRACK_LABEL[trackState] || TRACK_LABEL.idle}
+        </button>
+      )}
 
       <Icon name="arrowUpRight" className={styles.linkIcon} />
     </li>

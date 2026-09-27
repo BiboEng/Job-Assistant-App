@@ -1,0 +1,194 @@
+{
+  "name": "Post-survey rating request",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -360,
+        0
+      ],
+      "notes": "Hourly rather than daily on purpose. With a once-a-day run, a 24h minimum actually means 24-48h, and anyone finishing the survey after the run time waits an extra day. Hourly makes it minAgeHours +/- 1h. Cost is one query an hour that almost always finds nothing; claim_rating_candidates() guarantees nobody is claimed twice however often it is called."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "supabaseUrl",
+              "value": "https://hsyuaptfaeydnumnjlzs.supabase.co",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "webhookBase",
+              "value": "https://YOUR-N8N-HOST/webhook",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "fromEmail",
+              "value": "Mock Interview <no-reply@example.com>",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "productName",
+              "value": "Mock Interview",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "minAgeHours",
+              "value": 24,
+              "type": "number"
+            },
+            {
+              "id": "c6",
+              "name": "maxAgeDays",
+              "value": 30,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -140,
+        0
+      ],
+      "notes": "Edit these six values and nothing else. webhookBase must match the Capture rating workflow's PRODUCTION webhook URL with the trailing /rate removed."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.supabaseUrl }}/rest/v1/rpc/claim_rating_candidates",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_min_age_hours: $json.minAgeHours, p_max_age_days: $json.maxAgeDays }) }}",
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Claim candidates",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        0
+      ],
+      "notes": "Calls claim_rating_candidates. The RPC creates each invite row as it returns it, so a crash after this point costs that person their email rather than sending it twice. Needs the SERVICE ROLE key — see README. Auth is a Header Auth credential with header name \"apikey\" and the Supabase SECRET key as the value — this project uses the new sb_secret_ key format, which is not a JWT, so Authorization: Bearer does not work on it."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalise, then build the email. One node, because the two jobs share the\n// same loop and splitting them buys nothing.\n//\n// The normalise half exists because PostgREST returns the whole result set as\n// a single JSON array, and how n8n unwraps that has varied between versions:\n// sometimes one item holding an array, sometimes one item per row. Rather than\n// depend on which, flatten whatever turns up. An empty result — the normal\n// case on most days — returns [] and nothing downstream runs.\nconst cfg = $('Config').first().json;\nconst base = String(cfg.webhookBase).replace(/\\/+$/, '');\nconst product = cfg.productName;\n\nconst rows = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  if (Array.isArray(j)) rows.push(...j);\n  else if (Array.isArray(j.data)) rows.push(...j.data);\n  else if (j && j.token) rows.push(j);\n}\n\nreturn rows\n  .filter((r) => r && r.token && r.email)\n  .map((r) => {\n    const link = (n) =>\n      `${base}/rate?token=${encodeURIComponent(r.token)}&rating=${n}`;\n\n    const stars = [1, 2, 3, 4, 5]\n      .map(\n        (n) =>\n          `<a href=\"${link(n)}\" style=\"display:inline-block;padding:10px 16px;margin:0 3px;border:1px solid #d7dae0;border-radius:8px;text-decoration:none;color:#1a1d23;font-size:18px;font-weight:600;\">${n}</a>`\n      )\n      .join('');\n\n    const html = `<!doctype html>\\n<html><body style=\"margin:0;padding:24px;background:#f4f6f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23;\">\\n  <div style=\"max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e4e7ec;border-radius:12px;padding:32px;\">\\n    <h1 style=\"margin:0 0 12px;font-size:20px;\">How is ${product} working out?</h1>\\n    <p style=\"margin:0 0 8px;font-size:15px;line-height:1.5;\">You filled in the career survey a day ago &mdash; thanks for that.</p>\\n    <p style=\"margin:0 0 24px;font-size:15px;line-height:1.5;\">One click is all this needs: how would you rate the site so far?</p>\\n    <div style=\"text-align:center;margin:0 0 8px;\">${stars}</div>\\n    <p style=\"margin:8px 0 24px;text-align:center;font-size:13px;color:#6b7280;\">1 = poor &nbsp;&nbsp; 5 = excellent</p>\\n    <p style=\"margin:0;font-size:13px;color:#6b7280;line-height:1.5;\">There is a comment box on the next page if you want it, but the click on its own is enough.</p>\\n  </div>\\n</body></html>`;\n\n    const text = [\n      `How is ${product} working out?`,\n      '',\n      'You filled in the career survey a day ago - thanks for that.',\n      'How would you rate the site so far? (1 = poor, 5 = excellent)',\n      '',\n      ...[1, 2, 3, 4, 5].map((n) => `${n}: ${link(n)}`),\n    ].join('\\n');\n\n    return {\n      json: {\n        user_id: r.user_id,\n        email: r.email,\n        token: r.token,\n        subject: `How is ${product} working out?`,\n        html,\n        text,\n      },\n    };\n  });"
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Build email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').first().json.fromEmail }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "both",
+        "text": "={{ $json.text }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Send rating email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        520,
+        0
+      ],
+      "notes": "Generic SMTP, so it works with Gmail app passwords, Mailgun, Postmark, SendGrid SMTP and the rest. Swap this one node for a provider node if you would rather use an API key."
+    }
+  ],
+  "connections": {
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Claim candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim candidates": {
+      "main": [
+        [
+          {
+            "node": "Build email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build email": {
+      "main": [
+        [
+          {
+            "node": "Send rating email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

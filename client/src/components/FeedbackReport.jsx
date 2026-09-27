@@ -53,15 +53,25 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
   return (
     <div className={styles.report}>
       <section className={`${styles.section} ${styles.scoreSection}`}>
-        <div
-          className={styles.bigScore}
-          role="img"
-          aria-label={`Overall score ${overallScore} out of 100, ${overall.label}`}
-        >
-          <span className={styles.scoreNum} style={{ color: overall.color }}>
-            {overallScore}
+        <div className={styles.scoreCol}>
+          <div
+            className={styles.bigScore}
+            role="img"
+            aria-label={`Overall score ${overallScore} out of 100, ${overall.label}`}
+          >
+            <span className={styles.scoreNum} style={{ color: overall.color }}>
+              {overallScore}
+            </span>
+            <span className={styles.scoreMax}>/100</span>
+          </div>
+          <span className={styles.scoreBar} aria-hidden="true">
+            <span
+              style={{
+                transform: `scaleX(${Math.max(0, Math.min(100, overallScore)) / 100})`,
+                background: overall.color,
+              }}
+            />
           </span>
-          <span className={styles.scoreMax}>/100</span>
         </div>
         <div className={styles.scoreText}>
           <div className={styles.scoreMeta}>

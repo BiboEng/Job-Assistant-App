@@ -99,6 +99,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
   color: var(--text-muted);
   transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
@@ -126,7 +127,7 @@
 }
 
 .timerTrack {
-  height: 2px;
+  height: 3px;
   border-radius: var(--radius-xs);
   background: var(--surface-sunken);
   overflow: hidden;

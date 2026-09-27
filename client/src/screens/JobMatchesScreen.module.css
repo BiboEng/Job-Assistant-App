@@ -334,16 +334,16 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--sp-1);
-  padding: var(--sp-4);
-  border: 1px solid var(--border);
+  gap: var(--sp-2);
+  padding: var(--sp-8) var(--sp-7);
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-lg);
-  background: var(--surface);
 }
 
 .emptyTitle {
   margin: 0;
-  font-size: var(--fs-md);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
 }
 
 .emptyHint {

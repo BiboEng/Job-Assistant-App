@@ -23,6 +23,8 @@ export const PATHS = {
   resume: "/resume",
   // Interview scores over time, grouped by role. `?role=<key>` selects one.
   progress: "/progress",
+  // The Application Tracker's Kanban board.
+  applications: "/applications",
   // The optional career survey. Protected: it is per-account data.
   survey: "/survey",
 };

@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import JobRow from "../components/JobRow.jsx";
 import Icon from "../components/Icon.jsx";
+import Toast from "../components/Toast.jsx";
+import { useTrackedJobs } from "../applications/useTrackedJobs.js";
 import { searchJobs, scoreJobs } from "../api/jobsApi.js";
 import { extractResumeText } from "../utils/parseResume.js";
 import {
@@ -123,7 +125,25 @@ const DEFAULT_FILTERS = {
   remoteOnly: false,
 };
 
-export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
+export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpenTracker }) {
+  // "Track this": copies a result into the Application Tracker's Saved column.
+  // `available` stays false (and the button hidden) until the table is known
+  // to exist.
+  const tracker = useTrackedJobs();
+  const [toast, setToast] = useState(null); // { message, tone }
+  const dismissToast = useCallback(() => setToast(null), []);
+
+  function handleTrack(job) {
+    tracker
+      .track(job)
+      .then((added) => {
+        if (added) setToast({ tone: "success", message: `Saved ${job.title} to your applications.` });
+      })
+      .catch((err) => {
+        setToast({ tone: "error", message: `Couldn't track that role: ${err.message}` });
+      });
+  }
+
   const saved = useRef(null);
   if (saved.current === null) saved.current = loadSaved();
 
@@ -409,7 +429,10 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
   return (
     <div className={styles.wrap}>
       <header className="page-head">
-        <h1>Job Matches</h1>
+        <div>
+          <h1>Job Matches</h1>
+          <p className="page-sub">Open roles near you, scored against your resume.</p>
+        </div>
         {collapsed && (
           <button type="button" className="btn-ghost" onClick={() => setFormOpen(true)}>
             <Icon name="search" />
@@ -750,12 +773,15 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
                   </button>
                 </div>
               ) : (
-                <ul className={styles.list}>
+                <ul className={`${styles.list} stagger`}>
                   {sortedJobs.map((job) => (
                     <JobRow
                       key={job.id}
                       job={job}
                       scoring={status === "scoring" && !job.settled}
+                      trackState={tracker.available ? tracker.stateOf(job) : undefined}
+                      onTrack={handleTrack}
+                      onOpenTracker={onOpenTracker}
                     />
                   ))}
                 </ul>
@@ -764,6 +790,8 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult }) {
           )}
         </div>
       )}
+
+      <Toast message={toast?.message} tone={toast?.tone} onDismiss={dismissToast} />
     </div>
   );
 }

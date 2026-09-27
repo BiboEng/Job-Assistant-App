@@ -246,7 +246,28 @@ export default function SignInScreen() {
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <main id="main-content" tabIndex={-1} className={styles.page}>
+      <main id="main-content" tabIndex={-1} className={`${styles.page} ${styles.split}`}>
+        {/* The brand side of the split. Wide screens only — on a phone the form
+            is the whole page, as it always was. */}
+        <aside className={styles.brandPanel} aria-label="What you get">
+          <p className="eyebrow">Jobassist</p>
+          <p className={styles.brandTitle}>Practise the interview before it counts.</p>
+          <ol className={styles.brandList}>
+            <li>
+              <span className="mono">01</span>
+              Questions written for the exact job you paste
+            </li>
+            <li>
+              <span className="mono">02</span>
+              Scored feedback on what you said and how you said it
+            </li>
+            <li>
+              <span className="mono">03</span>
+              Matching roles and an ATS-ready resume, in the same place
+            </li>
+          </ol>
+        </aside>
+
         <div className={styles.card}>
           <div className={styles.head}>
             <h1 className={styles.title}>

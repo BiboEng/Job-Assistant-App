@@ -101,10 +101,16 @@
   opacity: 0.5;
 }
 
-/* Active: aqua on aqua-tint, with a 2px bar on the left edge. */
+/* Active: a raised row in full-strength text, the icon and a 2px bar on the
+   left edge in aqua. Quieter than an aqua-tinted row, so the page's primary
+   button stays the loudest aqua on screen. */
 .active,
 .active:hover:not(:disabled) {
-  background: var(--accent-soft);
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: var(--inner-highlight);
+}
+.active svg {
   color: var(--accent);
 }
 .active::before {

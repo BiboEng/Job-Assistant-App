@@ -2,6 +2,15 @@
   display: flex;
   align-items: flex-start;
   gap: var(--sp-2);
+  animation: message-in var(--dur-enter) var(--ease) both;
+}
+
+/* Each new message settles into place rather than popping in. */
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 .left {
   justify-content: flex-start;
@@ -61,7 +70,7 @@
 }
 
 .candidate {
-  background: var(--accent-soft);
+  background: var(--accent-softer);
   border: 1px solid var(--accent-border);
   color: var(--text);
   border-bottom-right-radius: var(--radius-xs);
