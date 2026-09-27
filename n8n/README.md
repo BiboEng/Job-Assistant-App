@@ -1,29 +1,32 @@
 # n8n — post-survey rating email
 
 Two workflows. One emails people a day after they finish the career survey and
-asks them to rate the site; the other catches the click and writes the rating
-to Supabase.
+asks them to rate the site; the other shows the rating page and writes the
+answer to Supabase.
 
 ```
                                      ┌─ 1 ─┐
   survey completed ──(24h)──▶ daily schedule ──▶ claim_rating_candidates()
                                                           │
                                                    one email each,
-                                                 five one-click links
+                                                    five star links
                                                           │
                                                           ▼
-  user clicks a star ──▶ webhook /rate ──▶ record_website_rating() ──▶ website_ratings
-                                └─ 2 ─┘            │
-                                          thank-you page with an
-                                          optional comment box
-                                                   │
-                            webhook /rate-comment ─┘
+  user clicks a star ──▶ GET /rate ──▶ confirm page (writes nothing)
+                          └─ 2 ─┘            │ Submit
+                                             ▼
+                            POST /rate-submit ──▶ record_website_rating() ──▶ website_ratings
+                                                          │
+                                                   thank-you page
+                                                   (comment box if none sent)
+                                                          │
+                                   POST /rate-comment ────┘
 ```
 
 | file | what it is |
 | --- | --- |
 | `post-survey-rating-request.json` | workflow 1 — the daily send |
-| `capture-rating.json` | workflow 2 — the two webhooks that record the answer |
+| `capture-rating.json` | workflow 2 — the confirm page and the webhooks that record the answer |
 
 **None of this is read by any AI feature**, exactly like the survey it follows
 from. It is collected and stored, nothing more. See `CLAUDE.md` → "Career
@@ -161,6 +164,16 @@ person misses their email — which is the right way round. The alternative
 twice, and a duplicate "please rate us" is far more annoying than a missing one.
 A `unique` index on `rating_requests.user_id` backs it up.
 
+**A star link doesn't record anything by itself.** Email security scanners
+(Outlook Safe Links, Mimecast, Proofpoint and friends) open every link in a
+message to check it. When GET `/rate` wrote the rating, a scanner fetching the
+five links would "rate" for the user — whichever star it fetched last. So GET
+`/rate` only renders a confirm page with the clicked star pre-selected and an
+optional comment box; the rating is written when the person presses **Submit**,
+which POSTs to `/rate-submit`. Scanners don't submit forms. It costs one extra
+click. (An auto-submitting page would save it, but some scanners run
+JavaScript, so it would reopen the same hole.)
+
 **The link carries a token, not a user id.** A one-click rating URL is a
 credential. `?user_id=<uuid>&rating=5` would let anyone rate as anyone, and user
 ids are not secret. The token is a random uuid, single-purpose, and expires
@@ -173,7 +186,7 @@ satisfaction score.
 expired token produces a readable page. Someone clicking a link from an old
 email shouldn't meet a stack trace.
 
-**Clicking a second star corrects the first.** The write is an upsert keyed on
+**Submitting a second rating corrects the first.** The write is an upsert keyed on
 `user_id` — `website_ratings` holds the latest rating, not a history. People
 misclick in emails, and their correction should be the answer you keep. A later
 comment doesn't wipe the rating, and a later star doesn't wipe the comment.
@@ -193,8 +206,8 @@ this on, would be all of them at once. After that it just means someone who
 completed the survey four months ago and somehow never got an invite doesn't
 suddenly get one.
 
-**Both webhooks share one code path.** GET `/rate` and POST `/rate-comment` both
-feed "Read request", which normalises query string and body into one shape.
+**Both write webhooks share one code path.** POST `/rate-submit` and POST
+`/rate-comment` both feed "Read request", which normalises query string and body into one shape.
 Nothing from either is trusted: the token is looked up server-side, the rating
 is re-checked in SQL, and everything rendered into the thank-you page is HTML
 escaped.

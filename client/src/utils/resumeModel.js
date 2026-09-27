@@ -22,6 +22,46 @@ export function emptyResume() {
   };
 }
 
+/**
+ * Shape guard for a document read back from the tab's autosaved draft: every
+ * section present and of the right type, so a stale or hand-edited
+ * sessionStorage value can't crash the preview. Content isn't re-validated —
+ * this is our own write, and the server re-normalizes on every chat turn.
+ * @param {unknown} raw
+ * @returns {object|null} null when there's nothing usable
+ */
+export function coerceResume(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const c = raw.contact && typeof raw.contact === "object" ? raw.contact : {};
+  const text = (v) => (typeof v === "string" ? v : "");
+  const list = (v) => (Array.isArray(v) ? v.filter((e) => e && typeof e === "object") : []);
+  return {
+    contact: {
+      name: text(c.name),
+      title: text(c.title),
+      email: text(c.email),
+      phone: text(c.phone),
+      location: text(c.location),
+      links: list(c.links).map((l) => ({ label: text(l.label), url: text(l.url) })),
+    },
+    summary: text(raw.summary),
+    experience: list(raw.experience).map((e) => ({
+      ...e,
+      bullets: Array.isArray(e.bullets) ? e.bullets.map(text) : [],
+    })),
+    education: list(raw.education),
+    skills: list(raw.skills).map((g) => ({
+      ...g,
+      items: Array.isArray(g.items) ? g.items.map(text) : [],
+    })),
+    projects: list(raw.projects).map((p) => ({
+      ...p,
+      bullets: Array.isArray(p.bullets) ? p.bullets.map(text) : [],
+    })),
+    certifications: list(raw.certifications),
+  };
+}
+
 let counter = Math.floor(Math.random() * 1e6);
 /** Local id for a newly added entry. The server preserves ids it is given. */
 export function newId(prefix) {

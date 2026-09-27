@@ -8,6 +8,7 @@ import {
   normalizeResume,
   validateChatHistory,
   interpretModelTurn,
+  mergeModelResume,
 } from "../services/resume.service.js";
 
 /**
@@ -76,7 +77,9 @@ export async function chatResume(req, res, next) {
     // A null document means "nothing changed" — keep the resume exactly as the
     // client sent it rather than round-tripping it through the model's copy.
     const changed = turn.resume != null;
-    const resumeOut = changed ? normalizeResume(turn.resume) : current;
+    // Merged over the current document: a model that sends back only the
+    // section it touched must not blank the rest (see mergeModelResume).
+    const resumeOut = changed ? mergeModelResume(current, turn.resume) : current;
 
     const reply =
       turn.reply.slice(0, config.resume.maxMessageLength) ||

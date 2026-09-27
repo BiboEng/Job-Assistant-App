@@ -17,6 +17,21 @@ import { dateRange, resumeFileStem } from "./resumeModel.js";
  *
  * html2canvas and jsPDF are both lazy-loaded on first use (same approach as
  * pdfjs-dist in parseResume.js) so they stay out of the main bundle.
+ *
+ * THE CHARACTER-SET LIMIT. The text PDF uses jsPDF's built-in Helvetica, which
+ * only encodes Windows-1252 (Latin-1 plus curly quotes, dashes, € and a few
+ * more). Worse than dropping an unsupported character, jsPDF re-encodes the
+ * WHOLE string it was handed, so a single "→" garbles an entire bullet. So:
+ *   - common typographic symbols outside the set are mapped to plain
+ *     equivalents first (TEXT_SUBSTITUTIONS — "→" becomes "->");
+ *   - if anything unencodable is left (a name in Polish, Cyrillic, Arabic,
+ *     CJK…) a "print optimized" request is served as the exact-preview PDF,
+ *     which renders through the browser and so handles every script, and the
+ *     caller is told why (`{ fallback }` in the result). Embedding a Unicode
+ *     font would lift the limit, at the cost of shipping a font per script.
+ *
+ * PAPER. Letter or A4, chosen by the user (`paper`); the default follows the
+ * browser's region (`defaultPaper`).
  */
 
 export const EXPORT_FORMATS = [
@@ -37,7 +52,114 @@ export const EXPORT_FORMATS = [
   { id: "txt", label: "Plain text", hint: "For pasting into web forms.", ext: "txt" },
 ];
 
-const PAGE = { width: 612, height: 792, margin: 54 }; // US Letter, in points
+/** Page geometry in points. `format` is jsPDF's name for the size. */
+export const PAPER_SIZES = {
+  letter: { id: "letter", label: "Letter", format: "letter", width: 612, height: 792, margin: 54 },
+  a4: { id: "a4", label: "A4", format: "a4", width: 595.28, height: 841.89, margin: 52 },
+};
+
+// Regions that use US Letter; everywhere else uses A4.
+const LETTER_REGIONS = new Set(["US", "CA", "MX", "PH", "CL", "CO", "VE", "GT", "CR", "PR"]);
+
+/** Letter or A4 from the browser's locale — a starting point the user can change. */
+export function defaultPaper(
+  locale = typeof navigator !== "undefined" ? navigator.language : ""
+) {
+  const [lang = "", region] = String(locale || "").split(/[-_]/);
+  if (region) return LETTER_REGIONS.has(region.toUpperCase()) ? "letter" : "a4";
+  // No region ("de", "fr"): only bare English leans Letter; the rest is A4.
+  return !lang || lang.toLowerCase() === "en" ? "letter" : "a4";
+}
+
+// --- character set --------------------------------------------------------
+
+// Windows-1252's characters outside Latin-1 (bytes 0x80–0x9F), which jsPDF maps.
+const CP1252_EXTRAS = new Set("€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ");
+
+/** True when jsPDF's standard fonts can encode every character of `text`. */
+export function isPdfEncodable(text) {
+  for (const ch of String(text)) {
+    const code = ch.codePointAt(0);
+    if (code === 9 || code === 10 || code === 13) continue;
+    if (code >= 0x20 && code <= 0x7e) continue;
+    if (code >= 0xa0 && code <= 0xff) continue;
+    if (CP1252_EXTRAS.has(ch)) continue;
+    return false;
+  }
+  return true;
+}
+
+// Symbols that turn up in resumes (and in AI-written bullets) and have a plain
+// equivalent that reads the same. Letters are deliberately NOT here: "ł" is not
+// "l", and a name must never be silently respelled.
+const TEXT_SUBSTITUTIONS = [
+  [/[\u2010\u2011\u2012\u2212\u2043]/g, "-"], // hyphens, minus sign
+  [/\u2015/g, "\u2014"], // horizontal bar → em dash
+  [/[\u2032\u02b9]/g, "'"],
+  [/[\u2033\u02ba]/g, '"'],
+  [/[\u2000-\u200a\u202f\u205f\u3000]/g, " "], // odd-width spaces
+  [/[\u200b-\u200d\u2060\ufeff]/g, ""], // zero-width characters
+  [/[\u2028\u2029]/g, "\n"],
+  [/[\u2192\u27f6\u2794\u279c]/g, "->"],
+  [/[\u2190\u27f5]/g, "<-"],
+  [/[\u2194\u27f7]/g, "<->"],
+  [/\u2265/g, ">="],
+  [/\u2264/g, "<="],
+  [/\u2260/g, "!="],
+  [/\u2248/g, "~"],
+  [/[\u2713\u2714\u2705]/g, "-"],
+  [/[\u25aa\u25cf\u25e6\u2023\u2219\u25b8\u25ba]/g, "\u2022"], // other bullets → •
+];
+
+/** `value` with TEXT_SUBSTITUTIONS applied — what the text PDF actually draws. */
+export function toPdfText(value) {
+  let out = String(value ?? "");
+  for (const [pattern, replacement] of TEXT_SUBSTITUTIONS) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
+/** Every string the text PDF would draw. */
+function resumeStrings(resume) {
+  const c = resume.contact;
+  const out = [c.name, c.title, c.email, c.phone, c.location, resume.summary];
+  for (const l of c.links) out.push(l.label, l.url);
+  for (const e of resume.experience) {
+    out.push(e.role, e.company, e.location, e.start, e.end, ...e.bullets);
+  }
+  for (const e of resume.education) {
+    out.push(e.school, e.degree, e.location, e.start, e.end, e.details);
+  }
+  for (const g of resume.skills) out.push(g.category, ...g.items);
+  for (const p of resume.projects) out.push(p.name, p.link, ...p.bullets);
+  for (const cert of resume.certifications) out.push(cert.name, cert.issuer, cert.year);
+  return out.filter(Boolean).map(toPdfText);
+}
+
+/** The first character the text PDF can't draw (after substitution), or null. */
+export function firstUnencodable(resume) {
+  for (const text of resumeStrings(resume)) {
+    for (const ch of text) if (!isPdfEncodable(ch)) return ch;
+  }
+  return null;
+}
+
+// --- links ------------------------------------------------------------------
+
+/**
+ * Where a contact or project link should point in the PDF, or null. Accepts
+ * full http(s) URLs, bare domains ("linkedin.com/in/ada") and email addresses;
+ * anything else (a label with spaces, a javascript: URL) stays plain text.
+ */
+export function linkTarget(value) {
+  const s = String(value || "").trim();
+  if (!s || /\s/.test(s)) return null;
+  if (/^https?:\/\/[^/]+\.[^/]+/i.test(s)) return s;
+  if (/^[^@/:]+@[^@/:]+\.[a-z]{2,}$/i.test(s)) return `mailto:${s}`;
+  if (/^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(\/\S*)?$/i.test(s)) return `https://${s}`;
+  return null;
+}
 
 // --- lazy library loading -------------------------------------------------
 
@@ -126,29 +248,29 @@ function canvasToBlob(canvas, type, quality) {
 
 // --- raster PDF (exact preview) ------------------------------------------
 
-async function exportRasterPdf(sheetEl, filename) {
+async function exportRasterPdf(sheetEl, filename, page) {
   const [JsPDF, canvas] = await Promise.all([
     loadJsPdf(),
     renderSheetToCanvas(sheetEl, { scale: 2 }),
   ]);
 
-  const doc = new JsPDF({ unit: "pt", format: "letter", compress: true });
+  const doc = new JsPDF({ unit: "pt", format: page.format, compress: true });
   const imgData = canvas.toDataURL("image/jpeg", 0.92);
 
-  const imgWidth = PAGE.width;
+  const imgWidth = page.width;
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
   // Slide the same image up a page at a time to paginate a long resume.
   let heightLeft = imgHeight;
   let position = 0;
   doc.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-  heightLeft -= PAGE.height;
+  heightLeft -= page.height;
 
   while (heightLeft > 0) {
-    position -= PAGE.height;
+    position -= page.height;
     doc.addPage();
     doc.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-    heightLeft -= PAGE.height;
+    heightLeft -= page.height;
   }
 
   download(doc.output("blob"), filename);
@@ -160,12 +282,17 @@ async function exportRasterPdf(sheetEl, filename) {
  * A small top-down layout engine over jsPDF's text API. Everything it draws
  * comes from the resume data model, so the output is real selectable text.
  */
-function createLayout(doc) {
+function createLayout(doc, PAGE) {
   let y = PAGE.margin;
   const left = PAGE.margin;
   const right = PAGE.width - PAGE.margin;
   const width = right - left;
   const bottom = PAGE.height - PAGE.margin;
+
+  /** A link annotation over text drawn at (x, baseline). */
+  function linkOver(url, x, baseline, textWidth, size) {
+    if (url) doc.link(x, baseline - size * 0.85, textWidth, size * 1.1, { url });
+  }
 
   const ctx = {
     get y() {
@@ -195,7 +322,7 @@ function createLayout(doc) {
       doc.setFont("helvetica", style);
       doc.setFontSize(size);
       doc.setTextColor(color);
-      const lines = doc.splitTextToSize(String(value), width - indent);
+      const lines = doc.splitTextToSize(toPdfText(value), width - indent);
       const lineHeight = size * lead;
       for (const line of lines) {
         ctx.ensure(lineHeight);
@@ -206,7 +333,13 @@ function createLayout(doc) {
     },
 
     /** A left label and a right-aligned value on one baseline. */
-    row(leftText, rightText, { size = 10.5, leftStyle = "bold", rightSize = 9.5 } = {}) {
+    row(
+      leftText,
+      rightText,
+      { size = 10.5, leftStyle = "bold", rightSize = 9.5, rightUrl = null } = {}
+    ) {
+      leftText = leftText && toPdfText(leftText);
+      rightText = rightText && toPdfText(rightText);
       const lineHeight = size * 1.35;
       ctx.ensure(lineHeight);
       const baseline = y + size * 0.85;
@@ -216,6 +349,8 @@ function createLayout(doc) {
         doc.setFontSize(rightSize);
         doc.setTextColor(90);
         doc.text(String(rightText), right, baseline, { align: "right" });
+        const w = doc.getTextWidth(String(rightText));
+        linkOver(rightUrl, right - w, baseline, w, rightSize);
       }
       if (leftText) {
         doc.setFont("helvetica", leftStyle);
@@ -239,7 +374,7 @@ function createLayout(doc) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10.5);
       doc.setTextColor(20);
-      doc.text(String(title).toUpperCase(), left, y + 9, { charSpace: 0.8 });
+      doc.text(toPdfText(title).toUpperCase(), left, y + 9, { charSpace: 0.8 });
       y += 13;
       doc.setDrawColor(170);
       doc.setLineWidth(0.6);
@@ -254,7 +389,7 @@ function createLayout(doc) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(size);
       doc.setTextColor(30);
-      const lines = doc.splitTextToSize(String(value), width - indent);
+      const lines = doc.splitTextToSize(toPdfText(value), width - indent);
       const lineHeight = size * 1.34;
       lines.forEach((line, i) => {
         ctx.ensure(lineHeight);
@@ -271,13 +406,49 @@ function createLayout(doc) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(size);
       doc.setTextColor(color);
-      const lines = doc.splitTextToSize(String(value), width);
+      const lines = doc.splitTextToSize(toPdfText(value), width);
       const lineHeight = size * 1.35;
       for (const line of lines) {
         ctx.ensure(lineHeight);
         doc.text(line, PAGE.width / 2, y + size * 0.85, { align: "center" });
         y += lineHeight;
       }
+    },
+
+    /**
+     * Centered parts on one line with separators, each part clickable when it
+     * has a `url`. Falls back to plain wrapped text when the line is too long
+     * to fit, since link rectangles over wrapped text would drift.
+     */
+    centeredParts(parts, { size = 9.5, color = 90, sep = "  |  " } = {}) {
+      const items = parts
+        .filter((p) => p.text)
+        .map((p) => ({ ...p, text: toPdfText(p.text) }));
+      if (!items.length) return;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(size);
+      doc.setTextColor(color);
+      const sepWidth = doc.getTextWidth(sep);
+      const widths = items.map((p) => doc.getTextWidth(p.text));
+      const total = widths.reduce((a, b) => a + b, 0) + sepWidth * (items.length - 1);
+      if (total > width) {
+        ctx.centered(items.map((p) => p.text).join(sep), { size, color });
+        return;
+      }
+      const lineHeight = size * 1.35;
+      ctx.ensure(lineHeight);
+      const baseline = y + size * 0.85;
+      let x = PAGE.width / 2 - total / 2;
+      items.forEach((p, i) => {
+        if (i > 0) {
+          doc.text(sep, x, baseline);
+          x += sepWidth;
+        }
+        doc.text(p.text, x, baseline);
+        linkOver(p.url, x, baseline, widths[i], size);
+        x += widths[i];
+      });
+      y += lineHeight;
     },
 
     rule() {
@@ -292,16 +463,16 @@ function createLayout(doc) {
   return ctx;
 }
 
-async function exportTextPdf(resume, filename) {
+async function exportTextPdf(resume, filename, PAGE) {
   const JsPDF = await loadJsPdf();
-  const doc = new JsPDF({ unit: "pt", format: "letter", compress: true });
+  const doc = new JsPDF({ unit: "pt", format: PAGE.format, compress: true });
   doc.setProperties({
-    title: `${resume.contact.name || "Resume"}`,
-    subject: resume.contact.title || "Resume",
-    creator: "Mock Interview App",
+    title: toPdfText(resume.contact.name || "Resume"),
+    subject: toPdfText(resume.contact.title || "Resume"),
+    creator: "Jobassist",
   });
 
-  const L = createLayout(doc);
+  const L = createLayout(doc, PAGE);
   const c = resume.contact;
 
   // --- header
@@ -310,18 +481,25 @@ async function exportTextPdf(resume, filename) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(21);
     doc.setTextColor(20);
-    doc.text(c.name, PAGE.width / 2, L.y + 18, { align: "center" });
+    doc.text(toPdfText(c.name), PAGE.width / 2, L.y + 18, { align: "center" });
     L.gap(26);
   }
   if (c.title) L.centered(c.title, { size: 11.5, color: 60 });
 
-  const contactBits = [c.email, c.phone, c.location].filter(Boolean);
+  const contactBits = [
+    { text: c.email, url: linkTarget(c.email) },
+    { text: c.phone },
+    { text: c.location },
+  ].filter((p) => p.text);
   if (contactBits.length) {
     L.gap(2);
-    L.centered(contactBits.join("  |  "));
+    L.centeredParts(contactBits);
   }
-  const links = c.links.map((l) => l.url || l.label).filter(Boolean);
-  if (links.length) L.centered(links.join("  |  "));
+  // Clickable in the PDF — a recruiter reading it on screen will click these.
+  const links = c.links
+    .map((l) => ({ text: l.url || l.label, url: linkTarget(l.url || l.label) }))
+    .filter((p) => p.text);
+  if (links.length) L.centeredParts(links);
 
   L.gap(6);
   L.rule();
@@ -360,11 +538,11 @@ async function exportTextPdf(resume, filename) {
   if (resume.skills.length) {
     L.heading("Skills");
     resume.skills.forEach((g) => {
-      const items = g.items.join(", ");
+      const items = toPdfText(g.items.join(", "));
       if (!items && !g.category) return;
       // Category in bold, items in normal weight, on the same wrapped block.
       const size = 10;
-      const label = g.category ? `${g.category}: ` : "";
+      const label = g.category ? `${toPdfText(g.category)}: ` : "";
       doc.setFont("helvetica", "bold");
       doc.setFontSize(size);
       const labelWidth = label ? doc.getTextWidth(label) : 0;
@@ -405,7 +583,7 @@ async function exportTextPdf(resume, filename) {
     L.heading("Projects");
     resume.projects.forEach((p, i) => {
       if (i > 0) L.gap(6);
-      L.row(p.name, p.link);
+      L.row(p.name, p.link, { rightUrl: linkTarget(p.link) });
       L.gap(2);
       p.bullets.forEach((b) => L.bullet(b));
     });
@@ -510,16 +688,28 @@ export function resumeToPlainText(resume) {
 /**
  * Download the resume in one of EXPORT_FORMATS.
  * @param {string} format one of the format ids
- * @param {{ resume: object, sheetEl: HTMLElement|null }} ctx
+ * @param {{ resume: object, sheetEl: HTMLElement|null, paper?: "letter" | "a4" }} ctx
+ * @returns {Promise<{ fallback?: string } | undefined>} `fallback` explains why
+ *   a different file than the one asked for was produced.
  */
-export async function exportResume(format, { resume, sheetEl }) {
+export async function exportResume(format, { resume, sheetEl, paper }) {
   const stem = resumeFileStem(resume);
+  const page = PAPER_SIZES[paper] || PAPER_SIZES[defaultPaper()];
 
   switch (format) {
-    case "pdf-print":
-      return exportTextPdf(resume, `${stem}.pdf`);
+    case "pdf-print": {
+      const bad = firstUnencodable(resume);
+      if (bad) {
+        await exportRasterPdf(sheetEl, `${stem}.pdf`, page);
+        return {
+          fallback: `Your resume contains characters the text PDF can't encode (such as “${bad}”), so you got the exact-preview PDF instead. It looks right, but its text can't be selected or read by applicant tracking systems. For online forms, paste the plain-text download.`,
+        };
+      }
+      await exportTextPdf(resume, `${stem}.pdf`, page);
+      return undefined;
+    }
     case "pdf":
-      return exportRasterPdf(sheetEl, `${stem}.pdf`);
+      return exportRasterPdf(sheetEl, `${stem}.pdf`, page);
     case "jpg":
       return exportImage(sheetEl, `${stem}.jpg`, "image/jpeg", 0.92);
     case "png":

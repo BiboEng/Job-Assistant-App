@@ -11,9 +11,14 @@ import Icon from "../components/Icon.jsx";
 import Toast from "../components/Toast.jsx";
 import SegmentedControl from "../components/SegmentedControl.jsx";
 import { chatResume } from "../api/resumeApi.js";
-import { emptyResume, isResumeEmpty } from "../utils/resumeModel.js";
-import { EXPORT_FORMATS, exportResume } from "../utils/resumeExport.js";
-import { nextId, RESUME_MAX_HISTORY_MESSAGES } from "../constants.js";
+import { coerceResume, emptyResume, isResumeEmpty } from "../utils/resumeModel.js";
+import {
+  EXPORT_FORMATS,
+  PAPER_SIZES,
+  defaultPaper,
+  exportResume,
+} from "../utils/resumeExport.js";
+import { nextId, RESUME_DRAFT_KEY, RESUME_MAX_HISTORY_MESSAGES } from "../constants.js";
 import styles from "./ResumeBuilderScreen.module.css";
 
 /**
@@ -37,6 +42,14 @@ import styles from "./ResumeBuilderScreen.module.css";
  * back too. The stack is capped — this is an undo affordance, not a document
  * history feature.
  *
+ * AUTOSAVE. The document and the chat are mirrored to sessionStorage
+ * (RESUME_DRAFT_KEY) on every change and read back on mount. Leaving the screen
+ * used to destroy the draft, and a confirm on in-app navigation couldn't catch
+ * the browser's Back button — a popstate never fires `beforeunload`. Now Back,
+ * in-app navigation and a reload all come back to the same draft. It lives
+ * until the tab closes (`beforeunload` still warns about that) or the user
+ * signs out (the leave guard warns about that). The undo stack isn't saved.
+ *
  * THE EDITING LOCK. While a turn is in flight, `busy` is true: every field in
  * the preview goes read-only, an overlay explains why, and Send becomes Stop.
  *
@@ -55,6 +68,18 @@ const SHEET_PADDING = 20; // must match .sheetScroll padding in the stylesheet
 const SCROLLBAR_RESERVE = 18; // width held back for the pane's vertical scrollbar
 const UNDO_LIMIT = 30;
 const TIP_KEY = "mockInterview:resumeTipSeen:v1";
+// Letter or A4 for the PDF downloads — a per-viewer preference.
+const PAPER_KEY = "mockInterview:resumePaper:v1";
+
+function loadPaper() {
+  try {
+    const v = localStorage.getItem(PAPER_KEY);
+    if (v && PAPER_SIZES[v]) return v;
+  } catch {
+    // storage blocked — fall back to the locale guess
+  }
+  return defaultPaper();
+}
 const STACK_QUERY = "(max-width: 900px)";
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
@@ -62,6 +87,30 @@ const FOCUSABLE =
 const GREETING =
   "Tell me about your most recent role, or paste in what you already have. " +
   "You can also edit the page on the right directly — I'll pick up your changes.";
+
+const MESSAGE_ROLES = new Set(["user", "assistant", "note"]);
+
+/** The tab's autosaved draft, or null. Never throws. */
+function loadDraft() {
+  try {
+    const raw = sessionStorage.getItem(RESUME_DRAFT_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const resume = coerceResume(parsed?.resume);
+    if (!resume) return null;
+    const messages = Array.isArray(parsed.messages)
+      ? parsed.messages
+          .filter((m) => m && MESSAGE_ROLES.has(m.role) && typeof m.text === "string")
+          .map((m) => ({ id: typeof m.id === "string" ? m.id : nextId(), role: m.role, text: m.text }))
+      : [];
+    return { resume, messages };
+  } catch {
+    return null;
+  }
+}
+
+function greeting() {
+  return { id: nextId(), role: "assistant", text: GREETING };
+}
 
 const PANE_TABS = [
   { value: "chat", label: "Chat" },
@@ -84,8 +133,11 @@ function useStackedLayout() {
 }
 
 export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
+  // Read once, on mount: the draft this tab was working on, if any.
+  const [draft] = useState(loadDraft);
+
   // --- the document (single source of truth) ---------------------------
-  const [resume, setResumeState] = useState(emptyResume);
+  const [resume, setResumeState] = useState(() => draft?.resume ?? emptyResume());
   const resumeRef = useRef(resume);
 
   // Undo stack: [{ resume, label }], newest last. Refs rather than state for the
@@ -130,9 +182,9 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
   }, []);
 
   // --- chat -------------------------------------------------------------
-  const [messages, setMessages] = useState(() => [
-    { id: nextId(), role: "assistant", text: GREETING },
-  ]);
+  const [messages, setMessages] = useState(() =>
+    draft?.messages?.length ? draft.messages : [greeting()]
+  );
   const messagesRef = useRef(messages);
   useEffect(() => {
     messagesRef.current = messages;
@@ -140,7 +192,13 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
 
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
-  const [error, setError] = useState("");
+  // A draft saved mid-turn (reload while the AI was writing) ends on the
+  // user's message with no reply; say so, and Retry re-sends it.
+  const [error, setError] = useState(() =>
+    draft?.messages?.[draft.messages.length - 1]?.role === "user"
+      ? "The reply to your last message didn't arrive. Try again."
+      : ""
+  );
 
   const runIdRef = useRef(0);
   const abortRef = useRef(null);
@@ -152,6 +210,19 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [downloading, setDownloading] = useState("");
   const [downloadError, setDownloadError] = useState("");
+  // Set when a download had to differ from what was asked for (the text PDF
+  // can't encode the resume's characters, so the exact-preview PDF was made).
+  const [downloadNote, setDownloadNote] = useState("");
+  const [paper, setPaper] = useState(loadPaper);
+
+  function choosePaper(id) {
+    setPaper(id);
+    try {
+      localStorage.setItem(PAPER_KEY, id);
+    } catch {
+      // not remembered — fine for this visit
+    }
+  }
   const [toast, setToast] = useState(null);
   const [tipDismissed, setTipDismissed] = useState(() => {
     try {
@@ -191,29 +262,38 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
     []
   );
 
-  /**
-   * Nothing here is persisted, by design — so leaving the screen destroys the
-   * resume. It used to do that silently: one click on the header nav and a
-   * document you had spent ten minutes on was gone, with no confirm and no way
-   * back. Two guards now cover it.
-   *
-   * `setLeaveGuard` catches in-app navigation (header nav, Back to home, sign
-   * out). `beforeunload` catches a reload, a closed tab, and the browser's own
-   * Back button, which declarative React Router can't intercept.
-   *
-   * Both are armed only when there is something to lose.
-   */
   const hasWork = !isResumeEmpty(resume);
 
+  // Autosave. An empty page with only the greeting leaves nothing behind, so a
+  // look-and-leave visit doesn't turn into a "draft".
+  useEffect(() => {
+    try {
+      const pristine =
+        !hasWork && messages.every((m) => m.role !== "user");
+      if (pristine) sessionStorage.removeItem(RESUME_DRAFT_KEY);
+      else sessionStorage.setItem(RESUME_DRAFT_KEY, JSON.stringify({ resume, messages }));
+    } catch {
+      // storage blocked or full — the draft just won't survive leaving
+    }
+  }, [resume, messages, hasWork]);
+
+  /**
+   * What autosave can't cover. Signing out clears the draft (it belongs to
+   * whoever is signed in), so that asks first; ordinary in-app navigation
+   * doesn't need to any more. Closing the tab drops sessionStorage, which
+   * `beforeunload` warns about — it also fires on a reload, which is harmless
+   * now that a reload restores the draft.
+   */
   useEffect(() => {
     if (!setLeaveGuard) return undefined;
     if (!hasWork) {
       setLeaveGuard(null);
       return () => setLeaveGuard(null);
     }
-    setLeaveGuard(() =>
+    setLeaveGuard((intent) =>
+      intent !== "sign-out" ||
       window.confirm(
-        "Leave the Resume Builder?\n\nThis resume isn't saved anywhere and will be lost. Download it first if you want to keep it."
+        "Sign out?\n\nYour resume draft is only kept in this tab, and signing out clears it. Download it first if you want to keep it."
       )
     );
     return () => setLeaveGuard(null);
@@ -228,6 +308,19 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [hasWork]);
+
+  /**
+   * A fresh page. The draft now outlives the visit, so there has to be a way
+   * to begin again; the document goes through `setResume`, so Undo brings it
+   * back. The chat restarts too.
+   */
+  const startOver = useCallback(() => {
+    if (busyRef.current) return;
+    setResume(emptyResume(), "starting over");
+    setMessages([greeting()]);
+    setError("");
+    setToast({ message: "Started a new resume. Undo brings the old one back.", tone: "success" });
+  }, [setResume]);
 
   // --- send / stop ------------------------------------------------------
 
@@ -370,7 +463,9 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
         return;
       }
       if (!menuRef.current?.contains(e.target)) return;
-      const items = Array.from(menuRef.current.querySelectorAll('[role="menuitem"]'));
+      const items = Array.from(
+        menuRef.current.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')
+      );
       const i = items.indexOf(document.activeElement);
       let next = null;
       if (e.key === "ArrowDown") next = (i + 1) % items.length;
@@ -392,11 +487,20 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
   async function handleDownload(format) {
     setMenuOpen(false);
     setDownloadError("");
+    setDownloadNote("");
     setDownloading(format);
     try {
-      await exportResume(format, { resume: resumeRef.current, sheetEl: sheetRef.current });
-      const label = EXPORT_FORMATS.find((f) => f.id === format)?.label || "File";
-      setToast({ message: `${label} downloaded`, tone: "success" });
+      const outcome = await exportResume(format, {
+        resume: resumeRef.current,
+        sheetEl: sheetRef.current,
+        paper,
+      });
+      if (outcome?.fallback) {
+        setDownloadNote(outcome.fallback);
+      } else {
+        const label = EXPORT_FORMATS.find((f) => f.id === format)?.label || "File";
+        setToast({ message: `${label} downloaded`, tone: "success" });
+      }
     } catch (err) {
       console.error("[resume] export failed:", err);
       setDownloadError(
@@ -469,6 +573,17 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
           <button
             type="button"
             className="btn-ghost btn-sm"
+            onClick={startOver}
+            disabled={busy || (empty && messages.every((m) => m.role !== "user"))}
+            title="Clear the page and the chat (Undo restores the page)"
+          >
+            <Icon name="refresh" />
+            Start over
+          </button>
+
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
             onClick={undo}
             disabled={!canUndo}
             title={undoLabel ? `Undo ${undoLabel}` : "Nothing to undo"}
@@ -494,6 +609,23 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
 
             {menuOpen && (
               <div className={styles.menu} ref={menuRef} role="menu">
+                <div className={styles.paperRow} role="group" aria-label="Paper size">
+                  <span className={styles.paperLabel} aria-hidden="true">
+                    Paper size
+                  </span>
+                  {Object.values(PAPER_SIZES).map((size) => (
+                    <button
+                      key={size.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={paper === size.id}
+                      className={styles.paperOption}
+                      onClick={() => choosePaper(size.id)}
+                    >
+                      {size.label}
+                    </button>
+                  ))}
+                </div>
                 {EXPORT_FORMATS.map((f) => (
                   <button
                     key={f.id}
@@ -525,6 +657,20 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
         <div className="error-banner" role="alert">
           <Icon name="alert" />
           <span>{downloadError}</span>
+        </div>
+      )}
+
+      {downloadNote && (
+        <div className="warn-banner" role="status">
+          <Icon name="alert" />
+          <span>{downloadNote}</span>
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => setDownloadNote("")}
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -628,8 +774,8 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
           <p className={styles.blurb}>
             <Icon name="sparkles" />
             <span>
-              The chat and your own edits write to the same document. Nothing is
-              saved — download before you leave.
+              The chat and your own edits write to the same document. It's kept
+              in this tab until you close it or sign out — download it to keep it.
             </span>
             <button
               type="button"

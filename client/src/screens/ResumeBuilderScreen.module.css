@@ -221,6 +221,40 @@
   color: var(--text-muted);
 }
 
+/* Paper size: a radio pair at the head of the menu, above a divider. */
+.paperRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3) var(--sp-2);
+  margin-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.paperLabel {
+  margin-right: auto;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.paperOption {
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.paperOption:hover,
+.paperOption:focus-visible {
+  color: var(--text);
+}
+.paperOption[aria-checked="true"] {
+  color: var(--text);
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
 /* --- the sheet + its lock overlay --------------------------------------- */
 
 .sheetScroll {

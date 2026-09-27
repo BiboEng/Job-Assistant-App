@@ -62,9 +62,13 @@ export async function searchJobs(req, res, next) {
     } catch (err) {
       console.error("[jobs] profile step failed:", err.message);
       const busy = err?.status === 429 || err?.status === 503;
+      // Busy / over-quota errors already carry a user-safe message (which one
+      // matters: "come back tomorrow" is not "wait a moment").
       const e = new Error(
         busy
-          ? "The AI service is busy right now. Wait a moment and try again."
+          ? err.expose && err.message
+            ? err.message
+            : "The AI service is busy right now. Wait a moment and try again."
           : "Couldn't analyze your resume right now. Please try again in a moment."
       );
       e.status = busy ? err.status : 502;

@@ -204,10 +204,24 @@ export const config = {
       : []),
   ],
 
-  // Optional bearer token. When set, every /api route except /api/health
-  // requires `Authorization: Bearer <API_TOKEN>`. Leave unset for local dev;
-  // set it for anything reachable off your machine.
+  // Optional shared token. When set, every /api route except /api/health
+  // requires it in the `X-Api-Token` header. It ships in the built client, so
+  // it only keeps casual traffic out — the per-user boundary is `supabase`
+  // below.
   apiToken: process.env.API_TOKEN || "",
+
+  // Verifying Supabase sign-ins. With SUPABASE_URL set (the same project URL
+  // the client uses — public, not a secret) every /api route except
+  // /api/health needs the caller's Supabase access token, and history is
+  // scoped to the VERIFIED user rather than to a header the client names.
+  // SUPABASE_JWT_SECRET is only for legacy projects still signing with HS256;
+  // current projects publish ES256 keys at <url>/auth/v1/.well-known/jwks.json.
+  // Unset both = legacy mode: the owner is taken from `X-Client-Id` on faith.
+  supabase: {
+    url: (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, ""),
+    jwtSecret: process.env.SUPABASE_JWT_SECRET || "",
+    audience: "authenticated",
+  },
 
   // Express `trust proxy` setting — governs what the rate limiter treats as the
   // client IP. Only loosen this to match a proxy you actually run.
@@ -238,6 +252,10 @@ export const config = {
     // rotating IPs can't run an unbounded OpenRouter bill; raise it for real
     // traffic or set 0 to disable.
     modelCallsPerDay: num(process.env.MODEL_CALLS_PER_DAY, 5_000),
+    // The same, per owner (signed-in user), so one account can't spend the
+    // whole global allowance. A Job Matches search is ~13 calls and an
+    // interview 3–8, so this is generous for real use. 0 = no per-user cap.
+    modelCallsPerUserPerDay: num(process.env.MODEL_CALLS_PER_USER_PER_DAY, 300),
     // Saved interviews kept per client id; oldest are dropped past this.
     maxInterviewsPerOwner: num(process.env.MAX_INTERVIEWS_PER_OWNER, 100),
   },
@@ -256,10 +274,11 @@ if (!config.openRouter.apiKey) {
   );
 }
 
-if (!config.apiToken) {
+if (!config.supabase.url && !config.supabase.jwtSecret) {
   console.warn(
-    "[config] API_TOKEN is not set — the API is open to anyone who can reach it. " +
-      "Set API_TOKEN for any non-local deployment."
+    "[config] SUPABASE_URL is not set — sign-ins are NOT verified, and history is " +
+      "scoped by the client-supplied X-Client-Id header. Set SUPABASE_URL for any " +
+      "non-local deployment."
   );
 }
 

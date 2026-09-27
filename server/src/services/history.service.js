@@ -105,6 +105,7 @@ export async function listInterviews(ownerId) {
       title: titleOf(it.jobDescription),
       snippet: snippetOf(it.jobDescription),
       overallScore: it.feedback?.overallScore ?? 0,
+      mode: it.mode ?? null,
       totalQuestions: it.totalQuestions ?? it.qaPairs?.length ?? 0,
       answeredCount: (it.qaPairs ?? []).filter((p) => p.answer && p.answer.trim())
         .length,
@@ -120,12 +121,21 @@ export async function getInterview(id, ownerId) {
   return record;
 }
 
-/** Append a completed interview and return the stored record. */
+/**
+ * Append a completed interview and return the stored record.
+ *
+ * `mode` ("type" | "speak") and `focus` are kept so a saved interview can say
+ * how it was taken, and each answer keeps its speak-mode `delivery` metrics
+ * (null in type mode). Those were validated and clamped by normalizeDelivery
+ * on the way in, so they're stored as-is.
+ */
 export async function saveInterview({
   jobDescription,
   qaPairs,
   feedback,
   totalQuestions,
+  mode = null,
+  focus = null,
   ownerId = null,
 }) {
   await ensureLoaded();
@@ -135,12 +145,15 @@ export async function saveInterview({
     ownerId,
     createdAt: Date.now(),
     jobDescription,
+    mode,
+    focus,
     totalQuestions: totalQuestions ?? (qaPairs ?? []).length,
     qaPairs: (qaPairs ?? []).map((p) => ({
       questionNumber: p.questionNumber,
       question: p.question,
       answer: p.answer || "",
       timeLimitSeconds: p.timeLimitSeconds ?? null,
+      delivery: p.delivery ?? null,
     })),
     feedback,
   };

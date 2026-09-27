@@ -1,8 +1,25 @@
 import { REQUEST_TIMEOUT_MS } from "../constants.js";
 import { getClientId } from "../identity.js";
+import { supabase } from "../auth/supabaseClient.js";
 
 const BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_TOKEN = import.meta.env.VITE_API_TOKEN || "";
+
+/**
+ * The signed-in user's Supabase access token, or null. The server verifies it
+ * and scopes history to the verified user (see "Security model" in CLAUDE.md).
+ * `getSession()` refreshes a token that is about to expire before handing it
+ * over, so a long-open tab doesn't start failing with 401s.
+ */
+async function accessToken() {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Thin fetch wrapper: JSON in/out, an abort-based timeout, and normalized errors
@@ -29,13 +46,17 @@ export async function request(path, options = {}) {
     else signal.addEventListener("abort", onCallerAbort, { once: true });
   }
 
+  const token = await accessToken();
+
   let res;
   try {
     res = await fetch(`${BASE}/api${path}`, {
       headers: {
         "Content-Type": "application/json",
+        // Only used by a server that can't verify sign-ins (no SUPABASE_URL).
         "X-Client-Id": getClientId(),
-        ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(API_TOKEN ? { "X-Api-Token": API_TOKEN } : {}),
         ...extraHeaders,
       },
       signal: controller.signal,

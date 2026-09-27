@@ -7,7 +7,7 @@ import { jobsRouter } from "./routes/jobs.routes.js";
 import { resumeRouter } from "./routes/resume.routes.js";
 import { progressRouter } from "./routes/progress.routes.js";
 import { rateLimit } from "./middleware/rateLimit.js";
-import { requireApiToken, attachClientId } from "./middleware/auth.js";
+import { requireApiToken, authenticate } from "./middleware/auth.js";
 import { ensureHistoryReady } from "./services/history.service.js";
 
 const app = express();
@@ -62,7 +62,7 @@ app.use(
   "/api/interview",
   rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max }),
   requireApiToken,
-  attachClientId,
+  authenticate,
   interviewRouter
 );
 
@@ -71,7 +71,7 @@ app.use(
   "/api/interviews",
   rateLimit({ windowMs: config.rateLimit.windowMs, max: 100 }),
   requireApiToken,
-  attachClientId,
+  authenticate,
   interviewsRouter
 );
 
@@ -85,7 +85,7 @@ app.use(
     max: config.jobMatch.rateLimitMax,
   }),
   requireApiToken,
-  attachClientId,
+  authenticate,
   jobsRouter
 );
 
@@ -98,7 +98,7 @@ app.use(
     max: config.resume.rateLimitMax,
   }),
   requireApiToken,
-  attachClientId,
+  authenticate,
   resumeRouter
 );
 
@@ -111,7 +111,7 @@ app.use(
     max: config.progress.rateLimitMax,
   }),
   requireApiToken,
-  attachClientId,
+  authenticate,
   progressRouter
 );
 
@@ -127,6 +127,12 @@ app.use((_req, res) => {
 app.use((err, _req, res, _next) => {
   const status = (err && Number(err.status)) || 500;
   if (status >= 500) console.error("[error]", err);
+
+  // A malformed JSON body is a 400 from body-parser whose message is the raw
+  // parser output — say it plainly instead of echoing that.
+  if (err?.type === "entity.parse.failed") {
+    return res.status(400).json({ error: "The request body is not valid JSON." });
+  }
 
   const message =
     err && typeof err.message === "string" ? err.message : "";

@@ -350,7 +350,7 @@ export default function ChatInput({
             provider (Google, in Chrome) to transcribe. Switch to typing to keep it
             local.
             {speakMode &&
-              " Your pace, pauses and eye contact are measured entirely in this browser — that part is never sent anywhere."}
+              " Your camera, and the audio used to measure pace, pauses and eye contact, stay in this browser — only the resulting numbers are sent with your answer."}
           </span>
           <button
             type="button"

@@ -17,7 +17,7 @@
         -120
       ],
       "webhookId": "b2000000-0000-4000-8000-0000000000aa",
-      "notes": "Where the stars in the email point. The PRODUCTION url of this node, minus the trailing /rate, is what goes in the other workflow's Config.webhookBase."
+      "notes": "Where the stars in the email point. It only SHOWS a confirm page — it writes nothing. Email security scanners (Outlook Safe Links, Mimecast, Proofpoint…) fetch every link in a message, so a GET that recorded the rating would let a scanner rate on the user's behalf. The write happens on POST /rate-submit, which a scanner doesn't send. The PRODUCTION url of this node, minus the trailing /rate, is what goes in the other workflow's Config.webhookBase."
     },
     {
       "parameters": {
@@ -89,7 +89,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Turn the RPC's (ok, message) into the page the person actually sees.\n// The comment box is only offered on a successful star click — there is no\n// point showing it to someone whose link has expired.\nconst req = $('Read request').first().json;\nconst raw = $input.first().json;\n\n// PostgREST returns a one-row table as an array; be tolerant of either shape.\nconst row = Array.isArray(raw) ? raw[0] : Array.isArray(raw?.data) ? raw.data[0] : raw;\nconst ok = row?.ok === true;\nconst message = row?.message || (ok ? 'Thanks — your rating has been saved.' : 'Something went wrong saving that.');\n\nconst esc = (s) =>\n  String(s).replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n\nconst commentForm =\n  ok && !req.isComment\n    ? `<form method=\"post\" action=\"./rate-comment\" style=\"margin-top:24px;text-align:left;\">\n         <input type=\"hidden\" name=\"token\" value=\"${esc(req.token)}\" />\n         <label for=\"c\" style=\"display:block;font-size:14px;margin-bottom:8px;color:#4b5563;\">Anything you'd like to add? (optional)</label>\n         <textarea id=\"c\" name=\"comment\" rows=\"4\" maxlength=\"1000\" style=\"width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d7dae0;border-radius:8px;font:inherit;font-size:14px;\"></textarea>\n         <button type=\"submit\" style=\"margin-top:12px;padding:10px 18px;border:0;border-radius:8px;background:#3b5bdb;color:#fff;font-size:14px;font-weight:600;cursor:pointer;\">Send</button>\n       </form>`\n    : '';\n\nconst heading = ok ? 'Thank you' : 'That link did not work';\nconst stars = ok && req.rating ? `<p style=\"margin:0 0 4px;font-size:32px;letter-spacing:2px;\">${'\\u2605'.repeat(req.rating)}<span style=\"color:#d7dae0;\">${'\\u2605'.repeat(5 - req.rating)}</span></p>` : '';\n\nconst html = `<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\" /><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /><title>${esc(heading)}</title></head>\n<body style=\"margin:0;padding:32px 16px;background:#f4f6f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23;\">\n  <div style=\"max-width:480px;margin:0 auto;background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:32px;text-align:center;\">\n    ${stars}\n    <h1 style=\"margin:0 0 8px;font-size:22px;\">${esc(heading)}</h1>\n    <p style=\"margin:0;font-size:15px;line-height:1.5;color:#4b5563;\">${esc(message)}</p>\n    ${commentForm}\n  </div>\n</body></html>`;\n\nreturn [{ json: { html, statusCode: ok ? 200 : 400 } }];"
+        "jsCode": "// Turn the RPC's (ok, message) into the page the person actually sees.\n// The comment box is only offered on a successful star click — there is no\n// point showing it to someone whose link has expired.\nconst req = $('Read request').first().json;\nconst raw = $input.first().json;\n\n// PostgREST returns a one-row table as an array; be tolerant of either shape.\nconst row = Array.isArray(raw) ? raw[0] : Array.isArray(raw?.data) ? raw.data[0] : raw;\nconst ok = row?.ok === true;\nconst message = row?.message || (ok ? 'Thanks — your rating has been saved.' : 'Something went wrong saving that.');\n\nconst esc = (s) =>\n  String(s).replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n\nconst commentForm =\n  ok && !req.isComment && !req.comment\n    ? `<form method=\"post\" action=\"./rate-comment\" style=\"margin-top:24px;text-align:left;\">\n         <input type=\"hidden\" name=\"token\" value=\"${esc(req.token)}\" />\n         <label for=\"c\" style=\"display:block;font-size:14px;margin-bottom:8px;color:#4b5563;\">Anything you'd like to add? (optional)</label>\n         <textarea id=\"c\" name=\"comment\" rows=\"4\" maxlength=\"1000\" style=\"width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d7dae0;border-radius:8px;font:inherit;font-size:14px;\"></textarea>\n         <button type=\"submit\" style=\"margin-top:12px;padding:10px 18px;border:0;border-radius:8px;background:#3b5bdb;color:#fff;font-size:14px;font-weight:600;cursor:pointer;\">Send</button>\n       </form>`\n    : '';\n\nconst heading = ok ? 'Thank you' : 'That link did not work';\nconst stars = ok && req.rating ? `<p style=\"margin:0 0 4px;font-size:32px;letter-spacing:2px;\">${'\\u2605'.repeat(req.rating)}<span style=\"color:#d7dae0;\">${'\\u2605'.repeat(5 - req.rating)}</span></p>` : '';\n\nconst html = `<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\" /><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /><title>${esc(heading)}</title></head>\n<body style=\"margin:0;padding:32px 16px;background:#f4f6f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23;\">\n  <div style=\"max-width:480px;margin:0 auto;background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:32px;text-align:center;\">\n    ${stars}\n    <h1 style=\"margin:0 0 8px;font-size:22px;\">${esc(heading)}</h1>\n    <p style=\"margin:0;font-size:15px;line-height:1.5;color:#4b5563;\">${esc(message)}</p>\n    ${commentForm}\n  </div>\n</body></html>`;\n\nreturn [{ json: { html, statusCode: ok ? 200 : 400 } }];"
       },
       "id": "b2000000-0000-4000-8000-000000000005",
       "name": "Build page",
@@ -124,6 +124,38 @@
         520,
         0
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The page a star link opens. Deliberately writes NOTHING: link scanners\n// fetch every URL in an email, and a GET that recorded a rating would let one\n// \"click\" a star for the user. The person confirms with a real button, which\n// POSTs to /rate-submit — the only path that writes. The token is checked\n// there (and in SQL), not here, so this page can't be used to probe tokens.\nconst q = $input.first().json.query || {};\nconst token = String(q.token ?? '').trim();\nconst picked = Number.parseInt(q.rating, 10);\nconst rating = picked >= 1 && picked <= 5 ? picked : 5;\n\nconst esc = (s) =>\n  String(s).replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n\nconst starInputs = [1, 2, 3, 4, 5]\n  .map(\n    (n) => `<label style=\"cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:4px;\">\n      <input type=\"radio\" name=\"rating\" value=\"${n}\" ${n === rating ? 'checked' : ''} style=\"accent-color:#3b5bdb;\" />\n      <span style=\"font-size:22px;color:#f5a524;\" aria-label=\"${n} star${n === 1 ? '' : 's'}\">${'★'.repeat(n)}</span>\n    </label>`\n  )\n  .join('');\n\nconst body = token\n  ? `<h1 style=\"margin:0 0 8px;font-size:22px;\">Rate Jobassist</h1>\n    <p style=\"margin:0 0 20px;font-size:15px;line-height:1.5;color:#4b5563;\">Check your rating, add a note if you like, and press Submit.</p>\n    <form method=\"post\" action=\"./rate-submit\" style=\"text-align:left;\">\n      <input type=\"hidden\" name=\"token\" value=\"${esc(token)}\" />\n      <fieldset style=\"border:0;margin:0 0 20px;padding:0;display:flex;justify-content:space-between;gap:4px;flex-wrap:wrap;\">\n        <legend style=\"font-size:14px;margin-bottom:8px;color:#4b5563;\">Your rating</legend>\n        ${starInputs}\n      </fieldset>\n      <label for=\"c\" style=\"display:block;font-size:14px;margin-bottom:8px;color:#4b5563;\">Anything you'd like to add? (optional)</label>\n      <textarea id=\"c\" name=\"comment\" rows=\"4\" maxlength=\"1000\" style=\"width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d7dae0;border-radius:8px;font:inherit;font-size:14px;\"></textarea>\n      <button type=\"submit\" style=\"margin-top:12px;padding:10px 18px;border:0;border-radius:8px;background:#3b5bdb;color:#fff;font-size:14px;font-weight:600;cursor:pointer;\">Submit rating</button>\n    </form>`\n  : `<h1 style=\"margin:0 0 8px;font-size:22px;\">That link did not work</h1>\n    <p style=\"margin:0;font-size:15px;line-height:1.5;color:#4b5563;\">This rating link is incomplete. Try the link in the email again.</p>`;\n\nconst html = `<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\" /><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /><meta name=\"robots\" content=\"noindex\" /><title>Rate Jobassist</title></head>\n<body style=\"margin:0;padding:32px 16px;background:#f4f6f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23;\">\n  <div style=\"max-width:480px;margin:0 auto;background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:32px;text-align:center;\">\n    ${body}\n  </div>\n</body></html>`;\n\nreturn [{ json: { html, statusCode: token ? 200 : 400 } }];"
+      },
+      "id": "b2000000-0000-4000-8000-000000000007",
+      "name": "Confirm page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        -300
+      ],
+      "notes": "Shows the chosen rating with a Submit button. No database call."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rate-submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000008",
+      "name": "POST /rate-submit",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        10
+      ],
+      "webhookId": "b2000000-0000-4000-8000-0000000000cc",
+      "notes": "Where the confirm page's Submit button posts (token, rating, optional comment). The only route that records a rating."
     }
   ],
   "connections": {
@@ -131,7 +163,7 @@
       "main": [
         [
           {
-            "node": "Read request",
+            "node": "Confirm page",
             "type": "main",
             "index": 0
           }
@@ -176,6 +208,28 @@
         [
           {
             "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm page": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /rate-submit": {
+      "main": [
+        [
+          {
+            "node": "Read request",
             "type": "main",
             "index": 0
           }

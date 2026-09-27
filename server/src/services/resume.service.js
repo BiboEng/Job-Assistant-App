@@ -284,6 +284,38 @@ export function interpretModelTurn(raw) {
 }
 
 /**
+ * Lays the model's document over the current one, section by section.
+ *
+ * The prompt asks for the ENTIRE document, but smaller models routinely send
+ * back only the part they changed (`{ "experience": [...] }`). Normalising that
+ * on its own would blank every section it left out — contact, summary, skills —
+ * so a section the model omitted keeps the current value. A section it did
+ * send replaces the current one outright, including as `[]` or `""`, which is
+ * how a deliberate removal still works. Contact is merged field by field for
+ * the same reason.
+ *
+ * @param {object} current a normalized resume (what the client sent)
+ * @param {object} doc the model's resume object, possibly partial
+ * @returns {object} a normalized, complete resume
+ */
+export function mergeModelResume(current, doc) {
+  const base = normalizeResume(current);
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return base;
+
+  const merged = { ...base };
+  for (const key of SECTION_KEYS) {
+    if (!(key in doc)) continue;
+    if (key === "contact") {
+      const c = doc.contact && typeof doc.contact === "object" ? doc.contact : {};
+      merged.contact = { ...base.contact, ...c };
+    } else {
+      merged[key] = doc[key];
+    }
+  }
+  return normalizeResume(merged);
+}
+
+/**
  * Validates the chat history posted by the client. Returns `{ messages }` on
  * success or `{ error }` with a user-safe message.
  *

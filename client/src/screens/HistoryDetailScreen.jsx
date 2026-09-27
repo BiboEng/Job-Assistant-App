@@ -2,7 +2,23 @@ import { useEffect, useState } from "react";
 import FeedbackReport from "../components/FeedbackReport.jsx";
 import Icon from "../components/Icon.jsx";
 import { getInterview } from "../api/historyApi.js";
+import { INTERVIEW_FOCUSES } from "../constants.js";
 import styles from "./HistoryDetailScreen.module.css";
+
+/**
+ * "3 questions · Technical · spoken" — the same facts the results screen
+ * shows. Interviews saved before mode and focus were stored have neither, so
+ * those parts are simply left out.
+ */
+function describe(record) {
+  const n = record.totalQuestions || record.qaPairs?.length || 0;
+  const focus = INTERVIEW_FOCUSES.find((f) => f.value === record.focus)?.short;
+  const mode =
+    record.mode === "speak" ? "spoken" : record.mode === "type" ? "typed" : null;
+  return [n ? `${n} question${n === 1 ? "" : "s"}` : null, focus, mode]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 function formatDateTime(ts) {
   return new Date(ts).toLocaleString(undefined, {
@@ -37,7 +53,9 @@ export default function HistoryDetailScreen({ interviewId, onBack, backLabel = "
       <header className="page-head">
         <div>
           <h1>Interview review</h1>
-          <p className="page-sub">A saved interview, with the feedback it earned.</p>
+          <p className="page-sub">
+            {(record && describe(record)) || "A saved interview, with the feedback it earned."}
+          </p>
         </div>
         <div className={`${styles.headActions} no-print`}>
           <button type="button" className="btn-ghost" onClick={onBack}>

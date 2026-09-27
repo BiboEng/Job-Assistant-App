@@ -69,6 +69,8 @@ export async function createInterview(req, res, next) {
       jobDescription: session.jobDescription,
       qaPairs: session.qaPairs,
       totalQuestions: session.totalQuestions,
+      mode: session.mode,
+      focus: session.focus,
       feedback: session.feedback,
     });
     session.savedInterviewId = record.id;

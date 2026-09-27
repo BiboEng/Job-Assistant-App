@@ -10,6 +10,7 @@ import {
   endProcessing,
   recordQuestion,
   recordAnswer,
+  rollbackAnswer,
   markCompleted,
   saveFeedback,
   publicSession,
@@ -87,21 +88,85 @@ export async function startInterview(req, res, next) {
 }
 
 /**
+ * What the client gets back after the interview has moved on to question
+ * `session.askedCount` — the normal response, and also the replay response.
+ */
+function progressResponse(session) {
+  if (session.status === "completed") {
+    return {
+      question: null,
+      questionNumber: session.askedCount,
+      totalQuestions: session.totalQuestions,
+      done: true,
+    };
+  }
+  const current = session.qaPairs[session.qaPairs.length - 1];
+  return {
+    question: current.question,
+    questionNumber: session.askedCount,
+    totalQuestions: session.totalQuestions,
+    timeLimitSeconds: current.timeLimitSeconds,
+    done: false,
+  };
+}
+
+/**
+ * Was this answer already taken? A client that gave up waiting (its own
+ * timeout, a dropped connection) re-sends the same answer, but the server may
+ * well have finished the first time. `questionNumber` says which question the
+ * client is answering, so a re-send is recognised and answered with where the
+ * interview is now, instead of being recorded against the NEXT question.
+ */
+function isReplay(session, questionNumber) {
+  if (questionNumber === session.askedCount - 1 && session.status !== "completed") {
+    return true;
+  }
+  const last = session.qaPairs[session.qaPairs.length - 1];
+  return (
+    questionNumber === session.askedCount &&
+    session.status === "completed" &&
+    session.askedCount >= session.totalQuestions &&
+    last?.answer != null
+  );
+}
+
+/**
  * POST /api/interview/:sessionId/answer
- * body: { answer, timedOut?, delivery? }
+ * body: { answer, questionNumber?, timedOut?, delivery? }
+ *
+ * `questionNumber` is optional for older clients; when present it makes a
+ * re-sent answer idempotent (see isReplay).
  */
 export async function submitAnswer(req, res, next) {
-  let session;
   try {
-    session = getSession(req.params.sessionId);
+    const session = getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ error: "Session not found or expired." });
     assertOwner(session, req);
+
+    const { answer, questionNumber, timedOut, delivery } = req.body ?? {};
+    const qn = questionNumber == null ? null : Number(questionNumber);
+    if (qn != null && (!Number.isInteger(qn) || qn < 1)) {
+      return res.status(400).json({ error: "questionNumber must be a positive integer." });
+    }
+
+    if (qn != null && isReplay(session, qn)) {
+      if (session.processing) {
+        return res
+          .status(409)
+          .json({ error: "Still processing your previous answer. Please wait." });
+      }
+      return res.status(200).json(progressResponse(session));
+    }
 
     if (session.status === "completed") {
       return res.status(409).json({ error: "This interview has already ended." });
     }
+    if (qn != null && qn !== session.askedCount) {
+      return res.status(409).json({
+        error: "This answer is out of step with the interview. Refresh the page to continue.",
+      });
+    }
 
-    const { answer, timedOut, delivery } = req.body ?? {};
     if (typeof answer !== "string") {
       return res.status(400).json({ error: "answer is required." });
     }
@@ -122,36 +187,32 @@ export async function submitAnswer(req, res, next) {
         .json({ error: "Still processing your previous answer. Please wait." });
     }
 
+    // Only the path that took the lock releases it — see the finally below.
     try {
       recordAnswer(session, answer.trim(), normalizeDelivery(delivery, session));
 
       // Was that the final answer?
       if (session.askedCount >= session.totalQuestions) {
         markCompleted(session);
-        return res.status(200).json({
-          question: null,
-          questionNumber: session.askedCount,
-          totalQuestions: session.totalQuestions,
-          done: true,
-        });
+        return res.status(200).json(progressResponse(session));
       }
 
-      const question = await chatCompletion(session.messages);
-      const timeLimitSeconds = estimateAnswerSeconds(question);
-      recordQuestion(session, question, timeLimitSeconds);
+      let question;
+      try {
+        question = await chatCompletion(session.messages);
+      } catch (err) {
+        // Put the session back exactly as it was, so the client's retry is a
+        // clean first attempt rather than a duplicate user turn.
+        rollbackAnswer(session);
+        throw err;
+      }
+      recordQuestion(session, question, estimateAnswerSeconds(question));
 
-      return res.status(200).json({
-        question,
-        questionNumber: session.askedCount,
-        totalQuestions: session.totalQuestions,
-        timeLimitSeconds,
-        done: false,
-      });
+      return res.status(200).json(progressResponse(session));
     } finally {
       endProcessing(session);
     }
   } catch (err) {
-    if (session) endProcessing(session);
     next(err);
   }
 }
@@ -220,7 +281,6 @@ export async function generateFeedback(req, res, next) {
       endProcessing(session);
     }
   } catch (err) {
-    if (session) endProcessing(session);
     next(err);
   }
 }

@@ -17,6 +17,9 @@ const countBy = (messages, role) => messages.filter((m) => m.role === role).leng
 // Fallback for sessions restored from before time limits existed.
 const DEFAULT_LIMIT_SECONDS = 180;
 
+// Wait before the single automatic retry of a failed timed-out submit.
+const AUTO_RETRY_DELAY_MS = 4000;
+
 export default function ChatScreen({ session, messages, setMessages, onFinished, onRestart }) {
   const total = session.totalQuestions;
 
@@ -39,13 +42,26 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
   const feedbackStartedRef = useRef(false); // blocks duplicate /feedback calls
   const draftRef = useRef(draft);
   const autoSentForRef = useRef(null); // message id we already auto-submitted
+  // A timed-out auto-submit that fails gets ONE delayed retry, and only for a
+  // failure that might clear up on its own. It used to retry instantly and
+  // forever: the deadline was already past, so every failure re-armed the
+  // countdown at 0 and fired again, hammering the API for as long as the error
+  // lasted (and an expired session never stops erroring).
+  const autoRetryRef = useRef({ id: null, used: false, timer: null });
+  const [autoRetryNonce, setAutoRetryNonce] = useState(0);
+  useEffect(() => () => clearTimeout(autoRetryRef.current.timer), []);
 
   // Speak mode: camera + mic, and the browser-side delivery measurement that
   // rides along with each answer. Inert in type mode — no permission is
   // requested and no hardware is touched.
   const speakMode = session.mode === "speak";
   const capture = useDeliveryCapture();
-  const { request: requestMedia, release: releaseMedia, collect } = capture;
+  const {
+    request: requestMedia,
+    release: releaseMedia,
+    collect,
+    resetMeasurement,
+  } = capture;
 
   useEffect(() => {
     if (!speakMode) {
@@ -163,7 +179,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
       handleSend(draftRef.current, { timedOut: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondsLeft, awaitingAnswer, lastMsgId]);
+  }, [secondsLeft, awaitingAnswer, lastMsgId, autoRetryNonce]);
 
   async function handleSend(answer, { timedOut = false, skipped = false } = {}) {
     if (busy || scoring || interviewDone) return;
@@ -188,17 +204,25 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
     setBusy(true);
     setError("");
 
-    // Closes out measurement for this answer and resets for the next question.
-    // Always called in speak mode — including on a skip or a timeout, where
-    // whatever was said before giving up is still the delivery for that
-    // question. Returns null when nothing measurable happened.
+    // Closes out measurement for this answer. Always called in speak mode —
+    // including on a skip or a timeout, where whatever was said before giving
+    // up is still the delivery for that question. Returns null when nothing
+    // measurable happened. Not reset until the server accepts the answer, so a
+    // retry after a failure sends the same numbers rather than none.
     const delivery = capturing ? collect(text) : null;
+
+    // Which question this answers — lets the server spot a re-send of an
+    // answer it already took.
+    const questionNumber = countBy(messages, "interviewer");
+    const questionMsgId = lastMsgId;
 
     try {
       const data = await submitAnswer(session.sessionId, text, {
+        questionNumber,
         timedOut: timedOut || skipped,
         delivery,
       });
+      if (capturing) resetMeasurement();
 
       if (data.done) {
         setInterviewDone(true);
@@ -223,12 +247,31 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
       }
     } catch (err) {
       setError(err.message);
-      // roll back exactly the optimistic message we added; restore the draft on
-      // a manual send so the answer isn't lost (a timed-out send had nothing
-      // worth keeping).
+      // Roll back exactly the optimistic message we added, and put the answer
+      // back in the composer so it isn't lost — Send and Skip still work.
       setMessages((m) => m.filter((msg) => msg.id !== optimisticId));
-      if (!timedOut) setDraft(answer);
-      else autoSentForRef.current = null; // let the restarted timer retry
+      setDraft(answer || "");
+
+      // The clock ran out and the automatic submit failed. Retry by itself
+      // once, a few seconds later, and only if the failure could be transient
+      // (no response, rate limited, server trouble). A lost session or an
+      // ended interview won't fix itself, and a second failure is the
+      // candidate's call. `autoSentForRef` keeps its value otherwise, which is
+      // what stops the countdown effect firing again.
+      const transient = err.status == null || err.status === 429 || err.status >= 500;
+      const retry = autoRetryRef.current;
+      if (retry.id !== questionMsgId) {
+        retry.id = questionMsgId;
+        retry.used = false;
+      }
+      if (timedOut && transient && !retry.used) {
+        retry.used = true;
+        clearTimeout(retry.timer);
+        retry.timer = setTimeout(() => {
+          autoSentForRef.current = null;
+          setAutoRetryNonce((n) => n + 1);
+        }, AUTO_RETRY_DELAY_MS);
+      }
     } finally {
       setBusy(false);
     }

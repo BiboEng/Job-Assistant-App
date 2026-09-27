@@ -167,6 +167,22 @@ export function recordAnswer(session, answerText, delivery = null) {
   session.updatedAt = Date.now();
 }
 
+/**
+ * Undo the most recent `recordAnswer`. The answer is recorded before the model
+ * is asked for the next question, so when that call fails the session must go
+ * back to exactly where it was — otherwise the client's retry records the same
+ * answer a second time and the interviewer sees two consecutive user turns.
+ */
+export function rollbackAnswer(session) {
+  const last = session.messages[session.messages.length - 1];
+  if (last?.role === "user") session.messages.pop();
+  const current = session.qaPairs[session.qaPairs.length - 1];
+  if (current) {
+    current.answer = null;
+    current.delivery = null;
+  }
+}
+
 export function markCompleted(session) {
   session.status = "completed";
   session.updatedAt = Date.now();

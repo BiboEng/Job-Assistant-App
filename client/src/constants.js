@@ -148,6 +148,12 @@ export const RESUME_LIMITS = {
 // Where the in-progress interview is cached so a refresh doesn't lose it.
 export const STORAGE_KEY = "mockInterview:v1";
 
+// The Resume Builder's autosaved draft (document + chat). sessionStorage, so
+// it survives Back, in-app navigation and a reload but not closing the tab —
+// it's a resume, so it shouldn't sit on a shared machine indefinitely. Cleared
+// on sign-out.
+export const RESUME_DRAFT_KEY = "mockInterview:resumeDraft:v1";
+
 // Seed from a random offset so ids minted after a reload can't collide with
 // ids restored from sessionStorage in the same millisecond.
 let counter = Math.floor(Math.random() * 1e6);

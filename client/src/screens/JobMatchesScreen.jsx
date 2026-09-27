@@ -162,11 +162,18 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
     initialResult.current = cachedResult ?? loadCachedResult() ?? false;
   }
   const restored = initialResult.current || null;
+  // Left mid-scoring last time (see the unmount effect below): pick up where
+  // it stopped instead of throwing the search away.
+  const resumeScoring = useRef(Boolean(restored?.interrupted));
 
   // idle | searching | scoring | done | error
   const [status, setStatus] = useState(restored ? "done" : "idle");
   const [error, setError] = useState("");
-  const [result, setResult] = useState(restored);
+  const [result, setResult] = useState(() => {
+    if (!restored) return null;
+    const { interrupted: _interrupted, ...rest } = restored;
+    return rest;
+  });
   const [scoreProgress, setScoreProgress] = useState({ done: 0, total: 0, inFlight: 0 });
   const [sortKey, setSortKey] = useState("match");
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -179,7 +186,31 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
   // still resolving after unmount) can detect it's been superseded and bail.
   const runIdRef = useRef(0);
 
-  useEffect(() => () => { runIdRef.current += 1; }, []);
+  // Latest values for the unmount cleanup, which can't read state.
+  const statusRef = useRef(status);
+  const resultRef = useRef(result);
+  const onResultRef = useRef(onResult);
+  statusRef.current = status;
+  resultRef.current = result;
+  onResultRef.current = onResult;
+
+  /**
+   * Leaving mid-scoring used to lose the whole search: results were cached only
+   * once scoring finished, and unmounting stops the loop before it gets there.
+   * Now the partial result is cached as it arrives (effect below), and marked
+   * `interrupted` on the way out so the next visit carries on scoring.
+   */
+  useEffect(
+    () => () => {
+      runIdRef.current += 1;
+      if (statusRef.current === "scoring" && resultRef.current) {
+        const partial = { ...resultRef.current, interrupted: true };
+        onResultRef.current?.(partial);
+        persistResult(partial);
+      }
+    },
+    []
+  );
 
   const resumeLen = resumeText.trim().length;
   const resumeReady = resumeLen >= MIN_RESUME_LENGTH && resumeLen <= MAX_RESUME_LENGTH;
@@ -371,15 +402,28 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
     await scoreAll(result.jobs, resumeText.trim(), runId);
   }
 
-  // Cache the finished result — up to the workspace (survives navigation) and
-  // into sessionStorage (survives a reload).
+  // Cache the result as it fills in, not just once it's finished — up to the
+  // workspace (survives navigation) and into sessionStorage (survives a
+  // reload). Every scored batch is model calls already paid for.
   useEffect(() => {
-    if (status === "done" && result) {
+    if (result && (status === "scoring" || status === "done")) {
       onResult?.(result);
       persistResult(result);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, [status, result]);
+
+  // Carry on an interrupted run. Deferred a tick so StrictMode's mount →
+  // unmount → mount in development starts one scoring loop, not two.
+  useEffect(() => {
+    if (!resumeScoring.current || !result || !resumeReady) return undefined;
+    const t = setTimeout(() => {
+      resumeScoring.current = false;
+      scoreRemaining();
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const jobs = result?.jobs ?? [];
   const unscoredCount = jobs.filter((j) => !Number.isFinite(j.matchScore)).length;
@@ -465,7 +509,8 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
       ) : (
       <div className={styles.card}>
         <p className={styles.sub}>
-          Your resume becomes the search. It is never shown on screen or saved.
+          Your resume becomes the search: it's sent to the AI to match roles,
+          never shown on screen, and remembered in this browser for 7 days.
         </p>
 
         {parseError && (
@@ -752,8 +797,8 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
                 <div className="warn-banner" role="status">
                   <Icon name="alert" />
                   <span>
-                    {unscoredCount} role{unscoredCount === 1 ? " couldn't" : "s couldn't"} be
-                    scored (the AI service was rate limited).
+                    {unscoredCount} role{unscoredCount === 1 ? " hasn't" : "s haven't"} been
+                    scored yet.
                   </span>
                   <button type="button" className="link-btn" onClick={scoreRemaining}>
                     Score remaining

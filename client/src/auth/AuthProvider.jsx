@@ -1,7 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase, authConfigured, fetchEnabledProviders } from "./supabaseClient.js";
 import { setUserScope, resetBrowserId } from "../identity.js";
-import { STORAGE_KEY, JOBS_STORAGE_KEY, JOBS_RESULT_KEY } from "../constants.js";
+import {
+  STORAGE_KEY,
+  JOBS_STORAGE_KEY,
+  JOBS_RESULT_KEY,
+  RESUME_DRAFT_KEY,
+} from "../constants.js";
 
 /**
  * Supabase auth state for the whole tree.
@@ -17,12 +22,14 @@ import { STORAGE_KEY, JOBS_STORAGE_KEY, JOBS_RESULT_KEY } from "../constants.js"
 const AuthContext = createContext(null);
 
 // Per-browser data that belongs to whoever was using the app, not to the
-// browser: the in-progress interview mirror and the Job Matches resume cache.
-// Cleared on sign-out so the next person to sign in here doesn't inherit them.
+// browser: the in-progress interview mirror, the Job Matches resume cache and
+// results, and the Resume Builder draft. Cleared on sign-out so the next
+// person to sign in here doesn't inherit them.
 function clearUserScopedStorage() {
   try {
     sessionStorage.removeItem(STORAGE_KEY);
     sessionStorage.removeItem(JOBS_RESULT_KEY);
+    sessionStorage.removeItem(RESUME_DRAFT_KEY);
   } catch {
     // storage unavailable
   }

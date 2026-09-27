@@ -16,6 +16,10 @@ export function startInterview(jobDescription, options = {}) {
 
 /**
  * @param {object} [opts]
+ * @param {number} [opts.questionNumber]  which question this answers. Lets the
+ *   server recognise a re-sent answer it already took (the first attempt timed
+ *   out on our side but succeeded on its) instead of filing it under the next
+ *   question.
  * @param {boolean} [opts.timedOut]
  * @param {object|null} [opts.delivery]  speak mode only: the five numbers
  *   measured in the browser while this answer was spoken (pace, pause count and
@@ -23,11 +27,16 @@ export function startInterview(jobDescription, options = {}) {
  *   and whenever nothing could be measured — never any audio or video, which is
  *   never captured in the first place.
  */
-export function submitAnswer(sessionId, answer, { timedOut = false, delivery } = {}) {
+export function submitAnswer(
+  sessionId,
+  answer,
+  { questionNumber, timedOut = false, delivery } = {}
+) {
   return request(`/interview/${encodeURIComponent(sessionId)}/answer`, {
     method: "POST",
     body: JSON.stringify({
       answer,
+      ...(questionNumber ? { questionNumber } : {}),
       timedOut,
       ...(delivery ? { delivery } : {}),
     }),

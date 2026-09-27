@@ -76,7 +76,8 @@ mock-interview/
 │       ├── controllers/             request validation + orchestration
 │       ├── services/
 │       │   ├── openrouter.service.js  the ONLY module that talks to OpenRouter
-│       │   ├── modelBudget.js         4 model-call pools (interview/jobs/resume/progress) + daily cap
+│       │   ├── modelBudget.js         4 model-call pools (interview/jobs/resume/progress) + daily caps (global, per user)
+│       │   ├── supabaseAuth.js        verifies Supabase access tokens (JWKS / HS256), owner id from `sub`
 │       │   ├── session.service.js     in-memory live sessions (Map), 1h TTL
 │       │   ├── history.service.js     flat-file completed-interview store
 │       │   ├── jobs.service.js        Adzuna fetcher + normalizer
@@ -84,7 +85,7 @@ mock-interview/
 │       │   ├── roleLabel.js           pure: role title → grouping key, first-line fallback, groupByRole
 │       │   └── progress.service.js    role labelling (model, stored per interview) + recurring themes
 │       ├── middleware/
-│       │   ├── auth.js              requireApiToken + attachClientId + assertOwner
+│       │   ├── auth.js              requireApiToken + authenticate (verified sign-in) + assertOwner
 │       │   └── rateLimit.js         in-memory per-key sliding window
 │       ├── controllers/            interview, interviews, jobs, resume, progress
 │       └── prompts/index.js         interviewer + evaluator + job-match + resume + progress prompts
@@ -156,7 +157,10 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
 - Server env: copy `server/.env.example` → `server/.env`, add `OPENROUTER_API_KEY`.
   For Job Matches also add `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` (free keys from
   https://developer.adzuna.com) — Adzuna is the sole Job Matches data source, so
-  without them the feature returns a warning and no jobs.
+  without them the feature returns a warning and no jobs. Also set
+  **`SUPABASE_URL`** (the same public URL as the client) so the server verifies
+  sign-ins — without it history is scoped by a client-supplied header. See
+  "Security model".
 - Client env (`client/.env`, see `client/.env.example`): **`SUPABASE_URL` and
   `SUPABASE_ANON_KEY` are required** to sign in — without them the public pages
   still render but every app route redirects to `/sign-in`, which shows a
@@ -404,20 +408,19 @@ visitor arrived on `?mode=sign-up` / `?mode=forgot`, or switches mode.
   then `signOut()` (scope `local`) clears the interview mirror, the Job Matches
   cache and results (`JOBS_STORAGE_KEY`, `JOBS_RESULT_KEY`) **and the anonymous
   browser id** so the next person on that browser inherits nothing.
-- **History is scoped to the account.** `identity.js` sends `X-Client-Id`, and
-  `AuthProvider` calls `setUserScope(user.id)` on every auth transition — so a
-  signed-in user's id is `u-<supabase user id>` and history follows the account
-  across devices. Signed out it falls back to the random per-browser id, which
-  keeps the app usable without auth. The scope is set **inside the
-  `getSession`/`onAuthStateChange` handlers, before `setSession`**, so the first
-  request a protected screen makes is already scoped correctly.
-- **What this is not:** a server-side access boundary. The route guard is UX and
-  the owner id is still a client-supplied header, so `/api` accepts whatever
-  owner a caller names (subject to `API_TOKEN`). What the user scope fixes is
-  the honest-user case — two accounts on one laptop, one account on two
-  machines. Making it a real boundary means sending the Supabase access token,
-  verifying it server-side (JWT secret / JWKS), and reading `ownerId` off the
-  verified token instead of the header.
+- **History is scoped to the account — and the server checks.** Every API call
+  carries the user's Supabase access token (`api/client.js`), and with
+  `SUPABASE_URL` set in `server/.env` the server verifies it and takes the
+  owner from the token: `u-<supabase user id>`, so history follows the account
+  across devices and nobody can name someone else's. See "Security model".
+  `identity.js` still sends `X-Client-Id` (`setUserScope` on every auth
+  transition, set **inside the `getSession`/`onAuthStateChange` handlers, before
+  `setSession`**), but only a server in legacy mode (no `SUPABASE_URL`) reads it.
+- **What the route guard is:** UX. The boundary is the server's token check;
+  without `SUPABASE_URL` there isn't one.
+- **Known gap:** interviews saved while signed out, before sign-in existed, are
+  owned by the old random browser id and don't appear once signed in (sign-out
+  also forgets that id). There's no claim/migration step.
 
 ## Landing page
 
@@ -469,8 +472,10 @@ browser, and hands them to the evaluator so the report covers presentation too.
 
 ### Permissions, and falling back
 
-`JobDescriptionScreen` explains *why* before the browser ever prompts ("your pace,
-pauses and eye contact are measured live — nothing is recorded or sent anywhere"),
+`JobDescriptionScreen` explains *why* before the browser ever prompts (nothing is
+recorded; pace, pauses and eye contact are measured in the browser and only those
+numbers go with the answers; the words are transcribed by the browser speech
+service),
 then calls `probeMediaPermission()` (exported from `useDeliveryCapture.js`), which
 asks for camera+mic **and immediately stops the tracks again**. It's a "will this
 work?" check — the setup screen has no business holding the camera open while
@@ -544,8 +549,12 @@ resolves to `null`, `onCameraPct` stays `null`, and pace/pauses carry on alone.
 - **The honest caveat:** the *transcript* still comes from the Web Speech API,
   which in Chrome sends audio to Google. That predates this feature and is what
   the dismissible note in `ChatInput` discloses; the note gains a sentence in
-  Speak mode making clear the pace/pause/camera half is local. Don't ever write
-  copy claiming "nothing leaves your browser" without that distinction.
+  Speak mode: the camera and the measuring audio stay local, and only the
+  resulting numbers are sent. Don't ever write copy claiming "nothing leaves your
+  browser" or "nothing is sent" — the five numbers go to the server and the
+  evaluator, and the words go to the speech provider. (The same rule applies to
+  Job Matches: the resume text is sent to the AI and kept in localStorage for 7
+  days, and its copy says so.)
 - **Teardown** is one function, `release()` in `useDeliveryCapture.js`: tracks
   stopped, `AudioContext` closed, landmarker closed, timers cleared. It fires on
   interview end, on scoring, on leaving the screen, on mode change and on unmount.
@@ -572,7 +581,10 @@ diagnosis. **Delivery never moves a `score`**; scores stay content-only so a goo
 answer delivered nervously isn't penalised twice.
 
 Nothing renders the metrics in the UI by design — they exist to inform the written
-feedback. They do persist on `qaPairs`, so they're in saved history if that changes.
+feedback. They persist on each saved answer (`qaPairs[].delivery`), and the saved
+record keeps `mode` and `focus` too — the history detail page shows
+"3 questions · Technical · spoken". Records saved before that have none of
+the three.
 
 ## Job Matches
 
@@ -613,11 +625,17 @@ re-spend model calls.
    client (`JobMatchesScreen`) loops this a batch at a time, merging scores by
    id and re-rendering as each batch lands. A batch that fails leaves those jobs
    `null`; a "Score remaining" button retries them.
-   The finished result is cached twice: in `AppWorkspace` state (survives in-app
+   The result is cached twice — **as each scoring batch lands**, not only when
+   the run finishes: in `AppWorkspace` state (survives in-app
    navigation) and in `sessionStorage` under `JOBS_RESULT_KEY` (survives a
    reload). A search is ~13 model calls, so losing them to a refresh was
    expensive — and on the free tier the re-run comes back with more `null`
    scores than the first did. Cleared on sign-out with the other keys.
+   Leaving the screen mid-scoring used to throw the whole search away (the
+   cache was written only at the end, and unmounting stops the loop first). Now
+   the unmount marks the cached result `interrupted`, and the next visit carries
+   on scoring the jobs still unscored (deferred a tick, so StrictMode's double
+   mount starts one loop, not two).
    `settled` on each job (not the run status) drives the card's "Scoring…"
    spinner, so a role the model declines mid-run stops spinning immediately
    instead of showing "Scoring…" next to "Couldn't score this role".
@@ -692,8 +710,8 @@ drift). Adzuna returns salaries as bare numbers with no currency field, so
 ## Resume Builder
 
 Reached from the dashboard ("Build a resume") or the header nav. Route:
-`/resume` → `ResumeBuilderScreen`. Session-only — nothing is persisted, by
-design; leaving the screen discards the draft.
+`/resume` → `ResumeBuilderScreen`. The draft is autosaved to the tab's
+sessionStorage and nowhere else — nothing reaches the server except chat turns.
 
 **One document, two writers.** The whole feature turns on a single piece of
 state: `resume` in `ResumeBuilderScreen`. The preview renders from it, inline
@@ -708,7 +726,11 @@ alongside the newest instruction` (`resumeTurnMessage`). That is what stops an
 AI reply resurrecting stale content: the document the model edits is always the
 one the user is looking at, hand edits included. The model returns the whole
 document (not a patch); `resume: null` means "nothing changed" and the client's
-copy is kept as-is rather than round-tripped.
+copy is kept as-is rather than round-tripped. Whatever the model does return is
+**merged over the current document** (`mergeModelResume`): small models often
+send back only the section they touched, and normalising that alone used to
+blank contact, summary and everything else. A section the model omits keeps its
+current value; one it sends — even as `[]` / `""` — replaces it.
 
 - The shape lives in `server/src/services/resume.service.js` — contact / summary
   / experience / education / skills / projects / certifications, single column.
@@ -723,13 +745,21 @@ copy is kept as-is rather than round-tripped.
 - Entry `id`s round-trip through the model and the normalizer so React keys and
   in-progress edits survive an AI rewrite.
 
-**Leaving throws the document away** — nothing is persisted, by design. Two
-guards make that a choice rather than an accident: `setLeaveGuard` (handed down
-from `AppWorkspace`) confirms in-app navigation — header nav, Back to home, sign
-out — and a `beforeunload` listener covers reload, tab close and the browser's
-own Back button, which React Router's declarative mode cannot intercept. Both
-arm only when `isResumeEmpty` is false. `AppWorkspace` funnels every nav button
-through `guarded()`, which is the only place a screen can veto a navigation.
+**Autosave.** The document and the chat are mirrored to sessionStorage
+(`RESUME_DRAFT_KEY`) on every change and restored on mount (`coerceResume`
+shape-checks what comes back). It used to be component state only, guarded by
+a confirm on in-app navigation plus `beforeunload` — but the browser's Back
+button is a `popstate`, which fires neither, so Back silently destroyed the
+document. Now Back, in-app navigation and a reload all return to the draft. A
+page with only the greeting and nothing typed stores nothing. What's left to
+guard: **closing the tab** (sessionStorage goes with it — `beforeunload` still
+warns, and also fires harmlessly on reload) and **signing out**, which clears
+the draft with the other per-user keys — `setLeaveGuard` confirms that one.
+The guard is called with the reason (`"navigate"` / `"sign-out"`) and only
+objects to sign-out. A draft saved mid-turn ends on the user's message; on
+restore the screen says the reply didn't arrive and Retry re-sends it.
+**Start over** clears the page (through `setResume`, so Undo brings it back)
+and restarts the chat.
 
 **Undo.** Because the model returns the whole document rather than a patch, one
 bad turn can flatten hand-written bullets. Every write through `setResume` pushes
@@ -738,7 +768,7 @@ rewrite"), capped at 30, and the toolbar's Undo button pops it — so the button
 can say precisely what it will take back. The stack lives in a ref; the only part
 render needs is `undoLabel`, whose transitions coincide exactly with the
 enabled/disabled transitions of the button. This is an undo affordance, not
-document history — there is no redo, and nothing survives leaving the screen.
+document history — there is no redo, and the stack isn't autosaved.
 
 **The editing lock.** While a turn is in flight, `busy` is true: every
 `EditableText` goes `contentEditable=false`, add/remove/reorder controls are
@@ -799,7 +829,21 @@ streaming.
 text API, so it's real selectable vector text, ~5 kB, and ATS-parseable — the
 one to actually send to an employer. *PDF — exact preview* is an html2canvas
 raster of the sheet (~300 kB, pixel-identical, unselectable). Plus JPG, PNG and
-plain text.
+plain text. Both PDFs come in **Letter or A4** (a radio pair at the top of the
+download menu, remembered in localStorage; the default follows the browser's
+region, `defaultPaper`). Emails, URLs and bare domains in the contact line and
+project links are **clickable** in the text PDF (`linkTarget` — http(s),
+`mailto:` and bare domains only).
+
+The text PDF's font is jsPDF's built-in Helvetica, which encodes only
+Windows-1252 — and jsPDF re-encodes the **whole string** when it meets one
+character outside it, so a single "→" used to garble an entire bullet. Common
+symbols are mapped first (`TEXT_SUBSTITUTIONS`: → becomes ->, − becomes -, odd
+spaces, ✓, ≥…); letters never are, because "ł" is not "l". If anything
+unencodable remains (Polish, Cyrillic, Arabic, CJK…), `exportResume` produces
+the exact-preview PDF instead and returns `{ fallback }`, which the screen shows
+as a banner explaining the trade-off. Embedding a Unicode font per script is
+the way to lift that.
 
 ### Backend endpoint
 
@@ -1196,7 +1240,8 @@ live interview, for the same reason the nav is.
 ### Website ratings — the n8n follow-up email
 
 A day after someone completes the survey, an **n8n** workflow emails them asking
-to rate the site; clicking a star writes the rating back to Supabase. The app
+to rate the site; a star opens a confirm page, and Submit writes the rating back
+to Supabase. The app
 itself has no part in this — no screen, no client code, no Express route — and
 **no AI feature reads it**, exactly as for the survey it follows from.
 
@@ -1226,6 +1271,12 @@ Three decisions worth not undoing:
 - **The link carries a token, not a user id.** A one-click rating URL is a
   credential; `?user_id=<uuid>&rating=5` would let anyone rate as anyone, and
   user ids aren't secret.
+- **A star link writes nothing.** Email security scanners (Safe Links,
+  Mimecast, Proofpoint…) fetch every link in a message, so a GET that recorded
+  the rating let a scanner "rate" for the user. GET `/rate` now only renders a
+  confirm page (star pre-selected, optional comment); the write is the form's
+  POST to `/rate-submit`, which scanners don't send. Don't make that page
+  auto-submit with JavaScript — some scanners run it.
 - **A bad token gets a sentence, not a 500.** `record_website_rating()` returns
   `(ok, message)` rather than raising, and the HTTP node sets `neverError`, so
   an expired link renders a readable page.
@@ -1244,26 +1295,44 @@ dashboard about one is worse than the prompt quietly not appearing.
 
 ## Security model — read before deploying
 
-Users sign in with Supabase, but **only the client enforces it** — the API has
-no notion of a user account (see "Authentication" → "What this is not"). On the
-server, two mechanisms stand in:
+Users sign in with Supabase, and the API verifies those sign-ins when it is
+configured to. Three mechanisms:
 
-1. **`API_TOKEN`** (server env). When set, every `/api` route except
-   `/api/health` requires `Authorization: Bearer <API_TOKEN>`. The client sends
-   it from `VITE_API_TOKEN`. **Unset = the API is open to anyone who can reach
-   the port.** Always set it for a non-local deployment. It is a single shared
-   secret, and because it ships in the built client it is not a per-user secret —
-   it just keeps the open internet out.
+1. **Verified sign-ins (`SUPABASE_URL` in `server/.env`).** With it set, every
+   `/api` route except `/api/health` goes through `authenticate`
+   (`middleware/auth.js`): the caller must send its Supabase access token as
+   `Authorization: Bearer <jwt>`, and `services/supabaseAuth.js` verifies it —
+   signature against the project's public JWKS
+   (`<url>/auth/v1/.well-known/jwks.json`, ES256/RS256, cached 10 min, refetched
+   on an unknown `kid` at most every 30s), `exp`/`nbf`, `aud = "authenticated"`,
+   `iss = <url>/auth/v1`, and a `sub`. `req.clientId` is then
+   `ownerIdForUser(sub)` = `u-<uuid without dashes>` — **byte-for-byte what
+   `identity.js`'s `setUserScope` produced**, so history saved before this
+   change still belongs to the same account. A header can no longer name
+   someone else's history. Dependency-free (`node:crypto`). Legacy projects
+   still signing with HS256 set `SUPABASE_JWT_SECRET` instead (a real secret).
+   `api/client.js` sends the token on every request, from
+   `supabase.auth.getSession()` (which refreshes a nearly-expired one first).
+   **Unset = legacy mode:** the owner is the client's `X-Client-Id` header,
+   taken on faith, and the server warns at startup. Fine on localhost only.
 
-2. **`X-Client-Id`** — who owns saved interviews (`client/src/identity.js`).
-   Signed in it is `u-<supabase user id>`; signed out it falls back to a random
-   per-browser id in localStorage. Saved interviews are stamped with it
-   (`ownerId`) and every history read/write/delete is scoped to it, so one owner
-   can't list, open, or delete another's interviews. It's an isolation token,
-   not authentication — the server takes the header at face value, same trust
-   level as the unguessable session UUIDs.
-   `assertOwner` **fails closed**: once a session has an owner, a request with a
-   missing/malformed `X-Client-Id` is rejected (404), not waved through.
+2. **`API_TOKEN`** (optional). When set, every `/api` route except
+   `/api/health` also needs it in **`X-Api-Token`** (the client sends
+   `VITE_API_TOKEN`). `Authorization: Bearer <API_TOKEN>` is still accepted, but
+   only in legacy mode — with sign-ins verified, `Authorization` carries the JWT.
+   It ships in the built client, so it only keeps casual traffic out.
+
+3. **Per-user daily model allowance** (`MODEL_CALLS_PER_USER_PER_DAY`, default
+   300). `authenticate` runs the rest of the request inside `runWithOwner`
+   (AsyncLocalStorage in `modelBudget.js`), so every model call — including
+   background work a request kicks off, like Progress labelling after a save —
+   is counted against its owner. Over the limit = a 429 "come back tomorrow".
+   Without it one account could spend the whole global `MODEL_CALLS_PER_DAY`.
+
+`assertOwner` **fails closed**: once a session has an owner, a request with no
+owner is rejected (404), not waved through. A wrong-owner request is rejected
+*before* it touches the session's processing lock (it used to be able to release
+a lock the real owner held).
 
 Other guards already in place:
 - Per-IP sliding-window rate limit on `/api/interview` (`RATE_LIMIT_MAX`, default
@@ -1281,6 +1350,14 @@ Other guards already in place:
 - `MAX_INTERVIEWS_PER_OWNER` cap; oldest are dropped.
 - Per-session processing lock (`beginProcessing`) → concurrent/duplicate model
   calls for one session get a 409, not a corrupted transcript or double bill.
+  Only the request that took the lock releases it.
+- Answers are **transactional and idempotent**. The answer is recorded before
+  the next question is requested, so a failed model call now rolls it back
+  (`rollbackAnswer`) — the retry used to add the same answer again as a second
+  consecutive user turn. The client also sends `questionNumber`: a re-send of
+  an answer the server already took (the client timed out, the server didn't)
+  is answered with where the interview is now rather than being filed under the
+  next question.
 - Strict CSP (`default-src 'none'`), `X-Frame-Options: DENY`, nosniff,
   `Referrer-Policy: no-referrer`, COOP/CORP, `Permissions-Policy`. HSTS behind
   `FORCE_HTTPS=true`.
@@ -1353,6 +1430,7 @@ Other guards already in place:
   (default `server/data/`), loaded into memory once, mutations serialized through
   a queue with atomic temp-file+rename writes. Set `DATA_DIR` to a mounted volume
   on hosts with an ephemeral filesystem, or the history vanishes on redeploy.
+  Records also keep `mode`, `focus` and each answer's speak-mode `delivery`.
   Each record may carry a Progress `role` label (`{ title, source, labelledAt }`)
   — the only thing Progress writes. Its aggregated themes are an in-memory cache,
   lost on restart and recomputed on demand.
@@ -1425,7 +1503,15 @@ Other guards already in place:
   the question message (`deadlineAt`) and mirrored to sessionStorage, so a
   backgrounded tab — or a full page refresh — resumes the same countdown instead
   of getting a fresh full timer. If the deadline already passed while away, the
-  answer auto-submits as timed-out.
+  answer auto-submits as timed-out. **That auto-submit retries once, 4s later,
+  and only for a failure that might pass** (no response, 429, 5xx). It used to
+  re-arm on every failure: the deadline was already past, so each rollback put
+  the countdown straight back at 0 and fired again — an endless request loop
+  for as long as the error lasted, and a lost session errors forever. After
+  that the answer sits in the composer and Send / Skip are the user's call.
+- Speak mode's `collect()` no longer resets the measurement: `ChatScreen` calls
+  `resetMeasurement()` only once the server has accepted the answer, so a
+  retry after a failed submit sends the same delivery numbers instead of none.
 - `useSpeechRecognition` restarts the engine across its idle timeout while the
   user wants to keep talking, with a hard 5-minute cap per recording. Speak mode
   reports recording state from an **effect on `listening`**, not from the click

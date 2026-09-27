@@ -132,11 +132,13 @@ export default function AppWorkspace() {
   const [jobsResult, setJobsResult] = useState(null);
 
   /**
-   * A screen with unsaved work can register a check here; it returns false to
-   * cancel an in-app navigation. React Router's declarative mode has no
-   * `useBlocker`, so this is the one place every nav button in the signed-in app
-   * funnels through. It does NOT cover the browser Back button — nothing in
-   * declarative mode can — so the Resume Builder pairs it with `beforeunload`.
+   * A screen with unsaved work can register a check here; it is called with
+   * the reason — "navigate" or "sign-out" — and returns false to cancel.
+   * React Router's declarative mode has no `useBlocker`, so this is the one
+   * place every nav button in the signed-in app funnels through. It does NOT
+   * cover the browser Back button — nothing in declarative mode can, and a
+   * popstate doesn't fire `beforeunload` either — which is why the Resume
+   * Builder autosaves its draft rather than relying on a guard.
    */
   const leaveGuardRef = useRef(null);
   const setLeaveGuard = useCallback((fn) => {
@@ -144,7 +146,7 @@ export default function AppWorkspace() {
   }, []);
 
   function guarded(run) {
-    if (leaveGuardRef.current && leaveGuardRef.current() === false) return;
+    if (leaveGuardRef.current && leaveGuardRef.current("navigate") === false) return;
     leaveGuardRef.current = null; // the screen holding it is on its way out
     run();
   }
@@ -313,7 +315,7 @@ export default function AppWorkspace() {
   }
 
   async function handleSignOut() {
-    if (leaveGuardRef.current && leaveGuardRef.current() === false) return;
+    if (leaveGuardRef.current && leaveGuardRef.current("sign-out") === false) return;
     leaveGuardRef.current = null;
     signingOutRef.current = true;
     // Leave first: once the session is gone RequireAuth would redirect to

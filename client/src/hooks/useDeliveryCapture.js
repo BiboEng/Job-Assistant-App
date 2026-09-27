@@ -278,7 +278,9 @@ export default function useDeliveryCapture() {
   }, [stopSampling]);
 
   /**
-   * Finalise the answer: returns the metrics and resets for the next question.
+   * Close out the answer and read its metrics. Does NOT reset: if submitting
+   * the answer fails, the retry must send the same measurements rather than an
+   * empty slate. Call `resetMeasurement()` once the answer has been accepted.
    * @param {string} transcript  the submitted answer, for the word count.
    * @returns {{wpm: number|null, pauseCount: number|null, pauseMs: number|null,
    *   speakingMs: number|null, onCameraPct: number|null} | null}
@@ -289,7 +291,6 @@ export default function useDeliveryCapture() {
 
       const audio = trackerRef.current.result(transcript);
       const onCameraPct = faceRef.current?.result() ?? null;
-      trackerRef.current = createDeliveryTracker(); // fresh slate for the next answer
 
       const metrics = { ...audio, onCameraPct };
       // Nothing measurable: send no delivery field at all rather than a row of
@@ -298,6 +299,11 @@ export default function useDeliveryCapture() {
     },
     [endRecording]
   );
+
+  /** Fresh slate for the next question, once the last answer was accepted. */
+  const resetMeasurement = useCallback(() => {
+    trackerRef.current = createDeliveryTracker();
+  }, []);
 
   return {
     supported,
@@ -311,5 +317,6 @@ export default function useDeliveryCapture() {
     beginRecording,
     endRecording,
     collect,
+    resetMeasurement,
   };
 }

@@ -241,10 +241,15 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
             {speakRequested && permission !== "ok" && (
               <div className="info-banner">
                 <Icon name="video" />
+                {/* Precise on purpose: the media never leaves the browser, but
+                    five summary numbers go with each answer, and the spoken
+                    words are transcribed by the browser's speech service. */}
                 <span>
-                  We'll ask for your camera and microphone. Pace, pauses and eye
-                  contact are measured in your browser — nothing is recorded or
-                  sent anywhere.
+                  We'll ask for your camera and microphone. Nothing is recorded:
+                  pace, pauses and eye contact are measured in this browser, and
+                  only those few numbers are sent with your answers. Your words
+                  are transcribed by your browser's speech service (Google, in
+                  Chrome).
                 </span>
               </div>
             )}
