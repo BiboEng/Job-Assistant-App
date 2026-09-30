@@ -38,6 +38,8 @@ export default function TrackerScreen({ onFindJobs }) {
   const [draggingId, setDraggingId] = useState(null);
   const [toast, setToast] = useState(null); // { message, tone }
   const [announcement, setAnnouncement] = useState("");
+  // The card most recently moved, so it can settle visibly in its new column.
+  const [landedId, setLandedId] = useState(null);
 
   const groups = useMemo(() => groupByColumn(applications, now), [applications, now]);
   const byId = useMemo(() => new Map(applications.map((a) => [a.id, a])), [applications]);
@@ -51,6 +53,7 @@ export default function TrackerScreen({ onFindJobs }) {
     const app = byId.get(id);
     if (!app || app.stage === stage) return;
     setAnnouncement(`Moved ${app.jobTitle} at ${app.company} to ${stageLabel(stage)}.`);
+    setLandedId(id);
     move(id, stage).catch((err) => {
       setAnnouncement("");
       setToast({ tone: "error", message: `Couldn't move that card: ${err.message}` });
@@ -170,6 +173,7 @@ export default function TrackerScreen({ onFindJobs }) {
                   app={app}
                   now={now}
                   dragging={app.id === draggingId}
+                  landed={app.id === landedId}
                   onOpen={(id) => setDialog({ mode: "edit", id })}
                   onMove={handleMove}
                   onDragStart={setDraggingId}

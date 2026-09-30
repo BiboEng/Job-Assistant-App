@@ -13,7 +13,7 @@ import {
   formatSalary,
   currencyForCountry,
 } from "../src/services/jobs.service.js";
-import { mapWithConcurrency } from "../src/controllers/jobs.controller.js";
+import { mapWithConcurrency, normalizeJobScore } from "../src/controllers/jobs.controller.js";
 
 test("stripHtml flattens tags and entities to text", () => {
   assert.equal(
@@ -145,4 +145,30 @@ test("mapWithConcurrency preserves order and respects the limit", async () => {
   });
   assert.deepEqual(out, [2, 4, 6, 8, 10, 12]);
   assert.ok(peak <= 2, `peak concurrency ${peak} exceeded 2`);
+});
+
+test("normalizeJobScore keeps the See-why fields, trimmed and capped", () => {
+  const out = normalizeJobScore({
+    matchScore: "87.4",
+    reason: "  Strong React overlap. ",
+    why: "Your React and\n TypeScript work at Acme matches the core stack.",
+    improve: "x".repeat(900),
+  });
+  assert.equal(out.matchScore, 87);
+  assert.equal(out.reason, "Strong React overlap.");
+  assert.equal(out.why, "Your React and TypeScript work at Acme matches the core stack.");
+  assert.equal(out.improve.length, 400);
+});
+
+test("normalizeJobScore: missing or non-string explanations become empty", () => {
+  const out = normalizeJobScore({ matchScore: 140, reason: "ok", why: 5 });
+  assert.deepEqual(out, { matchScore: 100, reason: "ok", why: "", improve: "" });
+});
+
+test("normalizeJobScore: an unscored role carries no explanation", () => {
+  const out = normalizeJobScore({ matchScore: "n/a", why: "fits", improve: "add Go" });
+  assert.equal(out.matchScore, null);
+  assert.equal(out.why, "");
+  assert.equal(out.improve, "");
+  assert.match(out.reason, /Couldn't score/);
 });

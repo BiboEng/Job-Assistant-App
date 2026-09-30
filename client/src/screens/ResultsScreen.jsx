@@ -1,6 +1,7 @@
 import { useState } from "react";
 import FeedbackReport from "../components/FeedbackReport.jsx";
 import Icon from "../components/Icon.jsx";
+import PracticeAgainButton from "../components/PracticeAgainButton.jsx";
 import Toast from "../components/Toast.jsx";
 import { INTERVIEW_FOCUSES } from "../constants.js";
 import styles from "./ResultsScreen.module.css";
@@ -37,6 +38,8 @@ export default function ResultsScreen({
   session,
   saveState = "idle",
   onRetrySave,
+  onPracticeAgain,
+  repeating = null,
   onRestart,
   onHome,
 }) {
@@ -119,9 +122,18 @@ export default function ResultsScreen({
         </div>
       )}
 
+      {/* Practice again leads: the same role and format is the likeliest next
+          step, and it skips re-pasting the job description. */}
       <div className={`${styles.actions} no-print`}>
-        <button className="btn-primary" onClick={onRestart}>
-          <Icon name="refresh" />
+        {onPracticeAgain && (
+          <PracticeAgainButton
+            onClick={onPracticeAgain}
+            busy={repeating === "current"}
+            disabled={repeating !== null}
+          />
+        )}
+        <button className="btn-ghost" onClick={onRestart} disabled={repeating !== null}>
+          <Icon name="plus" />
           New interview
         </button>
         <button className="btn-ghost" onClick={onHome}>

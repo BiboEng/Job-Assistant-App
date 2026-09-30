@@ -77,11 +77,22 @@
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
   box-shadow: var(--shadow-popover);
+  /* Grows out of the trigger: up from its foot, or right from the rail. */
+  transform-origin: bottom center;
+  animation: menu-in var(--dur-pop) var(--ease) both;
 }
 .collapsed .menu {
   left: calc(100% + var(--sp-2));
   right: auto;
   bottom: 0;
+  transform-origin: bottom left;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--pop-scale));
+  }
 }
 
 .identity {
@@ -130,4 +141,15 @@
 
 .danger:hover {
   color: var(--danger);
+}
+
+/* Same as the sidebar's nav labels: wait out the rail widening, then fade in. */
+.name,
+.caret {
+  animation: label-in var(--dur-pop) var(--ease) var(--dur-fast) both;
+}
+@keyframes label-in {
+  from {
+    opacity: 0;
+  }
 }

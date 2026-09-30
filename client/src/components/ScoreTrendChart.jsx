@@ -1,10 +1,17 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { nearestIndex, trendGeometry, xLabelIndices } from "../utils/trendChart.js";
-import { scoreBand } from "../utils/score.js";
+import { Y_TICKS, nearestIndex, trendGeometry, xLabelIndices } from "../utils/trendChart.js";
+import { pctOf, scoreBand } from "../utils/score.js";
 import styles from "./ScoreTrendChart.module.css";
 
-const HEIGHT = 220;
 const PAD = { top: 16, right: 28, bottom: 32, left: 36 };
+// The small multiples on Progress: less room for axis text, same anatomy.
+const PAD_COMPACT = { top: 14, right: 16, bottom: 26, left: 26 };
+const overall = (it) => it.overallScore;
+
+// The line's draw-in time — keep equal to --dur-reveal in tokens.css. Points
+// are evenly spaced along x, so marker i is reached at i/(n-1) of the way.
+const DRAW_MS = 800;
+const drawDelay = (i, n) => (n > 1 ? Math.round((DRAW_MS * i) / (n - 1)) : 0);
 
 function shortDate(ts) {
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -34,8 +41,25 @@ function longDate(ts) {
  *
  * The SVG is drawn at the container's real pixel width (ResizeObserver) so
  * text and markers never stretch.
+ *
+ * By default it plots each interview's overall score on 0–100. Progress's
+ * answer-quality charts reuse it for one rubric dimension each: `getValue`,
+ * `max` and `ticks` change the series and its fixed domain, `compact` the
+ * size. The domain is still fixed, never fitted to the data.
  */
-export default function ScoreTrendChart({ interviews, onOpenInterview, label }) {
+export default function ScoreTrendChart({
+  interviews,
+  onOpenInterview,
+  label,
+  getValue = overall,
+  max = 100,
+  ticks = Y_TICKS,
+  valueName = "Score",
+  compact = false,
+  height = compact ? 132 : 220,
+}) {
+  const HEIGHT = height;
+  const pad = compact ? PAD_COMPACT : PAD;
   const wrapRef = useRef(null);
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState(-1);
@@ -57,8 +81,9 @@ export default function ScoreTrendChart({ interviews, onOpenInterview, label }) 
   // A different role is a different series — drop the old crosshair.
   useEffect(() => setActive(-1), [interviews]);
 
-  const geo = width > 0 ? trendGeometry(interviews, { width, height: HEIGHT, pad: PAD }) : null;
-  const labels = geo ? new Set(xLabelIndices(interviews.length, geo.plot.right - geo.plot.left)) : null;
+  const seriesKey = interviews.map((it) => it.id).join("|");
+  const geo = width > 0 ? trendGeometry(interviews, { width, height: HEIGHT, pad, max, ticks, value: getValue }) : null;
+  const labels = geo ? new Set(xLabelIndices(interviews.length, geo.plot.right - geo.plot.left, compact ? 64 : 72)) : null;
   const last = interviews.length - 1;
 
   function indexAt(clientX) {
@@ -92,7 +117,7 @@ export default function ScoreTrendChart({ interviews, onOpenInterview, label }) 
   const flip = point && point.x > width / 2;
 
   return (
-    <div className={styles.chart}>
+    <div className={`${styles.chart} ${compact ? styles.compact : ""}`}>
       <div
         ref={wrapRef}
         className={styles.canvas}
@@ -122,7 +147,7 @@ export default function ScoreTrendChart({ interviews, onOpenInterview, label }) 
                   y1={t.y}
                   y2={t.y}
                 />
-                <text className={styles.tick} x={geo.plot.left - 10} y={t.y} textAnchor="end" dominantBaseline="middle">
+                <text className={styles.tick} x={geo.plot.left - (compact ? 8 : 10)} y={t.y} textAnchor="end" dominantBaseline="middle">
                   {t.value}
                 </text>
               </g>
@@ -134,7 +159,7 @@ export default function ScoreTrendChart({ interviews, onOpenInterview, label }) 
                   key={it.id}
                   className={styles.tick}
                   x={geo.coords[i].x}
-                  y={HEIGHT - 10}
+                  y={HEIGHT - (compact ? 6 : 10)}
                   textAnchor={i === 0 && last > 0 ? "start" : i === last && last > 0 ? "end" : "middle"}
                 >
                   {shortDate(it.createdAt)}
@@ -152,47 +177,58 @@ export default function ScoreTrendChart({ interviews, onOpenInterview, label }) 
               />
             )}
 
-            {geo.area && <path className={styles.area} d={geo.area} />}
-            <path className={styles.line} d={geo.line} />
+            {/* Keyed on the series, so switching roles (a new set of interviews)
+                replays the draw-in, while a resize only reshapes the path. The
+                line draws left to right; each marker appears as the line
+                reaches it; the end label arrives last. */}
+            <g key={seriesKey}>
+              {geo.area && <path className={styles.area} d={geo.area} />}
+              <path className={styles.line} d={geo.line} pathLength="1" />
 
-            {geo.coords.map((c, i) => (
-              <circle
-                key={interviews[i].id}
-                className={`${styles.dot} ${i === active ? styles.dotActive : ""}`}
-                cx={c.x}
-                cy={c.y}
-                r={i === active ? 5 : 4}
-              />
-            ))}
+              {geo.coords.map((c, i) => (
+                <circle
+                  key={interviews[i].id}
+                  className={`${styles.dot} ${i === active ? styles.dotActive : ""}`}
+                  style={{ animationDelay: `${drawDelay(i, geo.coords.length)}ms` }}
+                  cx={c.x}
+                  cy={c.y}
+                  r={i === active ? 5 : 4}
+                />
+              ))}
 
-            {/* One direct label: the latest score, at the end of the line. */}
-            {active !== last && (
-              <text
-                className={styles.endLabel}
-                x={geo.coords[last].x}
-                y={geo.coords[last].y - 12}
-                textAnchor={last > 0 ? "end" : "middle"}
-              >
-                {interviews[last].overallScore}
-              </text>
-            )}
+              {/* One direct label: the latest score, at the end of the line.
+                  Compact charts sit beside their own big figure, so skip it. */}
+              <g className={styles.endIn}>
+                {!compact && active !== last && (
+                  <text
+                    className={styles.endLabel}
+                    x={geo.coords[last].x}
+                    y={geo.coords[last].y - 12}
+                    textAnchor={last > 0 ? "end" : "middle"}
+                  >
+                    {getValue(interviews[last])}
+                  </text>
+                )}
+              </g>
+            </g>
           </svg>
         )}
 
         {point && item && (
           <div
             className={`${styles.tooltip} ${flip ? styles.tooltipLeft : ""}`}
-            style={{ left: point.x, top: Math.max(PAD.top, point.y - 8) }}
+            style={{ left: point.x, top: Math.max(pad.top, point.y - 8) }}
             aria-hidden="true"
           >
             <span className={styles.tipValue}>
-              {item.overallScore}
+              {getValue(item)}
+              {max !== 100 && <span className={styles.tipMax}>/{max}</span>}
               <span className={styles.tipBand}>
                 <span
                   className={styles.tipSwatch}
-                  style={{ background: scoreBand(item.overallScore).color }}
+                  style={{ background: scoreBand(pctOf(getValue(item), max)).color }}
                 />
-                {scoreBand(item.overallScore).label}
+                {scoreBand(pctOf(getValue(item), max)).label}
               </span>
             </span>
             <span className={styles.tipMeta}>
@@ -206,7 +242,7 @@ export default function ScoreTrendChart({ interviews, onOpenInterview, label }) 
       {/* aria-live so arrowing through the chart announces each interview. */}
       <p className="sr-only" aria-live="polite">
         {item
-          ? `Interview ${active + 1} of ${interviews.length}, ${longDate(item.createdAt)}: score ${item.overallScore} out of 100.`
+          ? `Interview ${active + 1} of ${interviews.length}, ${longDate(item.createdAt)}: ${valueName.toLowerCase()} ${getValue(item)} out of ${max}.`
           : ""}
       </p>
 
@@ -219,7 +255,7 @@ export default function ScoreTrendChart({ interviews, onOpenInterview, label }) 
             <tr>
               <th scope="col">Interview</th>
               <th scope="col">Date</th>
-              <th scope="col">Score</th>
+              <th scope="col">{valueName}</th>
             </tr>
           </thead>
           <tbody>
@@ -227,7 +263,7 @@ export default function ScoreTrendChart({ interviews, onOpenInterview, label }) 
               <tr key={it.id}>
                 <td>{i + 1}</td>
                 <td>{longDate(it.createdAt)}</td>
-                <td>{it.overallScore}</td>
+                <td>{getValue(it)}</td>
               </tr>
             ))}
           </tbody>

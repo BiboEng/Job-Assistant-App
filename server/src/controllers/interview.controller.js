@@ -21,6 +21,7 @@ import {
 } from "../prompts/index.js";
 import { estimateAnswerSeconds } from "../timeLimit.js";
 import { assertOwner } from "../middleware/auth.js";
+import { normalizeRubric } from "../rubric.js";
 
 /**
  * POST /api/interview/start
@@ -374,6 +375,9 @@ export function normalizeFeedback(raw, qaPairs) {
   return {
     overallScore: clampInt(raw?.overallScore, 0, 100, 0),
     summary: typeof raw?.summary === "string" ? raw.summary : "",
+    // Answer quality on four fixed dimensions (0–10 each), which Progress
+    // charts per role. Null when the model didn't give one.
+    rubric: normalizeRubric(raw?.rubric),
     strengths: Array.isArray(raw?.strengths)
       ? raw.strengths.map(toText).filter(Boolean)
       : [],

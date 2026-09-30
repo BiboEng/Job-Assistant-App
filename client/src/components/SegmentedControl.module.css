@@ -1,6 +1,7 @@
 .group {
   display: inline-flex;
   flex-wrap: wrap;
+  position: relative;
   gap: 2px;
   padding: 2px;
   background: var(--surface-sunken);
@@ -9,6 +10,8 @@
 }
 
 .option {
+  position: relative;
+  z-index: 1;
   /* `flex: 1` (basis 0) makes every option the same width, which clips the
      longest label out of the group's own shrink-to-fit width. Auto basis keeps
      each label intact and still lets the row share leftover space. */
@@ -35,9 +38,22 @@
   cursor: not-allowed;
 }
 
+/* The fill is the sliding .indicator; the option itself only recolours. */
 .active {
-  background: var(--accent-soft);
   color: var(--accent);
+}
+
+.indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--radius-xs);
+  background: var(--accent-soft);
+  pointer-events: none;
+}
+.indicatorAnimate {
+  transition: transform var(--dur-pop) var(--ease), width var(--dur-pop) var(--ease),
+    height var(--dur-pop) var(--ease);
 }
 
 .sm .option {

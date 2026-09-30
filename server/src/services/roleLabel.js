@@ -20,6 +20,8 @@
  * which goes through the same `roleKey`.
  */
 
+import { normalizeRubric } from "../rubric.js";
+
 /** Words that say how senior a role is, not what it is. */
 const SENIORITY = new Set([
   "senior", "sr", "junior", "jr", "lead", "staff", "principal", "intern",
@@ -226,6 +228,13 @@ export function groupByRole(records) {
       createdAt: Number(record.createdAt) || 0,
       overallScore: clampScore(record.feedback?.overallScore),
       jobTitle: heuristicTitleLine(record.jobDescription),
+      // Four 0–10 numbers, or null for interviews saved before the rubric
+      // existed. Numbers only — no feedback text reaches this payload.
+      rubric: normalizeRubric(record.feedback?.rubric),
+      mode: record.mode === "speak" || record.mode === "type" ? record.mode : null,
+      // The format, so Progress can say what "Practice again" will repeat.
+      focus: typeof record.focus === "string" ? record.focus.slice(0, 40) : null,
+      totalQuestions: clampCount(record.totalQuestions ?? record.qaPairs?.length),
       title: role.title,
       source: role.source,
     };
@@ -250,15 +259,26 @@ export function groupByRole(records) {
         // point — a single interview has no trend, and 0 would claim one.
         change: entries.length > 1 ? latest - first : null,
         latestAt: entries[entries.length - 1].createdAt,
-        interviews: entries.map(({ id, createdAt, overallScore, jobTitle }) => ({
-          id,
-          createdAt,
-          overallScore,
-          jobTitle,
-        })),
+        interviews: entries.map(
+          ({ id, createdAt, overallScore, jobTitle, rubric, mode, focus, totalQuestions }) => ({
+            id,
+            createdAt,
+            overallScore,
+            jobTitle,
+            rubric,
+            mode,
+            focus,
+            totalQuestions,
+          })
+        ),
       };
     })
     .sort((a, b) => b.latestAt - a.latestAt);
+}
+
+function clampCount(n) {
+  const v = Math.round(Number(n));
+  return Number.isFinite(v) && v > 0 ? Math.min(50, v) : null;
 }
 
 function clampScore(n) {

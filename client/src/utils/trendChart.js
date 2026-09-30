@@ -14,19 +14,25 @@
 export const Y_TICKS = [0, 25, 50, 75, 100];
 
 /**
- * @param {Array<{ overallScore: number }>} points chronological
+ * @param {Array<object>} points chronological
  * @param {{ width: number, height: number,
- *   pad: { top: number, right: number, bottom: number, left: number } }} box
+ *   pad: { top: number, right: number, bottom: number, left: number },
+ *   max?: number, ticks?: number[], value?: (point: object) => number }} box
+ *   `max` fixes the top of the y-domain (100 for the overall score, 10 for a
+ *   rubric dimension); `value` reads a point's number (default overallScore).
  */
-export function trendGeometry(points, { width, height, pad }) {
+export function trendGeometry(
+  points,
+  { width, height, pad, max = 100, ticks = Y_TICKS, value = (p) => p.overallScore }
+) {
   const n = points.length;
   const plotW = Math.max(0, width - pad.left - pad.right);
   const plotH = Math.max(0, height - pad.top - pad.bottom);
 
   const x = (i) => (n <= 1 ? pad.left + plotW / 2 : pad.left + (plotW * i) / (n - 1));
-  const y = (score) => pad.top + plotH * (1 - clamp(score, 0, 100) / 100);
+  const y = (score) => pad.top + plotH * (1 - clamp(score, 0, max) / max);
 
-  const coords = points.map((p, i) => ({ x: x(i), y: y(p.overallScore) }));
+  const coords = points.map((p, i) => ({ x: x(i), y: y(value(p)) }));
   const line = coords
     .map((c, i) => `${i === 0 ? "M" : "L"}${round(c.x)},${round(c.y)}`)
     .join(" ");
@@ -42,7 +48,7 @@ export function trendGeometry(points, { width, height, pad }) {
     coords,
     line,
     area,
-    ticks: Y_TICKS.map((t) => ({ value: t, y: y(t) })),
+    ticks: ticks.map((t) => ({ value: t, y: y(t) })),
     plot: { left: pad.left, right: pad.left + plotW, top: pad.top, bottom: baseline },
   };
 }

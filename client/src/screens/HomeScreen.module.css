@@ -143,11 +143,11 @@
 }
 
 /* The header row. Its fixed tracks + gaps must total the same as a row's
-   (InterviewRow: 80 + 112 + 56 + 3 gaps + the 40px action cell), so the last
-   track here is 24px, not 40. */
+   (InterviewRow: 80 + 112 + 56 + 3 gaps + the 72px action cell), so the last
+   track here is 56px (72 less the extra gap). */
 .columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 80px 112px 56px 24px;
+  grid-template-columns: minmax(0, 1fr) 80px 112px 56px 56px;
   gap: var(--sp-4);
   align-items: center;
   height: var(--control-height);
@@ -172,7 +172,7 @@
 
 @media (max-width: 640px) {
   .columns {
-    grid-template-columns: minmax(0, 1fr) 96px 48px 28px;
+    grid-template-columns: minmax(0, 1fr) 96px 48px 60px;
     gap: var(--sp-3);
   }
   .colAnswered {

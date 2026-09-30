@@ -43,3 +43,14 @@ test("tolerates garbage shapes", () => {
   assert.deepEqual(out.strengths, []);
   assert.equal(out.perQuestion.length, 2);
 });
+
+test("rubric: known dimensions only, clamped to 0-10, null when absent", () => {
+  const out = normalizeFeedback(
+    { rubric: { relevance: 12, specificity: -3, structure: "6.4", depth: "n/a", bogus: 5 } },
+    pairs
+  );
+  assert.deepEqual(out.rubric, { relevance: 10, specificity: 0, structure: 6, depth: null });
+  assert.equal(normalizeFeedback({}, pairs).rubric, null);
+  assert.equal(normalizeFeedback({ rubric: { depth: "?" } }, pairs).rubric, null);
+  assert.equal(normalizeFeedback({ rubric: [1, 2] }, pairs).rubric, null);
+});

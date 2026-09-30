@@ -203,6 +203,33 @@ async function deriveProfile(resume) {
   };
 }
 
+const UNSCORED = "Couldn't score this role automatically.";
+
+/** A model-supplied string field, whitespace-collapsed and capped; else "". */
+function modelText(v, max) {
+  return typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "";
+}
+
+/**
+ * The model's scoring JSON → `{ matchScore, reason, why, improve }`. `why`
+ * (what in the resume fits) and `improve` (what to add to fit better) back the
+ * row's "See why" panel; either is "" when the model left it out, and both are
+ * "" for a role that couldn't be scored.
+ */
+export function normalizeJobScore(raw) {
+  const n = Math.round(Number(raw?.matchScore));
+  const matchScore = Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null;
+  if (matchScore == null) {
+    return { matchScore, reason: modelText(raw?.reason, 240) || UNSCORED, why: "", improve: "" };
+  }
+  return {
+    matchScore,
+    reason: modelText(raw?.reason, 240),
+    why: modelText(raw?.why, 400),
+    improve: modelText(raw?.improve, 400),
+  };
+}
+
 async function scoreJob(resume, job) {
   try {
     const raw = await chatCompletionJson(
@@ -212,18 +239,10 @@ async function scoreJob(resume, job) {
       ],
       { kind: "jobs" }
     );
-    const n = Math.round(Number(raw?.matchScore));
-    const matchScore = Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null;
-    const reason =
-      typeof raw?.reason === "string" && raw.reason.trim()
-        ? raw.reason.trim().slice(0, 240)
-        : matchScore == null
-        ? "Couldn't score this role automatically."
-        : "";
-    return { matchScore, reason };
+    return normalizeJobScore(raw);
   } catch (err) {
     console.error("[jobs] scoring failed for", job.id, err.message);
-    return { matchScore: null, reason: "Couldn't score this role automatically." };
+    return { matchScore: null, reason: UNSCORED, why: "", improve: "" };
   }
 }
 
@@ -267,5 +286,7 @@ function searchResultJob(j) {
     description: (j.description || "").slice(0, CLIENT_DESC_LIMIT),
     matchScore: null,
     reason: "",
+    why: "",
+    improve: "",
   };
 }

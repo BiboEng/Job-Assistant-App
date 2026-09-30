@@ -179,6 +179,22 @@
   --dur-fast: 120ms;
   --dur: 150ms;
   --dur-slow: 180ms;
+  /* Exits leave faster than enters arrive, on an ease-in so they accelerate
+     away rather than drifting. */
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --dur-exit: 160ms;
+  /* Symmetric, for something travelling a known path (the Progress line). */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Popovers and toasts: shorter than a screen fade, they answer a click. */
+  --dur-pop: 220ms;
+  --pop-scale: 0.96;
+  /* A moment worth watching: a score counting up, a chart line drawing in. */
+  --dur-reveal: 800ms;
+  /* The Survey card's entry offset; SurveyScreen flips its sign inline when
+     stepping back, so the card always arrives from the direction of travel. */
+  --step-from: 12px;
+  /* Landing scroll reveal: per-item stagger, set inline on the pillars. */
+  --reveal-delay: 0ms;
 
   /* --- layout ------------------------------------------------------------- */
   --sidebar-width: 240px;

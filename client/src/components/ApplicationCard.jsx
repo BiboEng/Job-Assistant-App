@@ -24,6 +24,7 @@ export default function ApplicationCard({
   app,
   now,
   dragging = false,
+  landed = false,
   onOpen,
   onMove,
   onDragStart,
@@ -51,6 +52,7 @@ export default function ApplicationCard({
       className={[
         styles.card,
         dragging ? styles.dragging : "",
+        landed ? styles.landed : "",
         app.stage === "rejected" ? styles.rejected : "",
       ].join(" ")}
       draggable

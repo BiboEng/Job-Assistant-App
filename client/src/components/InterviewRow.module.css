@@ -1,10 +1,10 @@
 /* Column template, shared with HomeScreen's `.columns` header:
-   role | answered | date | score, then the 40px action cell outside the
-   button. Keep the two in step. */
+   role | answered | date | score, then the 72px action cell (practice
+   again + delete) outside the button. Keep the two in step. */
 .row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-columns: minmax(0, 1fr) 72px;
   align-items: center;
   border-top: 1px solid var(--border);
   transition: background-color var(--dur) var(--ease);
@@ -86,6 +86,7 @@
 .actions {
   display: flex;
   justify-content: center;
+  gap: var(--sp-1);
 }
 
 .deleteBtn {
@@ -151,5 +152,16 @@
   }
   .title {
     max-width: none;
+  }
+}
+
+/* Hover nudges the role text 2px right — a hint that the row opens. On the
+   text, not the row: the row's .stagger entrance holds its own transform. */
+.role {
+  transition: transform var(--dur-slow) var(--ease);
+}
+@media (hover: hover) {
+  .row:hover .role {
+    transform: translateX(2px);
   }
 }

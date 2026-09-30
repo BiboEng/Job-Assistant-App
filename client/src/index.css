@@ -588,6 +588,11 @@ input[type="radio"] {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    /* Staggers and sequencing (list waterfalls, the chart's markers, the
+       landing reveal) are delays; without this, content would still arrive
+       late, just without the movement. */
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
   }
 }
 

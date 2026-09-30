@@ -145,9 +145,32 @@
 }
 
 .micOn {
+  position: relative;
   background: var(--danger-soft);
   border-color: var(--danger);
   color: var(--danger);
+}
+/* While recording, a ring breathes out from the button: the one perpetual
+   loop in the app, and only while the mic is actually live. Same 1.6s beat as
+   the rec dot. The global reduced-motion rule stops it after one pass. */
+.micOn::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--danger);
+  border-radius: inherit;
+  pointer-events: none;
+  animation: mic-ring 1.6s var(--ease) infinite;
+}
+@keyframes mic-ring {
+  from {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
 }
 
 /* --- notes / errors -------------------------------------------------------- */
@@ -196,6 +219,9 @@
 @media (prefers-reduced-motion: reduce) {
   .pulse {
     animation: none;
+  }
+  .micOn::after {
+    display: none;
   }
 }
 

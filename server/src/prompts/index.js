@@ -1,4 +1,5 @@
 import { config } from "../config.js";
+import { RUBRIC_DIMENSIONS } from "../rubric.js";
 
 const FOCUS_GUIDANCE = {
   mixed:
@@ -94,6 +95,9 @@ Return ONLY valid JSON (no markdown, no code fences) with exactly this shape:
 {
   "overallScore": <integer 0-100>,
   "summary": "<2-3 sentence overall assessment>",
+  "rubric": {
+${RUBRIC_DIMENSIONS.map((d) => `    "${d.key}": <integer 0-10>`).join(",\n")}
+  },
   "strengths": ["<short bullet>", ...],
   "weaknesses": ["<short bullet>", ...],
   "perQuestion": [
@@ -108,6 +112,9 @@ Return ONLY valid JSON (no markdown, no code fences) with exactly this shape:
 }
 ${delivery}
 Be fair but honest. Base scores on relevance to the role, specificity, structure, and depth.
+"rubric" rates the interview as a whole on each of those four, 0-10:
+${RUBRIC_DIMENSIONS.map((d) => `- ${d.key}: ${d.meaning}`).join("\n")}
+Rate each dimension on its own evidence; they need not agree with each other or with overallScore. The rubric is about the content of the answers only, like every score. Skipped answers count against every dimension.
 If an answer was empty or skipped, score it low and say so.`;
 }
 
@@ -140,8 +147,15 @@ export function jobMatchSystemPrompt() {
 Return ONLY valid JSON (no markdown, no code fences) with exactly this shape:
 {
   "matchScore": <integer 0-100>,
-  "reason": "<one sentence, max 24 words, on why this role does or doesn't fit>"
+  "reason": "<one sentence, max 24 words, on why this role does or doesn't fit>",
+  "why": "<max 2 short sentences, max 45 words: the specific skills, experience or results FROM THE RESUME that match what this posting asks for>",
+  "improve": "<max 2 short sentences, max 45 words: what the candidate could add to the resume to fit this posting better — a skill, tool, certification, project or measurable result the posting asks for that the resume doesn't show>"
 }
+
+Rules for "why" and "improve":
+- Speak to the candidate as "you" and name concrete things (e.g. "your React and TypeScript work at Acme"), never generic praise.
+- "why" cites only what is actually in the resume. If the fit is weak, say plainly what little overlaps.
+- "improve" points at what the posting explicitly asks for. Suggest surfacing experience they may already have but didn't list, or gaining it — never inventing it.
 
 Scoring guide:
 - 80-100: strong overlap in field, skills, and seniority.

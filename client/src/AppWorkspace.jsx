@@ -20,8 +20,11 @@ import ProgressScreen from "./screens/ProgressScreen.jsx";
 import TrackerScreen from "./screens/TrackerScreen.jsx";
 import { useAuth } from "./auth/AuthProvider.jsx";
 import { useSurvey } from "./survey/useSurvey.js";
-import { saveInterview } from "./api/historyApi.js";
+import Toast from "./components/Toast.jsx";
+import { getInterview, saveInterview } from "./api/historyApi.js";
+import { startInterview } from "./api/interviewApi.js";
 import { STORAGE_KEY, nextId } from "./constants.js";
+import { repeatSettings, roleHeadline } from "./utils/repeatInterview.js";
 import { PATHS } from "./routes.js";
 
 /**
@@ -60,6 +63,9 @@ import { PATHS } from "./routes.js";
  */
 
 const RESUMABLE = new Set([PATHS.chat, PATHS.results]);
+
+// `repeating` value for "Practice again" on the interview just finished.
+const CURRENT = "current";
 
 // Paths that need more than the standard reading-width column. The Resume
 // Builder is a side-by-side workspace, not a document.
@@ -126,6 +132,18 @@ export default function AppWorkspace() {
   const [messages, setMessages] = useState(persisted?.messages ?? []); // [{ id, role, text }]
   const [feedback, setFeedback] = useState(persisted?.feedback ?? null);
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
+  // The history id the finished interview was saved under, so "Practice
+  // again" on the results page still works for a session restored without
+  // its setup.
+  const [savedId, setSavedId] = useState(null);
+
+  // "Practice again" in flight: which source is starting (an interview id, or
+  // CURRENT for the interview just finished). One at a time.
+  const [repeating, setRepeating] = useState(null);
+  const [repeatError, setRepeatError] = useState("");
+  const repeatingRef = useRef(false);
+  // Stable, because Toast re-arms its dismiss timer whenever this changes.
+  const dismissRepeatError = useCallback(() => setRepeatError(""), []);
 
   // Last Job Matches result, kept at the workspace level so leaving the screen
   // and coming back doesn't throw away results (and re-spend model calls).
@@ -208,20 +226,17 @@ export default function AppWorkspace() {
     });
   }
 
-  function handleStarted({
-    sessionId,
-    question,
-    totalQuestions,
-    mode,
-    timeLimitSeconds,
-    role,
-    focus,
-  }) {
+  function handleStarted(
+    { sessionId, question, totalQuestions, mode, timeLimitSeconds, role, focus, setup },
+    { replace = true } = {}
+  ) {
     // `mode` comes from the server's response rather than what we asked for, and
     // rides on `session` so it survives the sessionStorage round-trip: a refresh
     // mid-interview has to come back into the same mode it left. `role` and
     // `focus` ride along for the same reason — the results screen needs to say
-    // which interview it is reporting on.
+    // which interview it is reporting on. `setup` is what it was started with
+    // (job description, count, focus, mode), so the results screen can offer
+    // "Practice again" without a round trip.
     setSession({
       sessionId,
       totalQuestions,
@@ -229,15 +244,73 @@ export default function AppWorkspace() {
       role: role || "",
       focus: focus || "",
       startedAt: Date.now(),
+      setup: setup || null,
     });
     setMessages([
       { id: nextId(), role: "interviewer", text: question, timeLimitSeconds },
     ]);
     setFeedback(null);
     setSaveState("idle");
-    // Replace, so Back from the live interview returns to the dashboard rather
-    // than to a setup form for an interview that has already started.
-    navigate(PATHS.chat, { replace: true });
+    setSavedId(null);
+    // Replace by default, so Back from the live interview returns to the
+    // dashboard rather than to a setup form for an interview that has already
+    // started. "Practice again" pushes instead (unless it came from a results
+    // page), so Back returns to the Progress or history page it started from.
+    navigate(PATHS.chat, { replace });
+  }
+
+  /**
+   * "Practice again": start a fresh interview in the same format as an earlier
+   * one — same job description, question count, focus and answer mode, new
+   * questions — without going through the setup form.
+   *
+   * `interviewId` is a saved interview (its record is fetched for the job
+   * description); null means the interview just finished, whose setup is
+   * already on the session. A speak-mode repeat asks for the camera on the
+   * interview screen, which falls back to typing if it's refused, exactly as
+   * a speak-mode interview whose permission lapses does.
+   */
+  async function practiceAgain(interviewId = null) {
+    if (repeatingRef.current) return;
+    repeatingRef.current = true;
+    setRepeating(interviewId ?? CURRENT);
+    setRepeatError("");
+    const fromResults = pathname === PATHS.results;
+    try {
+      let source = null;
+      if (interviewId) source = await getInterview(interviewId);
+      else if (session?.setup) source = session.setup;
+      else if (savedId) source = await getInterview(savedId);
+
+      const settings = repeatSettings(source);
+      if (!settings) {
+        throw new Error(
+          "This interview can't be repeated: its job description is missing or no longer valid. Start a new interview instead."
+        );
+      }
+
+      const data = await startInterview(settings.jobDescription, {
+        questionCount: settings.questionCount,
+        focus: settings.focus,
+        mode: settings.mode,
+      });
+      guarded(() =>
+        handleStarted(
+          {
+            ...data,
+            role: roleHeadline(settings.jobDescription),
+            focus: settings.focus,
+            setup: settings,
+          },
+          { replace: fromResults }
+        )
+      );
+    } catch (err) {
+      setRepeatError(`Couldn't start the interview: ${err.message}`);
+    } finally {
+      repeatingRef.current = false;
+      setRepeating(null);
+    }
   }
 
   function persistInterview(sessionId) {
@@ -245,7 +318,10 @@ export default function AppWorkspace() {
     savingIdRef.current = sessionId;
     setSaveState("saving");
     saveInterview(sessionId)
-      .then(() => setSaveState("saved"))
+      .then((record) => {
+        if (record?.id) setSavedId(record.id);
+        setSaveState("saved");
+      })
       .catch((err) => {
         console.warn("Could not save interview to history:", err.message);
         setSaveState("error");
@@ -345,6 +421,8 @@ export default function AppWorkspace() {
     openSurvey,
     survey,
     setLeaveGuard,
+    practiceAgain,
+    repeating,
   };
 
   return (
@@ -370,6 +448,15 @@ export default function AppWorkspace() {
           </Suspense>
         </div>
       </main>
+
+      {/* "Practice again" can be pressed from four screens; its failure is
+          reported here, once, rather than by each of them. */}
+      <Toast
+        message={repeatError}
+        tone="error"
+        duration={6000}
+        onDismiss={dismissRepeatError}
+      />
     </div>
   );
 }
@@ -386,6 +473,8 @@ export function DashboardRoute() {
     <HomeScreen
       onStartNew={w.startNew}
       onOpenInterview={w.openInterview}
+      onPracticeAgain={w.practiceAgain}
+      repeating={w.repeating}
       onFindJobs={w.openJobMatches}
       onBuildResume={w.openResumeBuilder}
       showSurveyPrompt={w.survey.shouldPrompt}
@@ -431,6 +520,8 @@ export function ResultsRoute() {
       session={w.session}
       saveState={w.saveState}
       onRetrySave={w.retrySave}
+      onPracticeAgain={() => w.practiceAgain(null)}
+      repeating={w.repeating}
       onRestart={w.startNew}
       onHome={w.goHome}
     />
@@ -448,6 +539,8 @@ export function HistoryDetailRoute() {
   return (
     <HistoryDetailScreen
       interviewId={interviewId}
+      onPracticeAgain={() => w.practiceAgain(interviewId)}
+      repeating={w.repeating}
       onBack={backToProgress ? () => navigate(from) : w.goHome}
       backLabel={backToProgress ? "Back to progress" : "Back to home"}
     />
@@ -493,6 +586,8 @@ export function ProgressRoute() {
     <ProgressScreen
       onStartNew={w.startNew}
       onOpenInterview={w.openInterview}
+      onPracticeAgain={w.practiceAgain}
+      repeating={w.repeating}
       selectedRole={params.get("role")}
       // Replace, not push: flipping between roles shouldn't fill the Back stack.
       onSelectRole={(key) => setParams({ role: key }, { replace: true })}

@@ -44,6 +44,9 @@ export default function SurveyScreen({ onDone, onExit }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [index, setIndex] = useState(0);
+  // Which way the last step went (1 next, -1 back, 0 not yet): the new card
+  // arrives from that side. 0 means the first question just fades with the page.
+  const [direction, setDirection] = useState(0);
   const [saving, setSaving] = useState(null); // null | "completed" | "dismissed"
   const [saveError, setSaveError] = useState("");
 
@@ -121,10 +124,12 @@ export default function SurveyScreen({ onDone, onExit }) {
   }
 
   function goNext() {
+    setDirection(1);
     setIndex((i) => Math.min(TOTAL_QUESTIONS - 1, i + 1));
   }
 
   function goBack() {
+    setDirection(-1);
     setIndex((i) => Math.max(0, i - 1));
   }
 
@@ -201,7 +206,11 @@ export default function SurveyScreen({ onDone, onExit }) {
           React rebuilds the controls rather than reusing a text input across
           two different questions — which would otherwise carry a caret, and a
           stale IME composition, from one to the next. */}
-      <div key={question.id} className={styles.card}>
+      <div
+        key={question.id}
+        className={`${styles.card} ${direction ? styles.cardStep : ""}`}
+        style={direction < 0 ? { "--step-from": "-12px" } : undefined}
+      >
         <h1 ref={headingRef} tabIndex={-1} id={HEADING_ID} className={styles.question}>
           {question.label}
         </h1>

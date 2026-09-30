@@ -292,6 +292,8 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
                 ...j,
                 matchScore: byId.get(j.id).matchScore,
                 reason: byId.get(j.id).reason,
+                why: byId.get(j.id).why || "",
+                improve: byId.get(j.id).improve || "",
                 settled: true,
               }
             : j
@@ -347,7 +349,9 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
       } catch {
         if (runIdRef.current !== runId) return;
         // Leave this batch unscored; the "Score remaining" button can retry.
-        mergeScores(batch.map((j) => ({ id: j.id, matchScore: null, reason: "" })));
+        mergeScores(
+          batch.map((j) => ({ id: j.id, matchScore: null, reason: "", why: "", improve: "" }))
+        );
       }
       completed += batch.length;
       setScoreProgress({ done: completed, total: pending.length, inFlight: 0 });

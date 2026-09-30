@@ -24,9 +24,16 @@ write to one shared document. See "Resume Builder" below.
 A fourth, **Progress**, turns the saved interview history into per-role score
 trends: interviews are grouped by the role they were for (the model names each
 one's role once; similar titles like "Front-End Developer" and "Frontend
-Engineer" land in the same group), and each role shows a score line plus the
-strengths and weaknesses that keep recurring across its feedback. No new data
-entry — the setup flow is unchanged. See "Progress" below.
+Engineer" land in the same group), and each role shows a score line, one small
+chart per answer-quality dimension (relevance, specificity, structure, depth —
+a rubric the evaluator now scores on every interview), the strengths and
+weaknesses that keep recurring across its feedback, and the role's interviews.
+No new data entry — the setup flow is unchanged. See "Progress" below.
+
+Any finished interview can be repeated with **Practice again**: same job
+description, question count, focus and answer mode, new questions, no setup
+form. It's on the results page, a saved interview's page, each dashboard
+history row and each Progress role. See "Practice again" below.
 
 A fifth, **Application Tracker** ("Applications" in the sidebar), is a Kanban
 board of the roles the user is pursuing — Saved → Applied → Interviewing →
@@ -72,6 +79,7 @@ mock-interview/
 │       ├── index.js                 app wiring: CORS, headers, rate limit, auth, routes
 │       ├── config.js                all env-driven config in one object
 │       ├── timeLimit.js             heuristic: question text → answer seconds (60–300)
+│       ├── rubric.js                the four answer-quality dimensions + normalizeRubric
 │       ├── routes/                  thin route → controller mapping
 │       ├── controllers/             request validation + orchestration
 │       ├── services/
@@ -127,7 +135,8 @@ mock-interview/
         │                            SiteFooter (Contact), VideoPlaceholder,
         │                            AppSkeleton (pre-render placeholder for protected pages),
         │                            ChatInput (voice/text), ChatMessage, FeedbackReport,
-        │                            InterviewRow, JobRow, ScoreTrendChart (Progress's SVG line),
+        │                            InterviewRow, JobRow, ScoreTrendChart (Progress's SVG lines),
+        │                            PracticeAgainButton (repeat an interview's format),
         │                            KanbanColumn, ApplicationCard, ApplicationDialog (tracker),
         │                            CameraPreview (speak-mode self-view), ResumePreview,
         │                            ResumeChatPanel, EditableText, and the shared primitives:
@@ -138,7 +147,9 @@ mock-interview/
         ├── utils/resumeExport.js    PDF / print-PDF / JPG / PNG / TXT (lazy html2canvas + jsPDF)
         ├── utils/deliveryMetrics.js pure: loudness samples → pause count/total + speaking time + wpm
         ├── utils/faceTracker.js     MediaPipe Face Landmarker → on-camera % (lazy, fails soft to null)
-        ├── utils/trendChart.js      pure: Progress chart geometry (fixed 0–100 y, per-interview x)
+        ├── utils/trendChart.js      pure: Progress chart geometry (fixed y domain, per-interview x)
+        ├── utils/rubric.js          pure: per-role answer-quality series + the weakest dimension
+        ├── utils/repeatInterview.js pure: saved interview / session setup → "Practice again" settings
         ├── hooks/useSpeechRecognition.js   Web Speech API wrapper, client-only
         └── hooks/useDeliveryCapture.js     owns the camera+mic stream, analyser and face tracker
     └── test/                        node:test unit tests for the pure utils (`npm test`)
@@ -168,7 +179,8 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
   `VITE_API_BASE_URL` (no proxy) or `VITE_API_TOKEN` (server has `API_TOKEN` set).
 - Tests: `cd server && npm test`, and `cd client && npm test` (node:test, no
   bundler — so it covers only what imports cleanly outside Vite: the pure utils
-  (`utils/deliveryMetrics.js`, `utils/trendChart.js`), the design-token contract, the survey's questions ↔
+  (`utils/deliveryMetrics.js`, `utils/trendChart.js`, `utils/rubric.js`,
+  `utils/repeatInterview.js`), the design-token contract, the survey's questions ↔
   migration ↔ row mapping, and the Application Tracker's model ↔ migration
   (`test/applications.test.js`). There is still no component/DOM test runner. Anything
   reading `import.meta.env` — the Supabase client, and so `survey/surveyApi.js`
@@ -227,8 +239,17 @@ declared (an undeclared token fails silently in the browser).
 - **Motion** is one curve (`--ease`, a long ease-out), transform + opacity
   only. Screens fade in (`.screen-enter` — opacity only, so it can never become a
   containing block for the Resume Builder's fixed fullscreen layer); lists with
-  `.stagger` rise in as a short waterfall; chat messages settle in. The only
-  perpetual loops are decorative ones on the landing page.
+  `.stagger` rise in as a short waterfall; chat messages settle in. Exits use
+  `--ease-in` / `--dur-exit` (faster than enters); popovers and toasts
+  `--dur-pop` from `--pop-scale`; "moments" (the report's score count-up via
+  `hooks/useCountUp.js`, the Progress line drawing in) `--dur-reveal`. Also:
+  SegmentedControl's sliding highlight, directional survey steps, Kanban cards
+  settling on a move, landing blocks revealing on scroll (`data-reveal`, only
+  hidden once the observer is attached). Keyframes live in each module —
+  CSS Modules hash keyframe names, so a module can't use one from `index.css`.
+  The only perpetual loops are decorative ones on the landing page and the
+  mic's ring while recording. The global reduced-motion rule also zeroes
+  delays, so staggered content doesn't arrive late.
 - **Page furniture:** `.page-sub` (one line under a page title), `.field` /
   `.field-label` / `.field-hint` / `.field-error` (label above, 8px gaps), and
   `.empty-state` (dashed box: icon, heading, one sentence, one action).
@@ -586,6 +607,40 @@ record keeps `mode` and `focus` too — the history detail page shows
 "3 questions · Technical · spoken". Records saved before that have none of
 the three.
 
+## Practice again
+
+A one-click repeat of a finished interview: **same job description, question
+count, focus and answer mode; new questions**; no setup form. Offered on the
+results page (its primary action), a saved interview's page, every dashboard
+history row (a repeat icon beside delete) and every Progress role (repeats that
+role's latest interview). All four render `components/PracticeAgainButton.jsx`
+and call `practiceAgain(id)` in `AppWorkspace`, which owns the one request in
+flight (`repeating`: the interview id, or `"current"` for the one just
+finished). While it runs, that button spins and reads "Starting…" and every
+other Practice again / New interview button is disabled; a failure is one error
+toast from `AppWorkspace`, not one per screen.
+
+- **Where the settings come from.** A saved interview: `GET /api/interviews/:id`
+  (`jobDescription`, `totalQuestions`, `focus`, `mode`). The interview just
+  finished: `session.setup`, which the setup screen puts on the session when it
+  starts one (it rides in the sessionStorage mirror); a restored session without
+  it falls back to the id its save returned. Either way `repeatSettings()`
+  (`utils/repeatInterview.js`, pure, tested) re-validates against today's
+  limits: an unknown focus or mode falls back to the default, the count is
+  clamped, and a job description that wouldn't pass the length check can't be
+  repeated (an error — never a silently truncated, different interview).
+- **The optional resume paste is not repeated** — history doesn't store it.
+- **Speak mode repeats as speak**: the interview screen asks for the camera and
+  falls back to typing if refused, exactly like a speak interview whose
+  permission lapses. There's no setup-screen explanation first; the candidate
+  saw it for the interview being repeated.
+- **History entries.** From the results page the new interview *replaces* the
+  results entry (Back must not land on a report whose state is gone);
+  everywhere else it's *pushed*, so Back returns to the Progress role or saved
+  interview it started from.
+- It's a new interview in every respect — a new session, its own score, its own
+  entry in history and in Progress.
+
 ## Job Matches
 
 Reached from the dashboard ("Find job matches") or the header nav. Route:
@@ -621,7 +676,11 @@ re-spend model calls.
 3. `POST /api/jobs/score` `{ resumeText, jobs: [...] }` — scores one small batch
    (≤ `JOB_MATCH_SCORE_BATCH_MAX`, default 4) against the resume, one model call
    each (`jobMatchSystemPrompt`, `JOB_MATCH_SCORE_CONCURRENCY` in parallel, in
-   the `jobs` pool). Returns `{ scores: [{ id, matchScore, reason }] }`. The
+   the `jobs` pool). Returns `{ scores: [{ id, matchScore, reason, why, improve }] }`
+   (`normalizeJobScore`): `reason` is the one-liner on the row; `why` (what in
+   the resume fits) and `improve` (what to add to fit better) fill the row's
+   "See why" panel, which only appears when either is non-empty — so results
+   cached before this field existed just show no toggle. The
    client (`JobMatchesScreen`) loops this a batch at a time, merging scores by
    id and re-rendering as each batch lands. A batch that fails leaves those jobs
    `null`; a "Score remaining" button retries them.
@@ -865,10 +924,43 @@ and no new data entry: the setup screen is exactly as it was.
 
 The screen is **per role only** — there is deliberately no combined view, since
 a data-analyst score says nothing about progress towards a frontend role. Left,
-the roles as a vertical tablist (title, interview count, latest date, latest
-score pill; a horizontal strip under 860px). Right, the selected role: a stats
-strip (latest / average / best / change since first), the score trend, and the
-recurring feedback.
+a sticky rail of roles as a vertical tablist (title + latest score pill, then
+interview count, latest date and a 0–100 sparkline; a horizontal strip under
+860px). Right, the selected role: a header (title, date range, and **Practice
+again**, which repeats the role's latest interview and says what it will
+repeat — "Same job description · 3 questions · Technical · typed"), a KPI strip
+(latest / average / best / change since first — "—" rather than a made-up
+value for a single interview), then four sections, each its own bordered
+surface with an icon, a title and a one-line explanation: **Overall score**
+(the trend chart), **Answer quality** (the rubric, below), **Recurring
+feedback**, and **Interviews** (the role's interviews newest first as dense
+rows: number, posting line, date and format, change from the one before,
+score).
+
+### Answer quality — the rubric
+
+The evaluator scores every interview on four fixed dimensions, 0–10 each —
+`relevance`, `specificity`, `structure`, `depth` — alongside `overallScore`
+(`server/src/rubric.js`, which also feeds the prompt their definitions).
+`normalizeRubric` keeps only those keys, clamps each, and makes a dimension the
+model skipped `null`; a rubric with nothing usable is `null` entirely. Stored
+as `feedback.rubric`. Like every score it's **content-only** (speak-mode
+delivery must not move it). The feedback report shows it as four labelled bars
+under the summary.
+
+Progress draws it as **small multiples**: one compact `ScoreTrendChart` per
+dimension on a fixed 0–10 domain (the `getValue` / `max` / `ticks` /
+`compact` props), each with its latest value and change since the first rated
+interview. One series per chart, so no legend and no categorical colours to
+keep apart. **Interviews saved before the rubric existed are not points** —
+never zeros, which would draw a collapse that didn't happen — and the section
+says "Based on 3 of 5 interviews" when some are missing; with none rated it
+says the ratings start with the next interview. A dimension with one rating
+shows a bar instead of a one-point line. The lowest-averaging dimension gets a
+"Focus next" note and an accent border (`weakestDimension`; none when they all
+tie). The four keys must match `RUBRIC_DIMENSIONS` in `client/src/constants.js`
+(`client/test/rubric.test.js` imports the server module and checks).
+Renaming or adding a dimension breaks the trend for everything already saved.
 
 ### Grouping interviews by role
 
@@ -918,11 +1010,14 @@ Two layers, because neither alone is good enough:
 
 `GET /api/progress` →
 `{ roles: [{ key, title, count, averageScore, bestScore, latestScore, change,
-latestAt, interviews: [{ id, createdAt, overallScore, jobTitle }] }], labelling }`.
+latestAt, interviews: [{ id, createdAt, overallScore, jobTitle, rubric, mode,
+focus, totalQuestions }] }], labelling }`.
 Groups are ordered by most recent interview; each group's interviews are oldest
 first. `change` (latest − first) is **`null` for a single interview**, never 0 —
 one data point has no trend. The payload carries no feedback text, answers or
-delivery data (a test asserts it).
+delivery data (a test asserts it) — `rubric` is four numbers, and `mode`,
+`focus` and `totalQuestions` are there so the page can say what Practice again
+repeats.
 
 ### Recurring feedback themes
 
@@ -1461,7 +1556,8 @@ Other guards already in place:
   `MAX_INTERVIEW_RESUME_LENGTH`), the question-count range, `INTERVIEW_FOCUSES` ↔
   `interviewFocuses`, `INTERVIEW_MODES` ↔ `interviewModes`, and
   `ADZUNA_COUNTRIES` ↔ `adzuna.supportedCountries`
-  (`server/test/countrySync.test.js` guards the last one).
+  (`server/test/countrySync.test.js` guards that one), and `RUBRIC_DIMENSIONS`
+  ↔ `server/src/rubric.js` (`client/test/rubric.test.js`).
 - CSS: see "Design system" above. Style through the tokens; no raw hex, font
   size, spacing or radius literal in module CSS. The resume sheet
   (`ResumePreview` / `EditableText`) is the one deliberate exception — it's

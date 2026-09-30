@@ -167,3 +167,14 @@ export function nextId() {
 // (PROGRESS_LABEL_WAIT_MS); a themes call is one model request that may retry
 // once on an unparseable reply, so it gets more headroom than the default.
 export const PROGRESS_REQUEST_TIMEOUT_MS = 90000;
+
+// The answer-quality rubric the evaluator scores every interview on, 0–10 per
+// dimension. `key` must match RUBRIC_DIMENSIONS in server/src/rubric.js
+// (client/test/rubric.test.js checks); label and hint are UI-only.
+export const RUBRIC_DIMENSIONS = [
+  { key: "relevance", label: "Relevance", hint: "Answers the question asked, for this role" },
+  { key: "specificity", label: "Specificity", hint: "Concrete examples, numbers and outcomes" },
+  { key: "structure", label: "Structure", hint: "Organised and easy to follow" },
+  { key: "depth", label: "Depth", hint: "Trade-offs and the reasoning behind decisions" },
+];
+export const RUBRIC_MAX = 10;

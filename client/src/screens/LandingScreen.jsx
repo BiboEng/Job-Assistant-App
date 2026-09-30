@@ -129,6 +129,29 @@ export default function LandingScreen() {
     heading?.focus({ preventScroll: true });
   }, [location.key, location.pathname]);
 
+  // Below-the-fold blocks marked `data-reveal` rise in once, the first time
+  // they scroll into view. The hidden starting state only applies once this
+  // has run (`data-reveal-ready` on <main>), so without IntersectionObserver —
+  // or before hydration — everything is simply visible.
+  const mainRef = useRef(null);
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.setAttribute("data-revealed", "");
+          io.unobserve(entry.target);
+        }
+      },
+      { rootMargin: "0px 0px -10% 0px", threshold: 0.1 }
+    );
+    main.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
+    main.setAttribute("data-reveal-ready", "");
+    return () => io.disconnect();
+  }, []);
+
   const primaryCta = user
     ? { to: PATHS.dashboard, label: "Open your dashboard" }
     : { to: `${PATHS.signIn}?mode=sign-up`, label: "Create an account" };
@@ -137,7 +160,12 @@ export default function LandingScreen() {
     <div className="public-site">
       <PublicHeader />
 
-      <main id="main-content" tabIndex={-1} className={`app-shell app-shell--public ${styles.page}`}>
+      <main
+        id="main-content"
+        ref={mainRef}
+        tabIndex={-1}
+        className={`app-shell app-shell--public ${styles.page}`}
+      >
         {/* --- hero -------------------------------------------------------- */}
         <section className={styles.hero} aria-labelledby="hero-heading">
           <div className={styles.heroCopy}>
@@ -175,7 +203,7 @@ export default function LandingScreen() {
 
         {/* --- about ------------------------------------------------------- */}
         <section id="about" className={styles.section} aria-labelledby="about-heading">
-          <div className={styles.sectionHead}>
+          <div className={styles.sectionHead} data-reveal="">
             <p className="eyebrow">About</p>
             <h2 id="about-heading" className={styles.sectionTitle} tabIndex={-1}>
               Everything between you and the offer
@@ -190,8 +218,13 @@ export default function LandingScreen() {
           {/* A bento, not three equal cards: the interview is the core of the
               product, so it gets the tall tile and the other two stack beside it. */}
           <ul className={styles.pillars}>
-            {ABOUT_PILLARS.map((p) => (
-              <li key={p.title} className={styles.pillar}>
+            {ABOUT_PILLARS.map((p, i) => (
+              <li
+                key={p.title}
+                className={styles.pillar}
+                data-reveal=""
+                style={{ "--reveal-delay": `${i * 80}ms` }}
+              >
                 {p.details && <ScoreTrend />}
                 <span className={styles.pillarIcon} aria-hidden="true">
                   <Icon name={p.icon} />
@@ -216,7 +249,7 @@ export default function LandingScreen() {
           className={styles.section}
           aria-labelledby="how-heading"
         >
-          <div className={styles.sectionHead}>
+          <div className={styles.sectionHead} data-reveal="">
             <p className="eyebrow">How it works</p>
             <h2 id="how-heading" className={styles.sectionTitle} tabIndex={-1}>
               Three tools, one short walkthrough each
@@ -233,6 +266,7 @@ export default function LandingScreen() {
                 id={f.id}
                 className={`${styles.walkthrough} ${i % 2 === 1 ? styles.flipped : ""}`}
                 aria-labelledby={`${f.id}-heading`}
+                data-reveal=""
               >
                 <div className={styles.walkCopy}>
                   <span className={styles.walkIndex} aria-hidden="true">
@@ -271,7 +305,7 @@ export default function LandingScreen() {
         </section>
 
         {/* --- closing call to action --------------------------------------- */}
-        <section className={styles.closing} aria-labelledby="closing-heading">
+        <section className={styles.closing} aria-labelledby="closing-heading" data-reveal="">
           <div>
             <h2 id="closing-heading" className={styles.closingTitle}>
               Ready for the real thing?

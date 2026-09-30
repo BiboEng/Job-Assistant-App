@@ -50,7 +50,7 @@
   display: block;
   height: 100%;
   transform-origin: left center;
-  animation: bar-in 700ms var(--ease) both;
+  animation: bar-in var(--dur-reveal) var(--ease) both;
 }
 
 @keyframes bar-in {
@@ -315,6 +315,19 @@
   display: none;
 }
 
+/* Opening fades the answer in and settles it a few pixels; the rows below
+   move at once. Closing is instant — quicker to get out of the way, and it
+   leaves the [hidden] contract above untouched. */
+.qBody:not([hidden]) {
+  animation: body-in var(--dur-pop) var(--ease) both;
+}
+@keyframes body-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
 .aText,
 .comment {
   margin: 0;
@@ -347,4 +360,63 @@
   .qChevron {
     display: none;
   }
+}
+
+/* --- answer-quality rubric --------------------------------------------------- */
+
+.rubric {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-4) var(--sp-6);
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .rubric {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.rubricItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.rubricLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
+}
+
+.rubricValue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
+.rubricMax {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.rubricBar {
+  display: block;
+  height: 4px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.rubricBar span {
+  display: block;
+  height: 100%;
+  transform-origin: left;
+  animation: bar-in var(--dur-reveal) var(--ease) both;
 }

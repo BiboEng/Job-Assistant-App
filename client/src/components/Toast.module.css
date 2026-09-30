@@ -21,6 +21,24 @@
   box-shadow: var(--shadow-popover);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
+  animation: toast-in var(--dur-pop) var(--ease) both;
+}
+.leaving {
+  pointer-events: none;
+  animation: toast-out var(--dur-exit) var(--ease-in) both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(var(--pop-scale));
+  }
+}
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(var(--pop-scale));
+  }
 }
 
 .success {

@@ -163,10 +163,25 @@ test("groupByRole carries no feedback text or delivery metrics", () => {
   assert.doesNotMatch(json, /wpm|delivery|strengths|weaknesses|answer/);
   assert.deepEqual(Object.keys(g.interviews[0]).sort(), [
     "createdAt",
+    "focus",
     "id",
     "jobTitle",
+    "mode",
     "overallScore",
+    "rubric",
+    "totalQuestions",
   ]);
+});
+
+test("groupByRole carries each interview's rubric as numbers, null when it has none", () => {
+  const withRubric = rec("a", 1, 60, "Data Analyst");
+  withRubric.feedback.rubric = { relevance: 7, specificity: "4", structure: 99, depth: null, extra: "x" };
+  withRubric.mode = "speak";
+  const [g] = groupByRole([withRubric, rec("b", 2, 70, "Data Analyst")]);
+  assert.deepEqual(g.interviews[0].rubric, { relevance: 7, specificity: 4, structure: 10, depth: null });
+  assert.equal(g.interviews[0].mode, "speak");
+  assert.equal(g.interviews[1].rubric, null);
+  assert.equal(g.interviews[1].mode, null);
 });
 
 test("groupByRole groups unlabelled interviews by their first line", () => {

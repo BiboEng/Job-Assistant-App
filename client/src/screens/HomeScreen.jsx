@@ -21,6 +21,8 @@ const SORTS = {
 export default function HomeScreen({
   onStartNew,
   onOpenInterview,
+  onPracticeAgain,
+  repeating = null,
   showSurveyPrompt = false,
   onTakeSurvey,
   onSkipSurvey,
@@ -239,6 +241,8 @@ export default function HomeScreen({
                   interview={it}
                   onOpen={() => onOpenInterview(it.id)}
                   onDelete={() => handleDelete(it.id)}
+                  onPracticeAgain={onPracticeAgain ? () => onPracticeAgain(it.id) : undefined}
+                  repeating={repeating}
                 />
               ))}
             </div>

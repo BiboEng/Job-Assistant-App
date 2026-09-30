@@ -167,3 +167,16 @@
     transition: none;
   }
 }
+
+/* Expanding: labels mount at once but the column is still growing, so they'd
+   show squeezed and ellipsed for the whole transition. They wait out most of
+   the width change, then fade in. (Collapsing unmounts them immediately.) */
+.label,
+.wordmark {
+  animation: label-in var(--dur-pop) var(--ease) var(--dur-fast) both;
+}
+@keyframes label-in {
+  from {
+    opacity: 0;
+  }
+}

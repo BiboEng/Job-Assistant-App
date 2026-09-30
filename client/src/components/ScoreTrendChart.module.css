@@ -42,11 +42,29 @@
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
+  /* pathLength="1" on the element makes one dash the whole line, so sliding
+     the offset from 1 to 0 draws it left to right. */
+  stroke-dasharray: 1;
+  animation: line-draw var(--dur-reveal) var(--ease-in-out) both;
+}
+@keyframes line-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .area {
   fill: var(--accent-softer);
   stroke: none;
+  animation: chart-fade var(--dur-reveal) var(--ease) both;
+}
+@keyframes chart-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 /* Markers carry a 2px surface ring so they stay legible where they sit on
@@ -56,6 +74,12 @@
   stroke: var(--surface);
   stroke-width: 2;
   transition: r var(--dur-fast) var(--ease);
+  /* Per-marker delay is set inline, timed to when the line reaches it. */
+  animation: chart-fade var(--dur-pop) var(--ease) both;
+}
+
+.endIn {
+  animation: chart-fade var(--dur-pop) var(--ease) var(--dur-reveal) both;
 }
 
 .dotActive {
@@ -131,4 +155,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tipMax {
+  margin-left: calc(-1 * var(--sp-2));
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+/* Small multiples: a narrower tooltip so it fits inside a quarter-width chart. */
+.compact .tooltip {
+  min-width: 120px;
+  max-width: 200px;
+}
+.compact .tipValue {
+  font-size: var(--fs-md);
 }

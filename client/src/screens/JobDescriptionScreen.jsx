@@ -14,6 +14,7 @@ import {
   INTERVIEW_MODES,
   DEFAULT_INTERVIEW_MODE,
 } from "../constants.js";
+import { roleHeadline } from "../utils/repeatInterview.js";
 import styles from "./JobDescriptionScreen.module.css";
 
 const COUNT_OPTIONS = [];
@@ -123,8 +124,10 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
       // the only place that has it, passes the headline along.
       onStarted({
         ...data,
-        role: (jd.split("\n").find((l) => l.trim()) || "").trim().slice(0, 80),
+        role: roleHeadline(jd),
         focus,
+        // What "Practice again" on the results page will repeat.
+        setup: { jobDescription: jd, questionCount, focus, mode: effectiveMode },
       });
     } catch (err) {
       setError(err.message);

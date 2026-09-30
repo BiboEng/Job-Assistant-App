@@ -55,3 +55,14 @@ test("xLabelIndices keeps first and last and thins the rest to fit", () => {
   assert.equal(thin[thin.length - 1], 19);
   assert.ok(thin.length <= 3);
 });
+
+test("a custom domain and accessor chart a 0-10 rubric dimension", () => {
+  const g = trendGeometry([{ value: 0 }, { value: 5 }, { value: 10 }], {
+    ...box,
+    max: 10,
+    ticks: [0, 5, 10],
+    value: (p) => p.value,
+  });
+  assert.deepEqual(g.coords.map((c) => c.y), [180, 100, 20]);
+  assert.deepEqual(g.ticks.map((t) => t.value), [0, 5, 10]);
+});

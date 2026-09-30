@@ -1,0 +1,35 @@
+.spin {
+  display: inline-flex;
+  animation: spin 900ms linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The compact square on history rows — the delete button's twin, but it
+   lights accent instead of danger. */
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-subtle);
+  transition: color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.iconBtn:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.iconBtn:disabled {
+  cursor: default;
+}
+.iconBtn[aria-busy="true"] {
+  color: var(--accent);
+}

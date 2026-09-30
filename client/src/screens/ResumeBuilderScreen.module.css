@@ -192,6 +192,16 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-popover);
+  /* Grows down from the Download button it hangs under. */
+  transform-origin: top right;
+  animation: menu-in var(--dur-pop) var(--ease) both;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--pop-scale));
+  }
 }
 
 .menuItem {

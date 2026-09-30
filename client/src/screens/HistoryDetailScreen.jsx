@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import FeedbackReport from "../components/FeedbackReport.jsx";
 import Icon from "../components/Icon.jsx";
+import PracticeAgainButton from "../components/PracticeAgainButton.jsx";
 import { getInterview } from "../api/historyApi.js";
 import { INTERVIEW_FOCUSES } from "../constants.js";
 import styles from "./HistoryDetailScreen.module.css";
@@ -27,7 +28,13 @@ function formatDateTime(ts) {
   });
 }
 
-export default function HistoryDetailScreen({ interviewId, onBack, backLabel = "Back to home" }) {
+export default function HistoryDetailScreen({
+  interviewId,
+  onBack,
+  backLabel = "Back to home",
+  onPracticeAgain,
+  repeating = null,
+}) {
   const [record, setRecord] = useState(null);
   const [error, setError] = useState("");
   const [jdOpen, setJdOpen] = useState(false);
@@ -67,6 +74,13 @@ export default function HistoryDetailScreen({ interviewId, onBack, backLabel = "
               <Icon name="printer" />
               Print / save PDF
             </button>
+          )}
+          {record && onPracticeAgain && (
+            <PracticeAgainButton
+              onClick={onPracticeAgain}
+              busy={repeating === interviewId}
+              disabled={repeating !== null}
+            />
           )}
         </div>
       </header>

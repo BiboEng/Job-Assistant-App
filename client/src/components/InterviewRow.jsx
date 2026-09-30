@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon from "./Icon.jsx";
+import PracticeAgainButton from "./PracticeAgainButton.jsx";
 import styles from "./InterviewRow.module.css";
 import { scoreBand } from "../utils/score.js";
 
@@ -13,11 +14,18 @@ function formatDate(ts) {
 
 /**
  * One saved interview as a table row: role + snippet, answered count, date,
- * score pill, and a delete control. The whole row (bar the delete button)
- * opens the report. Column widths live in HomeScreen.module.css's `.columns`
+ * score pill, then two controls: "Practice again" (same job description and
+ * format, new questions) and delete. The whole row (bar those two) opens the
+ * report. Column widths live in HomeScreen.module.css's `.columns`
  * header and are mirrored here — change them together.
  */
-export default function InterviewRow({ interview, onOpen, onDelete }) {
+export default function InterviewRow({
+  interview,
+  onOpen,
+  onDelete,
+  onPracticeAgain,
+  repeating = null,
+}) {
   const { title, snippet, createdAt, overallScore, answeredCount, totalQuestions } =
     interview;
   const band = scoreBand(overallScore);
@@ -85,15 +93,26 @@ export default function InterviewRow({ interview, onOpen, onDelete }) {
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            className={styles.deleteBtn}
-            onClick={() => setConfirming(true)}
-            aria-label={`Delete interview: ${name}`}
-            title="Delete"
-          >
-            <Icon name="trash" />
-          </button>
+          <>
+            {onPracticeAgain && (
+              <PracticeAgainButton
+                variant="icon"
+                name={name}
+                onClick={onPracticeAgain}
+                busy={repeating === interview.id}
+                disabled={repeating !== null}
+              />
+            )}
+            <button
+              type="button"
+              className={styles.deleteBtn}
+              onClick={() => setConfirming(true)}
+              aria-label={`Delete interview: ${name}`}
+              title="Delete"
+            >
+              <Icon name="trash" />
+            </button>
+          </>
         )}
       </div>
     </div>

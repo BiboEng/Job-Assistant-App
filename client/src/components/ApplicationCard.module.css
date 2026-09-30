@@ -32,6 +32,34 @@
   border-style: dashed;
 }
 
+/* A card mounts when the board loads, when it's added, and when it changes
+   column (a new parent is a new element) — so this one entrance covers all
+   three. The card just moved also settles: a slight scale-up and an aqua edge
+   that fades back to the normal border. */
+.card {
+  animation: card-in var(--dur-pop) var(--ease) both;
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.card.landed {
+  animation: card-land var(--dur-enter) var(--ease) both;
+}
+@keyframes card-land {
+  0% {
+    opacity: 0;
+    transform: scale(var(--pop-scale));
+    border-color: var(--accent);
+  }
+  40% {
+    opacity: 1;
+    border-color: var(--accent);
+  }
+}
+
 .rejected {
   background: var(--surface);
 }

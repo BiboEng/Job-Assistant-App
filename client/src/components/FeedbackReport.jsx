@@ -1,7 +1,9 @@
 import { useState } from "react";
 import Icon from "./Icon.jsx";
+import useCountUp from "../hooks/useCountUp.js";
 import { formatDuration } from "../utils/time.js";
 import { scoreBand, pctOf } from "../utils/score.js";
+import { RUBRIC_DIMENSIONS, RUBRIC_MAX } from "../constants.js";
 import styles from "./FeedbackReport.module.css";
 
 /**
@@ -24,9 +26,12 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
     strengths = [],
     weaknesses = [],
     perQuestion = [],
+    rubric = null,
   } = feedback || {};
 
   const overall = scoreBand(overallScore);
+  // Counts up in step with the bar beneath it; the aria-label keeps the value.
+  const shownScore = useCountUp(overallScore);
 
   // Weakest question opens by default — it's the one worth reading.
   const [open, setOpen] = useState(() => {
@@ -60,7 +65,7 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
             aria-label={`Overall score ${overallScore} out of 100, ${overall.label}`}
           >
             <span className={styles.scoreNum} style={{ color: overall.color }}>
-              {overallScore}
+              {shownScore}
             </span>
             <span className={styles.scoreMax}>/100</span>
           </div>
@@ -86,6 +91,8 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
           {summary && <p className={styles.summary}>{summary}</p>}
         </div>
       </section>
+
+      {rubric && <Rubric rubric={rubric} />}
 
       <div className={`${styles.section} ${styles.twoCol}`}>
         <PointList
@@ -113,7 +120,7 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
             </button>
           </div>
 
-          <div className={styles.qList}>
+          <div className={`${styles.qList} stagger`}>
             {perQuestion.map((q) => {
               const isOpen = open.has(q.questionNumber);
               const band = scoreBand(pctOf(q.score, 10));
@@ -196,6 +203,49 @@ export default function FeedbackReport({ feedback, title = "Your results" }) {
  * Strengths and weaknesses are told apart by colour and icon as well as by
  * title, so neither needs its heading read to be recognised.
  */
+/**
+ * The answer-quality rubric: four dimensions, each out of 10, as labelled
+ * bars. Reports saved before the rubric existed simply don't have it, and a
+ * dimension the evaluator skipped is left out rather than drawn as a zero.
+ * Progress charts these per role over time.
+ */
+function Rubric({ rubric }) {
+  const dims = RUBRIC_DIMENSIONS.filter(
+    (d) => typeof rubric[d.key] === "number" && Number.isFinite(rubric[d.key])
+  );
+  if (dims.length === 0) return null;
+  return (
+    <section className={styles.section}>
+      <h3 className={styles.subheading}>
+        <span className={styles.pointIcon} aria-hidden="true">
+          <Icon name="gauge" />
+        </span>
+        Answer quality
+      </h3>
+      <dl className={styles.rubric}>
+        {dims.map((d) => {
+          const value = Math.min(RUBRIC_MAX, Math.max(0, rubric[d.key]));
+          const band = scoreBand(pctOf(value, RUBRIC_MAX));
+          return (
+            <div key={d.key} className={styles.rubricItem} title={d.hint}>
+              <dt className={styles.rubricLabel}>{d.label}</dt>
+              <dd className={styles.rubricValue}>
+                <span className="mono">
+                  {value}
+                  <span className={styles.rubricMax}>/{RUBRIC_MAX}</span>
+                </span>
+                <span className={styles.rubricBar} aria-hidden="true">
+                  <span style={{ transform: `scaleX(${value / RUBRIC_MAX})`, background: band.color }} />
+                </span>
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </section>
+  );
+}
+
 function PointList({ tone, icon, title, items, emptyText }) {
   return (
     <div className={`${styles.points} ${styles[tone]}`}>

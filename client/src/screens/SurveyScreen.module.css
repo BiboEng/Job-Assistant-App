@@ -66,6 +66,18 @@
   min-height: 268px;
 }
 
+/* Each new question slides a short way in from the direction of travel
+   (--step-from, flipped inline for Back). Opacity carries most of it. */
+.cardStep {
+  animation: step-in var(--dur-pop) var(--ease) both;
+}
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--step-from));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fill {
     transition: none;

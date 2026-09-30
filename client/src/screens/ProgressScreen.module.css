@@ -12,22 +12,46 @@
   color: var(--text-muted);
 }
 
-/* --- two panes: role list | selected role --------------------------------- */
+/* --- two panes: role rail | selected role ---------------------------------- */
 
 .layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: var(--sp-5);
+  grid-template-columns: 272px minmax(0, 1fr);
+  gap: var(--sp-6);
   align-items: start;
 }
 
 @media (max-width: 860px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-4);
   }
 }
 
-/* --- role list: dense rows in one bordered surface, like every list here --- */
+/* --- role rail -------------------------------------------------------------- */
+
+/* Sticky, so the role list stays in reach while a long role page scrolls. */
+.rail {
+  position: sticky;
+  top: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.railHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0 var(--sp-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
+}
 
 /* position: relative makes this the containing block for the pills' sr-only
    text, so it is clipped by the narrow strip's overflow instead of escaping it
@@ -42,14 +66,16 @@
   overflow: hidden;
 }
 
+/* Two rows: title | latest score, then meta | sparkline — so the title gets
+   the full width instead of sharing it with the sparkline. */
 .roleTab {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
+  gap: 2px var(--sp-3);
   width: 100%;
   min-height: var(--row-height);
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4);
   border: none;
   border-radius: 0;
   background: transparent;
@@ -74,13 +100,6 @@
   box-shadow: inset 2px 0 0 var(--accent), var(--inner-highlight);
 }
 
-.roleMain {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
 .roleTitle {
   font-size: var(--fs-md);
   font-weight: var(--fw-medium);
@@ -90,14 +109,41 @@
   white-space: nowrap;
 }
 
+/* As tall as the sparkline, so a role without one is the same height. */
 .roleMeta {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
   color: var(--text-subtle);
+  white-space: nowrap;
 }
 
+/* The rail's sparkline: recessive until its role is selected. */
+.spark {
+  justify-self: end;
+  overflow: visible;
+}
+.spark polyline {
+  fill: none;
+  stroke: var(--text-subtle);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.spark circle {
+  fill: var(--text-subtle);
+}
+.roleTabActive .spark polyline {
+  stroke: var(--accent);
+}
+.roleTabActive .spark circle {
+  fill: var(--accent);
+}
 .pill {
   display: inline-flex;
+  justify-self: end;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -111,6 +157,12 @@
 
 /* Narrow: the role list becomes a horizontal strip above the panel. */
 @media (max-width: 860px) {
+  .rail {
+    position: static;
+  }
+  .railHead {
+    display: none;
+  }
   .roleList {
     flex-direction: row;
     overflow-x: auto;
@@ -119,7 +171,7 @@
   .roleTab {
     flex: 0 0 auto;
     width: auto;
-    max-width: 260px;
+    max-width: 280px;
   }
   .roleTab + .roleTab {
     border-top: none;
@@ -132,28 +184,38 @@
 
 /* --- the selected role ---------------------------------------------------- */
 
-.panel {
+.main {
   display: flex;
   flex-direction: column;
+  gap: var(--sp-4);
   min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--inner-highlight);
 }
 
-.panelHead {
+.roleHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--sp-2);
+}
+
+.roleHeadText {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
-  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  min-width: 0;
+}
+.roleHeadText :global(.eyebrow) {
+  margin: 0;
 }
 
 .panelTitle {
   margin: 0;
-  font-size: var(--fs-xl);
+  font-size: var(--fs-2xl);
   font-weight: var(--fw-semibold);
   letter-spacing: var(--ls-tight);
+  line-height: var(--lh-tight);
 }
 
 .panelMeta {
@@ -163,40 +225,60 @@
   color: var(--text-subtle);
 }
 
-/* Stats strip: mono figures divided by hairlines, as on Home. */
-.stats {
+.repeat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-1);
+}
+
+.repeatHint {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+@media (max-width: 640px) {
+  .repeat {
+    align-items: flex-start;
+  }
+}
+
+/* KPI strip: one bordered surface, mono figures divided by hairlines. */
+.kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--inner-highlight);
 }
 
-.stat {
+.kpi {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
-  padding: var(--sp-3) var(--sp-5);
+  gap: var(--sp-2);
+  padding: var(--sp-4);
   min-width: 0;
 }
-.stat + .stat {
+.kpi + .kpi {
   border-left: 1px solid var(--border);
 }
 
-/* Two by two on a phone, ruled like Home's strip. */
+/* Two by two on a phone. */
 @media (max-width: 640px) {
-  .stats {
+  .kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .stat:nth-child(3) {
+  .kpi:nth-child(3) {
     border-left: none;
   }
-  .stat:nth-child(n + 3) {
+  .kpi:nth-child(n + 3) {
     border-top: 1px solid var(--border);
   }
 }
 
-.statLabel {
+.kpiLabel {
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
   text-transform: uppercase;
@@ -204,7 +286,10 @@
   color: var(--text-subtle);
 }
 
-.statValue {
+.kpiValue {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   margin: 0;
   font-family: var(--font-mono);
   font-size: var(--fs-2xl);
@@ -212,34 +297,89 @@
   line-height: var(--lh-tight);
   color: var(--text);
 }
+
+.kpiBand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-normal);
+  color: var(--text-muted);
+}
+
+/* A band's colour rides on a mark beside the label, never on the text. */
+.swatch {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+}
+
 .up {
   color: var(--band-strong);
 }
 .down {
   color: var(--band-weak);
 }
-
-.block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-5);
-}
-.block + .block {
-  border-top: 1px solid var(--border);
-}
-
-.blockTitle {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: var(--fs-2xs);
-  font-weight: var(--fw-medium);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-wide);
+.flat {
   color: var(--text-muted);
 }
 
-.singleTrend {
+/* --- sections: one bordered surface each, a labelled header row ----------- */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--inner-highlight);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.sectionTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--text);
+}
+.sectionTitle svg {
+  color: var(--accent);
+}
+
+.sectionSub {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+}
+
+.placeholder {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -250,7 +390,7 @@
   font-size: var(--fs-sm);
   color: var(--text-muted);
 }
-.singleTrend p {
+.placeholder p {
   margin: 0;
 }
 
@@ -260,12 +400,140 @@
   color: var(--text-muted);
 }
 
+.none {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-subtle);
+}
+
+/* --- answer quality ------------------------------------------------------- */
+
+.qualityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+@media (max-width: 640px) {
+  .qualityGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dim {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+/* The dimension "Focus next" points at. */
+.dimFocus {
+  border-color: var(--accent-border);
+}
+
+.dimHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.dimName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dimTitle {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
+.dimHint {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+  color: var(--text-subtle);
+}
+
+.dimFigure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.dimValue {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  color: var(--text);
+}
+
+.dimMax {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.dimChange {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-muted);
+}
+
+/* One rated interview: a plain bar out of 10 instead of a one-point chart. */
+.meter {
+  height: 6px;
+  margin: var(--sp-2) 0 var(--sp-2);
+  border-radius: var(--radius-xs);
+  background: var(--border);
+  overflow: hidden;
+}
+.meter span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-xs);
+  background: var(--accent);
+}
+
+.focusNote {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  background: var(--accent-softer);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-muted);
+}
+.focusNote svg {
+  margin-top: 2px;
+  color: var(--accent);
+}
+.focusNote strong {
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
 /* --- themes ---------------------------------------------------------------- */
 
 .themeGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-5);
+  gap: var(--sp-6);
 }
 
 @media (max-width: 640px) {
@@ -286,9 +554,17 @@
   align-items: center;
   gap: var(--sp-2);
   margin: 0;
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
   color: var(--text);
+}
+.themeHeadGood svg {
+  color: var(--band-strong);
+}
+.themeHeadWeak svg {
+  color: var(--band-weak);
 }
 
 .themes {
@@ -364,12 +640,6 @@
   color: var(--text);
 }
 
-.none {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--text-subtle);
-}
-
 .once {
   margin: 0;
   font-size: var(--fs-xs);
@@ -383,14 +653,94 @@
   font-size: var(--fs-2xs);
 }
 
+/* --- the role's interviews: dense rows, like Home's history ---------------- */
+
+/* The rows run edge to edge of the section, so pull them out of its padding. */
+.history {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--sp-4)) calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5));
+  padding: 0;
+  list-style: none;
+}
+.history li + li {
+  border-top: 1px solid var(--border);
+}
+.history li:last-child .historyRow {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 40px auto 16px;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: var(--row-height);
+  padding: var(--sp-2) var(--sp-5);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  transition: background-color var(--dur) var(--ease);
+}
+.historyRow:hover {
+  background: var(--surface-raised);
+}
+.historyRow:focus-visible {
+  outline-offset: -2px;
+}
+.historyRow > svg {
+  color: var(--text-subtle);
+}
+
+.historyN {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.historyMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.historyTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.historyMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+.historyMeta time {
+  font-family: var(--font-mono);
+}
+
+.historyDelta {
+  font-size: var(--fs-xs);
+  text-align: right;
+}
+
 /* --- loading / empty -------------------------------------------------------- */
 
 .skelRole {
   height: var(--row-height);
-  border-radius: 0;
+  border-radius: var(--radius-md);
 }
-.skelRole + .skelRole {
-  border-top: 1px solid var(--border);
+
+.skelHead {
+  height: 72px;
+  border-radius: var(--radius-lg);
 }
 
 .skelPanel {

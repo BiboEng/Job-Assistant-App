@@ -1,3 +1,4 @@
+import { useEffect, useId, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import styles from "./JobRow.module.css";
 import { scoreBand } from "../utils/score.js";
@@ -20,6 +21,11 @@ import { relativeDay } from "../utils/time.js";
  * card in the tracker's Saved column. It sits above the stretched link, like
  * any control inside the row. Once tracked it becomes "Tracked", which opens
  * the board.
+ *
+ * "See why" (once scored, when the model supplied `why` / `improve`) expands a
+ * panel under the row: what in the resume matches the posting, and what the
+ * user could add to fit it better. The panel sits above the stretched link, so
+ * reading or selecting its text doesn't open the posting.
  */
 
 const TRACK_LABEL = {
@@ -38,9 +44,23 @@ const STALE_AFTER_DAYS = 60;
 export default function JobRow({ job, scoring = false, trackState, onTrack, onOpenTracker }) {
   const { company, title, location, salary, url, source, matchScore, reason, postedAt } =
     job;
+  const why = job.why || "";
+  const improve = job.improve || "";
   const scored = Number.isFinite(matchScore);
+  const explainable = scored && Boolean(why || improve);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const explainId = `job-why-${useId()}`;
   const band = scored ? scoreBand(matchScore) : null;
   const posted = relativeDay(postedAt);
+
+  // A score that arrives while you watch pops in; one restored from the cache
+  // (never seen scoring in this mount) just sits there.
+  const [landed, setLanded] = useState(false);
+  const wasScoring = useRef(scoring);
+  useEffect(() => {
+    if (wasScoring.current && !scoring) setLanded(true);
+    wasScoring.current = scoring;
+  }, [scoring]);
 
   const postedMs = postedAt ? new Date(postedAt).getTime() : NaN;
   const stale =
@@ -50,7 +70,9 @@ export default function JobRow({ job, scoring = false, trackState, onTrack, onOp
   return (
     <li className={`${styles.row} ${trackState ? styles.trackable : ""}`}>
       <span
-        className={`${styles.pill} ${scoring ? styles.pillLoading : ""} mono`}
+        className={`${styles.pill} ${scoring ? styles.pillLoading : ""} ${
+          landed ? styles.pillLanded : ""
+        } mono`}
         style={band ? { color: band.color, background: band.soft } : undefined}
         title={scoring ? "Scoring…" : band ? band.label : "Couldn't score this role"}
         aria-label={
@@ -81,13 +103,32 @@ export default function JobRow({ job, scoring = false, trackState, onTrack, onOp
             </>
           )}
         </p>
-        {reason ? (
-          <p className={styles.reason} title={reason}>
-            {reason}
-          </p>
-        ) : (
-          !scoring &&
-          !scored && <p className={styles.reason}>Couldn't score this role.</p>
+        {(reason || explainable) && (
+          <div className={`${styles.reasonLine} ${landed ? styles.reasonLanded : ""}`}>
+            {reason && (
+              <p className={styles.reason} title={reason}>
+                {reason}
+              </p>
+            )}
+            {explainable && (
+              <button
+                type="button"
+                className={`link-btn ${styles.whyToggle}`}
+                aria-expanded={explainOpen}
+                aria-controls={explainId}
+                onClick={() => setExplainOpen((o) => !o)}
+              >
+                {explainOpen ? "Hide" : "See why"}
+                <Icon
+                  name="chevronDown"
+                  className={`${styles.whyChevron} ${explainOpen ? styles.whyChevronOpen : ""}`}
+                />
+              </button>
+            )}
+          </div>
+        )}
+        {!reason && !scoring && !scored && (
+          <p className={styles.reason}>Couldn't score this role.</p>
         )}
       </div>
 
@@ -126,6 +167,29 @@ export default function JobRow({ job, scoring = false, trackState, onTrack, onOp
       )}
 
       <Icon name="arrowUpRight" className={styles.linkIcon} />
+
+      {explainable && explainOpen && (
+        <div id={explainId} className={styles.explain} role="region" aria-label={`Why ${title} matches your resume`}>
+          {why && (
+            <section className={styles.explainBlock}>
+              <h4 className={`${styles.explainHead} ${styles.explainFits}`}>
+                <Icon name="check" />
+                Why it fits your resume
+              </h4>
+              <p className={styles.explainText}>{why}</p>
+            </section>
+          )}
+          {improve && (
+            <section className={styles.explainBlock}>
+              <h4 className={`${styles.explainHead} ${styles.explainImprove}`}>
+                <Icon name="plus" />
+                What to add to fit it better
+              </h4>
+              <p className={styles.explainText}>{improve}</p>
+            </section>
+          )}
+        </div>
+      )}
     </li>
   );
 }

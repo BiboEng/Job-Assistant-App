@@ -40,6 +40,30 @@
   background: var(--accent-softer);
 }
 
+/* The moment a score lands mid-run: a small overshoot, and the reason line
+   fades in behind it. */
+.pillLanded {
+  animation: pill-land var(--dur-enter) var(--ease) both;
+}
+@keyframes pill-land {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+.reasonLanded {
+  animation: reason-in var(--dur-enter) var(--ease) 80ms both;
+}
+@keyframes reason-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* --- main -------------------------------------------------------------------- */
 
 .main {
@@ -113,6 +137,89 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The reason line plus its "See why" toggle. The toggle sits above the
+   stretched link so clicking it doesn't open the posting. */
+.reasonLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.reasonLine > .reason {
+  min-width: 0;
+}
+
+.whyToggle {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-shrink: 0;
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.whyChevron {
+  transition: transform var(--dur) var(--ease);
+}
+.whyChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* --- "See why" panel: a full-width well under the row ------------------------ */
+
+.explain {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sp-4);
+  margin-left: calc(40px + var(--sp-4));
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: auto;
+  animation: explain-in var(--dur-pop) var(--ease) both;
+}
+@keyframes explain-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.explainBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.explainHead {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0;
+}
+.explainFits {
+  color: var(--good);
+}
+.explainImprove {
+  color: var(--accent);
+}
+
+.explainText {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-muted);
 }
 
 /* --- right-hand cells -------------------------------------------------------- */
@@ -194,5 +301,19 @@
   }
   .salary:empty {
     display: none;
+  }
+  .explain {
+    margin-left: 0;
+  }
+}
+
+/* Hover nudges the text column 2px right — a hint that the row is live. On
+   .main, not the row: the row's .stagger entrance holds its own transform. */
+.main {
+  transition: transform var(--dur-slow) var(--ease);
+}
+@media (hover: hover) {
+  .row:hover .main {
+    transform: translateX(2px);
   }
 }

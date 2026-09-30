@@ -3,6 +3,20 @@
   padding-bottom: var(--sp-9);
 }
 
+/* Scroll reveal: blocks rise in once as they enter the viewport. Hidden only
+   once the observer is attached (data-reveal-ready), so nothing can be stuck
+   invisible. Pillars stagger via an inline --reveal-delay, which applies to the
+   reveal only — their hover border keeps its own instant timing. */
+.page[data-reveal-ready] [data-reveal] {
+  transition: opacity var(--dur-enter) var(--ease) var(--reveal-delay),
+    transform var(--dur-enter) var(--ease) var(--reveal-delay),
+    border-color var(--dur) var(--ease);
+}
+.page[data-reveal-ready] [data-reveal]:not([data-revealed]) {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
 /* Sections scrolled to from the nav clear the sticky header. */
 .section,
 .walkthrough {
