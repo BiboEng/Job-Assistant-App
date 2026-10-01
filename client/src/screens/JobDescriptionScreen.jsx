@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { startInterview } from "../api/interviewApi.js";
 import Icon from "../components/Icon.jsx";
 import SegmentedControl from "../components/SegmentedControl.jsx";
@@ -15,6 +15,9 @@ import {
   DEFAULT_INTERVIEW_MODE,
 } from "../constants.js";
 import { roleHeadline } from "../utils/repeatInterview.js";
+import UpgradeNotice from "../components/UpgradeNotice.jsx";
+import { isPlanError } from "../billing/planErrors.js";
+import { isExhausted, remainingLabel } from "../billing/usePlan.js";
 import styles from "./JobDescriptionScreen.module.css";
 
 const COUNT_OPTIONS = [];
@@ -32,6 +35,39 @@ const FOCUS_OPTIONS = INTERVIEW_FOCUSES.map((f) => ({
   label: f.short || f.label,
   hint: f.hint,
 }));
+
+/** ["a", "b", "c"] → "a, b and c" */
+function listJoin(items) {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+function capitalise(text) {
+  return text ? text[0].toUpperCase() + text.slice(1) : text;
+}
+
+/**
+ * The option lists with the plan's locks applied: an option the plan doesn't
+ * include stays visible (so it can be discovered) but is disabled, with a
+ * padlock and a hint naming the plan that has it. No `limits` (still loading,
+ * or plans not switched on) locks nothing — the server has the final say.
+ */
+function withPlanLocks(limits) {
+  if (!limits) return { count: COUNT_OPTIONS, mode: MODE_OPTIONS, focus: FOCUS_OPTIONS };
+  const lock = (o, allowed, hint) =>
+    allowed ? o : { ...o, disabled: true, locked: true, hint };
+  return {
+    count: COUNT_OPTIONS.map((o) =>
+      lock(o, o.value <= limits.maxQuestions, `Up to ${limits.maxQuestions} questions on your plan. Pro allows up to 6.`)
+    ),
+    mode: MODE_OPTIONS.map((o) =>
+      lock(o, o.value !== "speak" || limits.speakMode, "Speak mode is part of Pro and Ultimate.")
+    ),
+    focus: FOCUS_OPTIONS.map((o) =>
+      lock(o, limits.focuses.includes(o.value), `${o.label} interviews are part of Pro and Ultimate.`)
+    ),
+  };
+}
 
 // Offered as a one-click filler so someone who wants to try the app doesn't
 // have to go and find a real posting first.
@@ -53,7 +89,26 @@ What we're looking for
 
 Nice to have: TypeScript, Storybook, visual regression testing, prior design-system work at scale.`;
 
-export default function JobDescriptionScreen({ onStarted, onBack }) {
+export default function JobDescriptionScreen({
+  onStarted,
+  onBack,
+  limits = null,
+  usage = null,
+  onOpenPlans,
+  onPlanError,
+}) {
+  const options = withPlanLocks(limits);
+  const outOfInterviews = isExhausted(usage, "interviews");
+  const interviewsLeft = remainingLabel(usage, "interviews", "interviews");
+  // Anything the plan doesn't include, named once under the options.
+  const lockedFeatures = limits
+    ? [
+        !limits.speakMode && "speak mode",
+        limits.maxQuestions < QUESTION_COUNT_MAX && `${limits.maxQuestions + 1}–${QUESTION_COUNT_MAX} questions`,
+        limits.focuses.length < INTERVIEW_FOCUSES.length && "Technical and System design interviews",
+      ].filter(Boolean)
+    : [];
+  const [planError, setPlanError] = useState("");
   const [text, setText] = useState("");
   const [questionCount, setQuestionCount] = useState(QUESTION_COUNT_DEFAULT);
   const [focus, setFocus] = useState(INTERVIEW_FOCUSES[0].value);
@@ -96,6 +151,17 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
     setMode("type");
   }
 
+  // The plan can arrive after the form has rendered. If an option picked in
+  // the meantime turns out to be locked, fall back to one the plan includes
+  // rather than leaving a disabled choice selected.
+  useEffect(() => {
+    if (!limits) return;
+    if (questionCount > limits.maxQuestions) setQuestionCount(limits.maxQuestions);
+    if (!limits.focuses.includes(focus)) setFocus(limits.focuses[0] ?? "mixed");
+    if (mode === "speak" && !limits.speakMode) chooseMode("type");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [limits]);
+
   const trimmedLength = text.trim().length;
   const touched = trimmedLength > 0;
   const tooShort = trimmedLength < MIN_JD_LENGTH;
@@ -107,10 +173,11 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (invalid || loading) return;
+    if (invalid || loading || outOfInterviews) return;
 
     setLoading(true);
     setError("");
+    setPlanError("");
     try {
       const jd = text.trim();
       const data = await startInterview(jd, {
@@ -130,7 +197,12 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
         setup: { jobDescription: jd, questionCount, focus, mode: effectiveMode },
       });
     } catch (err) {
-      setError(err.message);
+      if (isPlanError(err)) {
+        setPlanError(err.message);
+        onPlanError?.();
+      } else {
+        setError(err.message);
+      }
       setLoading(false);
     }
   }
@@ -178,6 +250,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
             <span>{error}</span>
           </div>
         )}
+        {planError && <UpgradeNotice message={planError} onOpenPlans={onOpenPlans} />}
 
         <label className="sr-only" htmlFor="jd-input">
           Job description
@@ -215,7 +288,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
             <div className={styles.optionField}>
               <span className={styles.optionLabel}>Questions</span>
               <SegmentedControl
-                options={COUNT_OPTIONS}
+                options={options.count}
                 value={questionCount}
                 onChange={setQuestionCount}
                 ariaLabel="Number of questions"
@@ -227,7 +300,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
           <div className={styles.optionField}>
             <span className={styles.optionLabel}>How you'll answer</span>
             <SegmentedControl
-              options={MODE_OPTIONS}
+              options={options.mode}
               value={mode}
               onChange={chooseMode}
               ariaLabel="How you'll answer"
@@ -281,7 +354,7 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
           <div className={styles.optionField}>
             <span className={styles.optionLabel}>Focus</span>
             <SegmentedControl
-              options={FOCUS_OPTIONS}
+              options={options.focus}
               value={focus}
               onChange={setFocus}
               ariaLabel="Interview focus"
@@ -338,7 +411,24 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
               Add your resume (optional)
             </button>
           )}
+
+          {lockedFeatures.length > 0 && (
+            <UpgradeNotice
+              compact
+              message={`${capitalise(listJoin(lockedFeatures))} ${
+                lockedFeatures.length === 1 ? "is" : "are"
+              } part of Pro and Ultimate.`}
+              onOpenPlans={onOpenPlans}
+            />
+          )}
         </fieldset>
+
+        {outOfInterviews && (
+          <UpgradeNotice
+            message="You've used today's interviews. The count resets at midnight UTC, or upgrade for more a day."
+            onOpenPlans={onOpenPlans}
+          />
+        )}
 
         <div className={styles.footer}>
           <span className={styles.summary}>
@@ -346,8 +436,18 @@ export default function JobDescriptionScreen({ onStarted, onBack }) {
             {focusMeta?.short || focusMeta?.label} ·{" "}
             {effectiveMode === "speak" ? "spoken" : "typed"}
             {resume.trim() ? " · with your resume" : ""}
+            {interviewsLeft && (
+              <span className={styles.remaining}>
+                {" · "}
+                {interviewsLeft}
+              </span>
+            )}
           </span>
-          <button type="submit" className="btn-primary" disabled={invalid || loading}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={invalid || loading || outOfInterviews}
+          >
             {loading ? (
               "Starting…"
             ) : (

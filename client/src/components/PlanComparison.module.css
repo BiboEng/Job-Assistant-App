@@ -1,0 +1,252 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+.intervalRow {
+  display: flex;
+  justify-content: center;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+@media (max-width: 880px) {
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
+}
+
+/* Pro is the plan most people practising for a real search want. */
+.featured {
+  border-color: var(--accent-border);
+}
+
+.current {
+  background: var(--accent-softer);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.name {
+  margin: 0;
+  font-size: var(--fs-xl);
+  color: var(--text);
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-xs);
+  padding: 0 var(--sp-1);
+}
+
+.pitch {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-height: var(--control-height);
+}
+
+.amount {
+  font-size: var(--fs-2xl);
+  color: var(--text);
+  letter-spacing: var(--ls-tight);
+}
+
+.per {
+  color: var(--text-subtle);
+  font-size: var(--fs-sm);
+}
+
+.unavailable {
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+}
+
+.priceNote {
+  margin: 0;
+  min-height: 2lh;
+  color: var(--text-subtle);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+}
+
+.highlights {
+  list-style: none;
+  margin: 0;
+  padding: var(--sp-3) 0 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  flex: 1;
+  font-size: var(--fs-sm);
+  color: var(--text);
+}
+
+.highlights li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+
+.highlights li > :first-child {
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-top: var(--sp-2);
+}
+
+/* --- the full table ------------------------------------------------------ */
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.table {
+  width: 100%;
+  min-width: 560px;
+  /* Equal plan columns, whatever their text: the table reads across, plan by
+     plan, the same way the cards above it do. */
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.table thead th:first-child {
+  width: 31%;
+}
+
+.table th,
+.table td {
+  padding: var(--sp-3) var(--sp-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table thead th {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
+}
+
+.table tbody th {
+  font-weight: var(--fw-normal);
+  color: var(--text-muted);
+  min-width: 16ch;
+}
+
+.table td {
+  color: var(--text);
+  min-width: 12ch;
+}
+
+.yes {
+  color: var(--accent);
+}
+
+.no {
+  color: var(--text-subtle);
+}
+
+.footnote {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: var(--fs-xs);
+}
+
+.yes,
+.no {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+/* --- the landing page's folded table (collapseTable) ---------------------- */
+
+.disclosure {
+  border-top: 1px solid var(--border);
+}
+
+.disclosureSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+  padding: var(--sp-1) 0;
+  color: var(--secondary);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius-sm);
+}
+.disclosureSummary::-webkit-details-marker {
+  display: none;
+}
+.disclosureSummary:hover {
+  color: var(--secondary-hover);
+}
+.disclosureSummary > svg {
+  transition: transform var(--dur) var(--ease);
+}
+.disclosure[open] > .disclosureSummary > svg {
+  transform: rotate(180deg);
+}
+
+.disclosureBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}

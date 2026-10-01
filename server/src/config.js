@@ -223,6 +223,52 @@ export const config = {
     audience: "authenticated",
   },
 
+  // Plans & billing (Stripe). Switched on only when ALL of the following are
+  // set: a Stripe API key, the webhook signing secret, at least one price, the
+  // Supabase URL (so the payer is a verified user, not a header) and the
+  // Supabase service-role key (so the server can record who has paid). With
+  // any of them missing, billing is off and every user gets the app exactly
+  // as it was before plans existed — see billingStatus() below.
+  billing: {
+    // A restricted key (rk_…) with only the permissions the integration uses
+    // is preferred over the full secret key (sk_…) — see BILLING.md.
+    stripeKey: (process.env.STRIPE_SECRET_KEY || "").trim(),
+    webhookSecret: (process.env.STRIPE_WEBHOOK_SECRET || "").trim(),
+    // Stripe Price ids (price_…). One Product per plan; monthly and (optional)
+    // yearly Prices on each.
+    prices: {
+      pro: {
+        month: (process.env.STRIPE_PRICE_PRO_MONTHLY || "").trim(),
+        year: (process.env.STRIPE_PRICE_PRO_YEARLY || "").trim(),
+      },
+      ultimate: {
+        month: (process.env.STRIPE_PRICE_ULTIMATE_MONTHLY || "").trim(),
+        year: (process.env.STRIPE_PRICE_ULTIMATE_YEARLY || "").trim(),
+      },
+    },
+    // Stripe Tax. Only turn on once Stripe → Tax has a head-office address AND
+    // at least one active registration — without a registration it silently
+    // collects nothing. See BILLING.md → "Sales tax".
+    automaticTax: process.env.STRIPE_AUTOMATIC_TAX === "true",
+    // Where Checkout and the billing portal send the browser back to. The
+    // deployed client origin, e.g. https://jobassist.example.com.
+    appUrl: (process.env.APP_URL || "http://localhost:5173").trim().replace(/\/+$/, ""),
+    // Server-only secret. NEVER put this in client/.env: Vite bundles every
+    // SUPABASE_* variable there into the browser.
+    supabaseServiceRoleKey: (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim(),
+    // How long a user's plan is cached before re-reading Supabase. A webhook
+    // clears the entry immediately, so this only bounds staleness if one is
+    // missed.
+    planCacheMs: num(process.env.BILLING_PLAN_CACHE_MS, 60_000),
+    // Ultimate's "stronger model for feedback". Unset = Ultimate uses the
+    // default model for feedback too.
+    ultimateEvaluatorModel: (process.env.ULTIMATE_EVALUATOR_MODEL || "").trim(),
+    // Local testing only: with billing OFF, give every user this plan's
+    // limits ("regular" | "pro" | "ultimate") instead of no limits. Ignored
+    // whenever billing is on, so it can't leak into production.
+    devPlan: (process.env.DEV_PLAN || "").trim().toLowerCase(),
+  },
+
   // Express `trust proxy` setting — governs what the rate limiter treats as the
   // client IP. Only loosen this to match a proxy you actually run.
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
@@ -255,7 +301,11 @@ export const config = {
     // The same, per owner (signed-in user), so one account can't spend the
     // whole global allowance. A Job Matches search is ~13 calls and an
     // interview 3–8, so this is generous for real use. 0 = no per-user cap.
+    // Once plans apply (billing on, or DEV_PLAN) each plan has its own
+    // backstop instead (`modelCallsPerDay` in src/plans.js), and this one
+    // counts only when set explicitly — then as a ceiling over every plan.
     modelCallsPerUserPerDay: num(process.env.MODEL_CALLS_PER_USER_PER_DAY, 300),
+    modelCallsPerUserPerDayExplicit: Boolean(process.env.MODEL_CALLS_PER_USER_PER_DAY),
     // Saved interviews kept per client id; oldest are dropped past this.
     maxInterviewsPerOwner: num(process.env.MAX_INTERVIEWS_PER_OWNER, 100),
   },
@@ -280,6 +330,47 @@ if (!config.supabase.url && !config.supabase.jwtSecret) {
       "scoped by the client-supplied X-Client-Id header. Set SUPABASE_URL for any " +
       "non-local deployment."
   );
+}
+
+/**
+ * Whether plans are enforced and Stripe is live, and if not, why not. Every
+ * requirement is listed so a half-configured deployment says exactly what's
+ * missing instead of quietly running with no limits.
+ */
+export function billingStatus(c = config) {
+  const b = c.billing;
+  const missing = [];
+  if (!b.stripeKey) missing.push("STRIPE_SECRET_KEY");
+  if (!b.webhookSecret) missing.push("STRIPE_WEBHOOK_SECRET");
+  if (!b.prices.pro.month && !b.prices.ultimate.month) {
+    missing.push("STRIPE_PRICE_PRO_MONTHLY or STRIPE_PRICE_ULTIMATE_MONTHLY");
+  }
+  if (!c.supabase.url) missing.push("SUPABASE_URL");
+  if (!b.supabaseServiceRoleKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  // Nothing Stripe-related set at all is "billing not in use", not a mistake.
+  const attempted = Boolean(
+    b.stripeKey || b.webhookSecret || b.prices.pro.month || b.prices.ultimate.month
+  );
+  return { enabled: missing.length === 0, attempted, missing };
+}
+
+{
+  const status = billingStatus();
+  if (status.attempted && !status.enabled) {
+    console.warn(
+      `[config] Billing is partly configured but OFF — missing: ${status.missing.join(", ")}. ` +
+        "Until every one is set, plans aren't enforced and checkout is disabled."
+    );
+  }
+  if (status.enabled && /^sk_live_/.test(config.billing.stripeKey)) {
+    console.warn(
+      "[config] STRIPE_SECRET_KEY is a full live secret key. Prefer a restricted key " +
+        "(rk_live_…) with only the permissions listed in BILLING.md."
+    );
+  }
+  if (status.enabled && config.billing.devPlan) {
+    console.warn("[config] DEV_PLAN is ignored because billing is on.");
+  }
 }
 
 if (/:free\b/.test(config.model)) {

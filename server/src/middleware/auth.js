@@ -77,8 +77,11 @@ export function authenticate(req, res, next) {
     jwtSecret: config.supabase.jwtSecret,
     audience: config.supabase.audience,
   })
-    .then(({ sub }) => {
+    .then(({ sub, payload }) => {
       req.userId = sub;
+      // Supabase puts the account's email in its access tokens. Billing uses
+      // it to label the Stripe customer; nothing else reads it.
+      req.userEmail = typeof payload?.email === "string" ? payload.email : null;
       req.clientId = ownerIdForUser(sub);
       if (!req.clientId) {
         return res.status(401).json({ error: "Sign in to continue." });

@@ -18,8 +18,11 @@ import ResumeBuilderScreen from "./screens/ResumeBuilderScreen.jsx";
 import SurveyScreen from "./screens/SurveyScreen.jsx";
 import ProgressScreen from "./screens/ProgressScreen.jsx";
 import TrackerScreen from "./screens/TrackerScreen.jsx";
+import PlansScreen from "./screens/PlansScreen.jsx";
 import { useAuth } from "./auth/AuthProvider.jsx";
 import { useSurvey } from "./survey/useSurvey.js";
+import { usePlan } from "./billing/usePlan.js";
+import { isPlanError } from "./billing/planErrors.js";
 import Toast from "./components/Toast.jsx";
 import { getInterview, saveInterview } from "./api/historyApi.js";
 import { startInterview } from "./api/interviewApi.js";
@@ -96,6 +99,7 @@ function sectionOf(pathname, from) {
   if (pathname === PATHS.resume) return "resume";
   if (pathname === PATHS.progress) return "progress";
   if (pathname === PATHS.applications) return "applications";
+  if (pathname === PATHS.plans) return "plans";
   return undefined;
 }
 
@@ -121,6 +125,20 @@ export default function AppWorkspace() {
   // one each. It's pure data collection — nothing downstream of it touches a
   // model call.
   const survey = useSurvey();
+
+  // The plan, its limits and today's usage (GET /api/billing/me). Re-read on
+  // every navigation so "2 of 3 left today" stays current; the server enforces
+  // every limit regardless of what this copy says.
+  const plan = usePlan();
+  const refreshPlan = plan.refresh;
+  const firstPathRef = useRef(true);
+  useEffect(() => {
+    if (firstPathRef.current) {
+      firstPathRef.current = false; // usePlan already fetched on mount
+      return;
+    }
+    refreshPlan();
+  }, [pathname, refreshPlan]);
 
   // Read once, at mount, and only when landing on a resumable path.
   const [persisted] = useState(() =>
@@ -306,7 +324,15 @@ export default function AppWorkspace() {
         )
       );
     } catch (err) {
-      setRepeatError(`Couldn't start the interview: ${err.message}`);
+      // A plan limit isn't a failure to retry: say what the limit is and where
+      // to change plan. (It can happen here because a repeat copies the
+      // original's options — speak mode, say — which the plan may not include.)
+      setRepeatError(
+        isPlanError(err)
+          ? `${err.message} See Plans in the sidebar to upgrade.`
+          : `Couldn't start the interview: ${err.message}`
+      );
+      if (isPlanError(err)) refreshPlan();
     } finally {
       repeatingRef.current = false;
       setRepeating(null);
@@ -366,6 +392,10 @@ export default function AppWorkspace() {
     guarded(() => navigate(PATHS.survey));
   }
 
+  function openPlans() {
+    guarded(() => navigate(PATHS.plans));
+  }
+
   /**
    * Sidebar nav. Disabled during a live interview, so the interview needs no
    * guard here; the Resume Builder registers one because its document is
@@ -382,6 +412,8 @@ export default function AppWorkspace() {
       if (pathname !== PATHS.jobs) openJobMatches();
     } else if (section === "applications") {
       if (pathname !== PATHS.applications) openTracker();
+    } else if (section === "plans") {
+      if (pathname !== PATHS.plans) openPlans();
     } else if (section === "resume") {
       // Guard the no-op too: without this, clicking "Resume" while already in
       // the Resume Builder asks whether you want to abandon the document you
@@ -419,6 +451,8 @@ export default function AppWorkspace() {
     openProgress,
     openTracker,
     openSurvey,
+    openPlans,
+    plan,
     survey,
     setLeaveGuard,
     practiceAgain,
@@ -480,13 +514,25 @@ export function DashboardRoute() {
       showSurveyPrompt={w.survey.shouldPrompt}
       onTakeSurvey={w.openSurvey}
       onSkipSurvey={w.survey.skip}
+      hiddenHistory={w.plan.data?.enforced ? w.plan.data.history?.hidden ?? 0 : 0}
+      historyVisible={w.plan.limits?.historyVisible ?? null}
+      onOpenPlans={w.openPlans}
     />
   );
 }
 
 export function SetupRoute() {
   const w = useWorkspace();
-  return <JobDescriptionScreen onStarted={w.handleStarted} onBack={w.goHome} />;
+  return (
+    <JobDescriptionScreen
+      onStarted={w.handleStarted}
+      onBack={w.goHome}
+      limits={w.plan.limits}
+      usage={w.plan.usage}
+      onOpenPlans={w.openPlans}
+      onPlanError={w.plan.refresh}
+    />
+  );
 }
 
 export function ChatRoute() {
@@ -555,13 +601,25 @@ export function JobMatchesRoute() {
       cachedResult={w.jobsResult}
       onResult={w.setJobsResult}
       onOpenTracker={w.openTracker}
+      usage={w.plan.usage}
+      onOpenPlans={w.openPlans}
+      onUsageChange={w.plan.refresh}
     />
   );
 }
 
 export function ResumeBuilderRoute() {
   const w = useWorkspace();
-  return <ResumeBuilderScreen onBack={w.goHome} setLeaveGuard={w.setLeaveGuard} />;
+  return (
+    <ResumeBuilderScreen
+      onBack={w.goHome}
+      setLeaveGuard={w.setLeaveGuard}
+      allowedExports={w.plan.limits?.exports ?? null}
+      usage={w.plan.usage}
+      onOpenPlans={w.openPlans}
+      onUsageChange={w.plan.refresh}
+    />
+  );
 }
 
 export function SurveyRoute() {
@@ -591,11 +649,36 @@ export function ProgressRoute() {
       selectedRole={params.get("role")}
       // Replace, not push: flipping between roles shouldn't fill the Back stack.
       onSelectRole={(key) => setParams({ role: key }, { replace: true })}
+      insights={w.plan.limits ? w.plan.limits.progressInsights : true}
+      onOpenPlans={w.openPlans}
     />
   );
 }
 
 export function TrackerRoute() {
   const w = useWorkspace();
-  return <TrackerScreen onFindJobs={w.openJobMatches} />;
+  return (
+    <TrackerScreen
+      onFindJobs={w.openJobMatches}
+      cardLimit={w.plan.limits?.trackerCards ?? null}
+      onOpenPlans={w.openPlans}
+    />
+  );
+}
+
+export function PlansRoute() {
+  const w = useWorkspace();
+  const [params, setParams] = useSearchParams();
+  const requested = params.get("plan");
+  return (
+    <PlansScreen
+      plan={w.plan}
+      requestedPlan={requested === "pro" || requested === "ultimate" ? requested : null}
+      requestedInterval={params.get("interval")}
+      checkoutResult={params.get("checkout")}
+      portalReturned={params.get("portal") === "returned"}
+      // Replace, so a reload or Back doesn't replay "payment received".
+      onClearParams={() => setParams({}, { replace: true })}
+    />
+  );
 }

@@ -29,6 +29,7 @@ const NAV = [
   { id: "jobs", label: "Job Matches", icon: "briefcase" },
   { id: "applications", label: "Applications", icon: "kanban" },
   { id: "resume", label: "Resume", icon: "fileText" },
+  { id: "plans", label: "Plans", icon: "gem" },
 ];
 
 const STORAGE_KEY = "jobassist:sidebarCollapsed:v1";

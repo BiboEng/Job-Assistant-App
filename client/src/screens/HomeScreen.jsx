@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import InterviewRow from "../components/InterviewRow.jsx";
 import Icon from "../components/Icon.jsx";
 import SurveyBanner from "../components/SurveyBanner.jsx";
+import UpgradeNotice from "../components/UpgradeNotice.jsx";
 import { listInterviews, deleteInterview } from "../api/historyApi.js";
 import { scoreBand } from "../utils/score.js";
 import styles from "./HomeScreen.module.css";
@@ -26,6 +27,9 @@ export default function HomeScreen({
   showSurveyPrompt = false,
   onTakeSurvey,
   onSkipSurvey,
+  hiddenHistory = 0,
+  historyVisible = null,
+  onOpenPlans,
 }) {
   const [interviews, setInterviews] = useState(null); // null = loading
   const [error, setError] = useState("");
@@ -247,6 +251,17 @@ export default function HomeScreen({
               ))}
             </div>
           ))}
+
+        {/* A lower plan hides history past its limit; it never deletes it. */}
+        {hiddenHistory > 0 && !loading && (
+          <UpgradeNotice
+            compact
+            message={`Showing your ${historyVisible ?? ""} most recent interviews. ${hiddenHistory} older ${
+              hiddenHistory === 1 ? "one is" : "ones are"
+            } still saved, and upgrading shows them again.`}
+            onOpenPlans={onOpenPlans}
+          />
+        )}
       </section>
     </div>
   );

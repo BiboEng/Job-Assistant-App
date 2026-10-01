@@ -19,6 +19,7 @@ import {
   FileText,
   Filter,
   Gauge,
+  Gem,
   House,
   Kanban,
   LoaderCircle,
@@ -148,6 +149,7 @@ const ICONS = {
   github: Github,
   play: Play,
   lock: Lock,
+  gem: Gem,
   panelClose: PanelLeftClose,
   panelOpen: PanelLeftOpen,
 };

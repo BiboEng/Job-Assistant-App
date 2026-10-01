@@ -10,6 +10,7 @@ import {
   interpretModelTurn,
   mergeModelResume,
 } from "../services/resume.service.js";
+import { takeQuota } from "../middleware/plan.js";
 
 /**
  * Resume Builder chat — one stateless turn.
@@ -57,6 +58,11 @@ export async function chatResume(req, res, next) {
     const prior = history.messages.slice(0, -1);
     const latest = history.messages[history.messages.length - 1].content;
 
+    // One AI message from the plan's daily allowance, refunded if the model
+    // call fails (a failed turn changes nothing, so it shouldn't cost one).
+    const hold = await takeQuota(req, res, "resumeMessages");
+    if (!hold) return;
+
     let raw;
     try {
       raw = await chatCompletionJson(
@@ -68,6 +74,7 @@ export async function chatResume(req, res, next) {
         { kind: "resume" }
       );
     } catch (err) {
+      hold.refund();
       console.error("[resume] chat turn failed:", err.message);
       return next(err); // openrouter.service marks its errors expose-safe
     }

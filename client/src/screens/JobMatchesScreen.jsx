@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import JobRow from "../components/JobRow.jsx";
 import Icon from "../components/Icon.jsx";
 import Toast from "../components/Toast.jsx";
+import UpgradeNotice from "../components/UpgradeNotice.jsx";
+import { isPlanError } from "../billing/planErrors.js";
+import { isExhausted, remainingLabel } from "../billing/usePlan.js";
 import { useTrackedJobs } from "../applications/useTrackedJobs.js";
 import { searchJobs, scoreJobs } from "../api/jobsApi.js";
 import { extractResumeText } from "../utils/parseResume.js";
@@ -125,7 +128,19 @@ const DEFAULT_FILTERS = {
   remoteOnly: false,
 };
 
-export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpenTracker }) {
+export default function JobMatchesScreen({
+  onBack,
+  cachedResult,
+  onResult,
+  onOpenTracker,
+  usage = null,
+  onOpenPlans,
+  onUsageChange,
+}) {
+  // The plan's daily search allowance. Scoring the results doesn't count.
+  const outOfSearches = isExhausted(usage, "jobSearches");
+  const searchesLeft = remainingLabel(usage, "jobSearches", "searches");
+  const [planError, setPlanError] = useState("");
   // "Track this": copies a result into the Application Tracker's Saved column.
   // `available` stays false (and the button hidden) until the table is known
   // to exist.
@@ -216,7 +231,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
   const resumeReady = resumeLen >= MIN_RESUME_LENGTH && resumeLen <= MAX_RESUME_LENGTH;
   const cityReady = city.trim().length >= 2;
   const running = status === "searching" || status === "scoring";
-  const canSearch = resumeReady && cityReady && !running && !parsing;
+  const canSearch = resumeReady && cityReady && !running && !parsing && !outOfSearches;
 
   function updateCity(value) {
     setCity(value);
@@ -363,9 +378,13 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
     if (!canSearch) return;
     const runId = ++runIdRef.current;
     const resume = resumeText.trim();
+    // Kept so a refused search (daily allowance used up) can put the last
+    // results back instead of leaving an empty page.
+    const previous = result;
 
     setStatus("searching");
     setError("");
+    setPlanError("");
     setResult(null);
     setSortKey("match");
     setFilters(DEFAULT_FILTERS);
@@ -375,6 +394,7 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
     try {
       const data = await searchJobs({ resumeText: resume, city: city.trim(), country });
       if (runIdRef.current !== runId) return;
+      onUsageChange?.(); // one fewer search left today
 
       const base = {
         profile: data.profile,
@@ -395,6 +415,15 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
       await scoreAll(base.jobs, resume, runId);
     } catch (err) {
       if (runIdRef.current !== runId) return;
+      if (isPlanError(err)) {
+        setPlanError(err.message);
+        onUsageChange?.();
+        setResult(previous);
+        onResult?.(previous);
+        persistResult(previous);
+        setStatus(previous ? "done" : "idle");
+        return;
+      }
       setError(err.message || "Something went wrong finding matches.");
       setStatus("error");
     }
@@ -627,8 +656,19 @@ export default function JobMatchesScreen({ onBack, cachedResult, onResult, onOpe
             <Icon name="search" />
             {running ? "Finding matches…" : "Find job matches"}
           </button>
+          {searchesLeft && !outOfSearches && <p className={styles.allowance}>{searchesLeft}</p>}
         </div>
       </div>
+      )}
+
+      {(planError || (outOfSearches && !running && !collapsed)) && (
+        <UpgradeNotice
+          message={
+            planError ||
+            "You've used today's job searches. The count resets at midnight UTC, or upgrade for more a day."
+          }
+          onOpenPlans={onOpenPlans}
+        />
       )}
 
       {status === "searching" && (

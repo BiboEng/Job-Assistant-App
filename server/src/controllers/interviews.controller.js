@@ -3,18 +3,24 @@ import {
   getInterview,
   saveInterview,
   deleteInterview,
+  isWithinNewest,
 } from "../services/history.service.js";
 import { getSession } from "../services/session.service.js";
 import { ensureRoleLabels } from "../services/progress.service.js";
 import { assertOwner } from "../middleware/auth.js";
+import { denyFeature } from "../middleware/plan.js";
 
 /**
  * GET /api/interviews
- * Lightweight list for the home screen (newest first), scoped to the caller.
+ * Lightweight list for the home screen (newest first), scoped to the caller
+ * and to the plan's visible history. Older interviews stay stored — hidden,
+ * never deleted — and reappear on upgrade.
  */
 export async function getInterviewsList(req, res, next) {
   try {
-    res.status(200).json(await listInterviews(req.clientId));
+    res
+      .status(200)
+      .json(await listInterviews(req.clientId, { limit: req.plan?.historyVisible ?? null }));
   } catch (err) {
     next(err);
   }
@@ -22,12 +28,21 @@ export async function getInterviewsList(req, res, next) {
 
 /**
  * GET /api/interviews/:id
- * Full stored record (job description, Q&A, feedback) — owner only.
+ * Full stored record (job description, Q&A, feedback) — owner only, and only
+ * within the plan's visible history.
  */
 export async function getInterviewDetail(req, res, next) {
   try {
     const record = await getInterview(req.params.id, req.clientId);
     if (!record) return res.status(404).json({ error: "Interview not found." });
+    const limit = req.plan?.historyVisible ?? null;
+    if (!(await isWithinNewest(record.id, req.clientId, limit))) {
+      return denyFeature(res, {
+        feature: "history",
+        requiredPlan: "pro",
+        message: `${req.plan.name} shows your ${limit} most recent interviews. This one is older: it's still saved, and upgrading shows it again.`,
+      });
+    }
     res.status(200).json(record);
   } catch (err) {
     next(err);

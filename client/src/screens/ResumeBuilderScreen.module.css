@@ -222,6 +222,9 @@
 }
 
 .menuLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
   font-size: var(--fs-md);
   font-weight: var(--fw-semibold);
 }

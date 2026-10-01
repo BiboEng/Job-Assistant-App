@@ -1,0 +1,122 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+.skelSummary {
+  height: 180px;
+  border-radius: var(--radius-lg);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--inner-highlight);
+}
+
+.summaryHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.planTitle {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-2xl);
+  letter-spacing: var(--ls-tighter);
+}
+
+.status {
+  margin: var(--sp-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+}
+
+.usage {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 760px) {
+  .usage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.meterLabel {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.meterValue {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+
+.bar {
+  display: block;
+  height: 4px;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-xs);
+}
+
+.full {
+  background: var(--warn);
+}
+
+.reset {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: var(--fs-xs);
+}
+
+.plansSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--fs-xl);
+}
+
+.sectionSub {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.actionNote {
+  color: var(--text-subtle);
+  font-size: var(--fs-xs);
+}

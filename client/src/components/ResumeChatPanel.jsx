@@ -23,6 +23,11 @@ export default function ResumeChatPanel({
   onSend,
   onStop,
   onRetry,
+  // Set when the error is the plan's daily allowance: "See plans" replaces
+  // "Try again", which couldn't succeed.
+  onOpenPlans,
+  // "18 of 20 AI messages left today", or "" when unlimited.
+  allowance = "",
 }) {
   const [draft, setDraft] = useState("");
   const listRef = useRef(null);
@@ -117,13 +122,22 @@ export default function ResumeChatPanel({
       </div>
 
       {error && (
-        <div className={`error-banner ${styles.error}`} role="alert">
-          <Icon name="alert" />
+        <div
+          className={`${onOpenPlans ? "warn-banner" : "error-banner"} ${styles.error}`}
+          role="alert"
+        >
+          <Icon name={onOpenPlans ? "lock" : "alert"} />
           <span>{error}</span>
-          {onRetry && (
-            <button type="button" className="btn-ghost" onClick={onRetry}>
-              Try again
+          {onOpenPlans ? (
+            <button type="button" className="btn-ghost" onClick={onOpenPlans}>
+              See plans
             </button>
+          ) : (
+            onRetry && (
+              <button type="button" className="btn-ghost" onClick={onRetry}>
+                Try again
+              </button>
+            )
           )}
         </div>
       )}
@@ -151,7 +165,11 @@ export default function ResumeChatPanel({
 
         <div className={styles.composerBar}>
           <span className={styles.hint}>
-            {busy ? "Editing is locked while the assistant writes." : "Enter to send"}
+            {busy
+              ? "Editing is locked while the assistant writes."
+              : allowance
+                ? `Enter to send · ${allowance}`
+                : "Enter to send"}
           </span>
 
           {busy ? (

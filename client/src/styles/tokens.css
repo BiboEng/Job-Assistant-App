@@ -44,6 +44,9 @@
   --surface-hover: var(--surface-raised);
   --border-strong: #323e4c; /* hovered / focused control edges */
   --text-subtle: #75828f; /* 4.6:1 on --surface — tertiary labels only */
+  /* Body copy on the public pages: brighter than --text-muted (about 10:1 on
+     --bg) because it carries whole paragraphs, not labels. */
+  --text-secondary: #b4bfca;
 
   /* --- derived accent ----------------------------------------------------
      --accent is both the fill and the ink: aqua is light enough to read as
@@ -125,6 +128,16 @@
   --lh-tight: 1.2;
   --lh-snug: 1.35;
   --lh-normal: 1.5;
+  --lh-relaxed: 1.6;
+
+  /* Public pages read at a larger size than the app: 16px body, 18px intros,
+     section titles that step down from the hero instead of falling off it. */
+  --fs-public-body: 1rem; /* 16px */
+  --fs-public-lede: 1.125rem; /* 18px */
+  --fs-public-h3: 1.25rem; /* 20px */
+  --fs-public-h2: clamp(1.75rem, 1.15rem + 1.9vw, 2.5rem); /* 28–40px */
+  --fs-public-stat: clamp(1.75rem, 1.35rem + 1.3vw, 2.25rem); /* 28–36px */
+  --public-measure: 60ch;
 
   --ls-tight: -0.011em;
   --ls-tighter: -0.018em;
@@ -201,7 +214,9 @@
   --sidebar-width-collapsed: 56px;
   --shell-width: 1100px;
   --shell-width-wide: 1440px;
-  --shell-width-public: 1080px;
+  --shell-width-public: 1160px;
+  /* Vertical breathing room between landing sections. */
+  --public-section-pad: clamp(64px, 8vw, 112px);
   --control-height: 32px;
   --row-height: 44px;
   --public-header-offset: 72px;

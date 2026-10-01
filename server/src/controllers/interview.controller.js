@@ -21,7 +21,9 @@ import {
 } from "../prompts/index.js";
 import { estimateAnswerSeconds } from "../timeLimit.js";
 import { assertOwner } from "../middleware/auth.js";
+import { denyFeature, takeQuota } from "../middleware/plan.js";
 import { normalizeRubric } from "../rubric.js";
+import { checkInterviewSetup } from "../plans.js";
 
 /**
  * POST /api/interview/start
@@ -61,14 +63,31 @@ export async function startInterview(req, res, next) {
       resume = resumeText.trim().slice(0, config.maxInterviewResumeLength);
     }
 
-    const session = createSession(jd, req.clientId, {
-      totalQuestions: questionCount,
-      focus,
-      resumeText: resume,
-      mode,
-    });
+    // The plan decides the options (speak mode, focus, question count) and
+    // how many interviews a day. "Practice again" comes through here too, so
+    // a repeat of a Pro-only interview on Regular is refused the same way.
+    if (req.plan) {
+      const denied = checkInterviewSetup(req.plan, { questionCount, focus, mode });
+      if (denied) return denyFeature(res, denied);
+    }
+    const hold = await takeQuota(req, res, "interviews");
+    if (!hold) return;
 
-    const question = await chatCompletion(session.messages);
+    let session;
+    let question;
+    try {
+      session = createSession(jd, req.clientId, {
+        totalQuestions: questionCount,
+        focus,
+        resumeText: resume,
+        mode,
+      });
+      question = await chatCompletion(session.messages);
+    } catch (err) {
+      // No first question, no interview — don't count it against today's.
+      hold.refund();
+      throw err;
+    }
     const timeLimitSeconds = estimateAnswerSeconds(question);
     recordQuestion(session, question, timeLimitSeconds);
 
@@ -273,7 +292,16 @@ export async function generateFeedback(req, res, next) {
 
       // `kind` is the interview pool's default anyway; passing it explicitly is
       // what words the "unparseable response" error as being about feedback.
-      const feedback = await chatCompletionJson(messages, { kind: "interview" });
+      // Ultimate's feedback comes from the stronger evaluator model when one
+      // is configured (ULTIMATE_EVALUATOR_MODEL); everyone else, the default.
+      const evaluatorModel =
+        req.plan?.strongerEvaluator && config.billing.ultimateEvaluatorModel
+          ? config.billing.ultimateEvaluatorModel
+          : undefined;
+      const feedback = await chatCompletionJson(messages, {
+        kind: "interview",
+        model: evaluatorModel,
+      });
       const normalized = normalizeFeedback(feedback, askedPairs);
 
       saveFeedback(session, normalized);

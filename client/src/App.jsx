@@ -5,6 +5,7 @@ import AppSkeleton from "./components/AppSkeleton.jsx";
 import LandingScreen from "./screens/LandingScreen.jsx";
 import SignInScreen from "./screens/SignInScreen.jsx";
 import ResetPasswordScreen from "./screens/ResetPasswordScreen.jsx";
+import LegalScreen from "./screens/LegalScreen.jsx";
 import { PATHS } from "./routes.js";
 
 /**
@@ -34,6 +35,7 @@ const ResumeBuilderRoute = pick("ResumeBuilderRoute");
 const SurveyRoute = pick("SurveyRoute");
 const ProgressRoute = pick("ProgressRoute");
 const TrackerRoute = pick("TrackerRoute");
+const PlansRoute = pick("PlansRoute");
 
 export default function App() {
   return (
@@ -42,6 +44,10 @@ export default function App() {
       <Route path={PATHS.about} element={<LandingScreen />} />
       <Route path={PATHS.howItWorks} element={<LandingScreen />} />
       <Route path={PATHS.contact} element={<LandingScreen />} />
+      <Route path={PATHS.pricing} element={<LandingScreen />} />
+      <Route path={PATHS.terms} element={<LegalScreen doc="terms" />} />
+      <Route path={PATHS.privacy} element={<LegalScreen doc="privacy" />} />
+      <Route path={PATHS.refunds} element={<LegalScreen doc="refunds" />} />
       <Route path={PATHS.signIn} element={<SignInScreen />} />
       <Route path={PATHS.resetPassword} element={<ResetPasswordScreen />} />
 
@@ -64,6 +70,7 @@ export default function App() {
         <Route path={PATHS.progress} element={<ProgressRoute />} />
         <Route path={PATHS.applications} element={<TrackerRoute />} />
         <Route path={PATHS.survey} element={<SurveyRoute />} />
+        <Route path={PATHS.plans} element={<PlansRoute />} />
       </Route>
 
       <Route path="*" element={<Navigate to={PATHS.home} replace />} />

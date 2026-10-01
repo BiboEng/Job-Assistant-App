@@ -310,6 +310,18 @@
   color: var(--text-muted);
 }
 
+/* "By continuing you agree to the Terms…" */
+.legal {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+  line-height: var(--lh-normal);
+}
+.legal a {
+  color: var(--secondary);
+}
+
 /* --- back link ------------------------------------------------------------ */
 
 .back {

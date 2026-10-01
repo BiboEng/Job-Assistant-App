@@ -228,3 +228,8 @@
   font-size: var(--fs-md);
   color: var(--text-muted);
 }
+
+/* "2 of 3 interviews left today" — quieter than the interview summary. */
+.remaining {
+  color: var(--text-subtle);
+}

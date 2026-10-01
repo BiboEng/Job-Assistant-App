@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Icon from "./Icon.jsx";
 import styles from "./SegmentedControl.module.css";
 
 /**
@@ -54,14 +55,23 @@ export default function SegmentedControl({
     if (box && !animate) setAnimate(true);
   }, [box, animate]);
 
+  // The next selectable option from `from`, stepping by `dir` — skipping any
+  // that are individually disabled (e.g. locked by the plan).
+  function step(from, dir) {
+    for (let k = 1; k <= options.length; k += 1) {
+      const idx = (from + dir * k + options.length * k) % options.length;
+      if (!options[idx].disabled) return idx;
+    }
+    return null;
+  }
+
   function onKeyDown(e) {
     const i = activeIndex;
     let next = null;
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (i + 1) % options.length;
-    else if (e.key === "ArrowLeft" || e.key === "ArrowUp")
-      next = (i - 1 + options.length) % options.length;
-    else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = options.length - 1;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = step(i, 1);
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = step(i, -1);
+    else if (e.key === "Home") next = step(-1, 1);
+    else if (e.key === "End") next = step(options.length, -1);
     if (next === null) return;
     e.preventDefault();
     onChange(options[next].value);
@@ -98,12 +108,18 @@ export default function SegmentedControl({
             name={name}
             aria-checked={checked}
             tabIndex={checked ? 0 : -1}
-            disabled={disabled}
-            className={`${styles.option} ${checked ? styles.active : ""}`}
+            disabled={disabled || o.disabled}
+            className={`${styles.option} ${checked ? styles.active : ""} ${
+              o.locked ? styles.locked : ""
+            }`}
             onClick={() => onChange(o.value)}
             title={o.hint || undefined}
           >
+            {/* A plan lock: the option is visible (so it can be discovered)
+                but not selectable. The hint says which plan includes it. */}
+            {o.locked && <Icon name="lock" />}
             {o.label}
+            {o.locked && <span className="sr-only"> (not in your plan)</span>}
           </button>
         );
       })}

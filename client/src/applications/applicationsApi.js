@@ -27,6 +27,11 @@ function isMissingTable(error) {
   return msg.includes("does not exist") && msg.includes(TABLE);
 }
 
+/** The plan-limit trigger in 20260930120000_user_subscriptions.sql. */
+function isApplicationLimit(error) {
+  return /application_limit_reached/.test(error?.message || "");
+}
+
 function fail(error, fallback) {
   if (isMissingTable(error)) {
     const err = new Error(
@@ -98,6 +103,15 @@ export async function createApplication(userId, draft) {
     .single();
 
   if (error) {
+    // Regular's 15-card cap, enforced by a trigger in Supabase (the tracker
+    // never goes through the API server, so that's the only place it can be).
+    if (isApplicationLimit(error)) {
+      const err = new Error(
+        "Regular can track up to 15 applications. Delete one to make room, or upgrade to Pro for unlimited."
+      );
+      err.planLimit = true;
+      throw err;
+    }
     const err = fail(error, "Could not add that application.");
     if (error.code === UNIQUE_VIOLATION) err.duplicate = true;
     throw err;

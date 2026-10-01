@@ -3,6 +3,7 @@ import Icon from "../components/Icon.jsx";
 import PracticeAgainButton from "../components/PracticeAgainButton.jsx";
 import ScoreTrendChart from "../components/ScoreTrendChart.jsx";
 import { getProgress, getRoleThemes } from "../api/progressApi.js";
+import UpgradeNotice from "../components/UpgradeNotice.jsx";
 import { INTERVIEW_FOCUSES, RUBRIC_MAX } from "../constants.js";
 import { rubricSeries, weakestDimension } from "../utils/rubric.js";
 import { pctOf, scoreBand } from "../utils/score.js";
@@ -65,6 +66,8 @@ export default function ProgressScreen({
   repeating = null,
   selectedRole,
   onSelectRole,
+  insights = true,
+  onOpenPlans,
 }) {
   const [data, setData] = useState(null); // null = loading
   const [error, setError] = useState("");
@@ -83,7 +86,11 @@ export default function ProgressScreen({
       getProgress()
         .then((res) => {
           if (cancelled) return;
-          setData({ roles: Array.isArray(res?.roles) ? res.roles : [], labelling: Boolean(res?.labelling) });
+          setData({
+            roles: Array.isArray(res?.roles) ? res.roles : [],
+            labelling: Boolean(res?.labelling),
+            insights: res?.insights !== false,
+          });
           if (res?.labelling && polls < LABEL_POLL_MAX) {
             polls += 1;
             timer = setTimeout(() => load(false), LABEL_POLL_MS);
@@ -180,6 +187,9 @@ export default function ProgressScreen({
               onOpenInterview={onOpenInterview}
               onPracticeAgain={onPracticeAgain}
               repeating={repeating}
+              // The server says so too (it leaves the rubric out without it).
+              insights={insights && data.insights !== false}
+              onOpenPlans={onOpenPlans}
             />
           </div>
         </>
@@ -273,7 +283,7 @@ function Sparkline({ values }) {
 
 /* --- one role ----------------------------------------------------------------- */
 
-function RolePanel({ role, onOpenInterview, onPracticeAgain, repeating }) {
+function RolePanel({ role, onOpenInterview, onPracticeAgain, repeating, insights = true, onOpenPlans }) {
   const single = role.count === 1;
   const first = role.interviews[0];
   const latest = role.interviews[role.interviews.length - 1];
@@ -352,9 +362,39 @@ function RolePanel({ role, onOpenInterview, onPracticeAgain, repeating }) {
         )}
       </Section>
 
-      <AnswerQuality role={role} onOpenInterview={onOpenInterview} />
-
-      <Themes role={role} />
+      {/* Pro and up. On Regular both sections stay visible, locked, so it's
+          clear what the upgrade adds — and no themes request is made. */}
+      {insights ? (
+        <>
+          <AnswerQuality role={role} onOpenInterview={onOpenInterview} />
+          <Themes role={role} />
+        </>
+      ) : (
+        <>
+          <Section
+            icon="gauge"
+            title="Answer quality"
+            sub="Relevance, specificity, structure and depth, charted across your interviews."
+          >
+            <UpgradeNotice
+              compact
+              message="Answer-quality trends are part of Pro and Ultimate."
+              onOpenPlans={onOpenPlans}
+            />
+          </Section>
+          <Section
+            icon="sparkles"
+            title="Recurring feedback"
+            sub="The strengths and weaknesses that keep coming up across your interviews."
+          >
+            <UpgradeNotice
+              compact
+              message="Recurring feedback is part of Pro and Ultimate."
+              onOpenPlans={onOpenPlans}
+            />
+          </Section>
+        </>
+      )}
 
       <Section icon="clipboard" title="Interviews" sub="Newest first.">
         <ol className={styles.history} reversed>

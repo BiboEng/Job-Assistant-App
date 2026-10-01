@@ -30,3 +30,12 @@
   min-height: 320px;
   border-radius: var(--radius-lg);
 }
+
+/* Regular's "12 / 15 cards" note, after the page description. */
+.cardCount {
+  color: var(--text-subtle);
+}
+
+.notice {
+  margin-bottom: var(--sp-4);
+}

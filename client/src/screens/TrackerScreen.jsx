@@ -4,6 +4,7 @@ import ApplicationDialog from "../components/ApplicationDialog.jsx";
 import KanbanColumn from "../components/KanbanColumn.jsx";
 import Icon from "../components/Icon.jsx";
 import Toast from "../components/Toast.jsx";
+import UpgradeNotice from "../components/UpgradeNotice.jsx";
 import { useApplications } from "../applications/useApplications.js";
 import { COLUMNS, groupByColumn, stageLabel } from "../applications/applicationModel.js";
 import styles from "./TrackerScreen.module.css";
@@ -30,7 +31,7 @@ function useNow(intervalMs = 60_000) {
   return now;
 }
 
-export default function TrackerScreen({ onFindJobs }) {
+export default function TrackerScreen({ onFindJobs, cardLimit = null, onOpenPlans }) {
   const { status, error, applications, reload, add, update, move, remove } = useApplications();
   const now = useNow();
 
@@ -90,6 +91,9 @@ export default function TrackerScreen({ onFindJobs }) {
   }
 
   const ready = status === "ready";
+  // Regular's card cap. Enforced by a Supabase trigger on insert; this only
+  // says so up front. Existing cards are never locked, even over the cap.
+  const atLimit = ready && cardLimit != null && applications.length >= cardLimit;
 
   return (
     <div className={styles.wrap}>
@@ -99,6 +103,15 @@ export default function TrackerScreen({ onFindJobs }) {
           <p className="page-sub">
             Every role you're pursuing, from saved to signed. Drag a card, or use its stage menu, to
             move it along.
+            {ready && cardLimit != null && (
+              <span className={styles.cardCount}>
+                {" "}
+                <span className="mono">
+                  {applications.length} / {cardLimit}
+                </span>{" "}
+                cards on your plan.
+              </span>
+            )}
           </p>
         </div>
         {ready && (
@@ -108,6 +121,15 @@ export default function TrackerScreen({ onFindJobs }) {
           </button>
         )}
       </div>
+
+      {atLimit && (
+        <div className={styles.notice}>
+          <UpgradeNotice
+            message={`Regular tracks up to ${cardLimit} applications. Your cards all stay editable; delete one to add another, or upgrade to Pro for unlimited.`}
+            onOpenPlans={onOpenPlans}
+          />
+        </div>
+      )}
 
       {status === "loading" && (
         <div className={styles.board} aria-busy="true" aria-label="Loading your applications">

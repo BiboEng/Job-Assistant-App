@@ -168,10 +168,15 @@ export function parseRoleLabels(raw, count) {
  * request waits at most `labelWaitMs` for it. Past that it answers with the
  * first-line grouping and `labelling: true`; the labels keep landing in the
  * background and the client re-fetches shortly to pick them up.
+ * The plan shapes the answer: `historyLimit` keeps only the newest N
+ * interviews (the plan's visible history), and without `insights` (Pro and
+ * up) each interview's rubric is left out, since the Answer quality charts
+ * are a paid feature.
  * @param {string} ownerId
+ * @param {{ historyLimit?: number|null, insights?: boolean }} [opts]
  */
-export async function getProgress(ownerId) {
-  if (!ownerId) return { roles: [], labelling: false };
+export async function getProgress(ownerId, { historyLimit = null, insights = true } = {}) {
+  if (!ownerId) return { roles: [], labelling: false, insights };
 
   let settled = false;
   const run = ensureRoleLabels(ownerId).finally(() => {
@@ -186,8 +191,20 @@ export async function getProgress(ownerId) {
   ]);
   clearTimeout(timer);
 
-  const records = await listOwnerRecords(ownerId);
-  return { roles: groupByRole(records), labelling: !settled };
+  const records = visibleRecords(await listOwnerRecords(ownerId), historyLimit);
+  const roles = groupByRole(records);
+  if (!insights) {
+    for (const role of roles) {
+      role.interviews = role.interviews.map((it) => ({ ...it, rubric: null }));
+    }
+  }
+  return { roles, labelling: !settled, insights };
+}
+
+/** Oldest-first records → only the newest `limit` (all when null). */
+function visibleRecords(records, limit) {
+  if (limit == null) return records;
+  return limit > 0 ? records.slice(-limit) : [];
 }
 
 /* --- recurring themes -------------------------------------------------------- */
@@ -211,11 +228,12 @@ function remember(key, value) {
  *
  * @param {string} ownerId
  * @param {string} key a role key from GET /api/progress
+ * @param {{ historyLimit?: number|null }} [opts] the plan's visible history
  * @returns {Promise<object|null>} null when the owner has no such role
  */
-export async function getRoleThemes(ownerId, key) {
+export async function getRoleThemes(ownerId, key, { historyLimit = null } = {}) {
   if (!ownerId) return null;
-  const records = await listOwnerRecords(ownerId);
+  const records = visibleRecords(await listOwnerRecords(ownerId), historyLimit);
   const inRole = records.filter((r) => roleKey(effectiveRole(r).title) === key);
   if (inRole.length === 0) return null;
 

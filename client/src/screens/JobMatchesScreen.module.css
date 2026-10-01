@@ -37,6 +37,13 @@
   align-self: flex-start;
 }
 
+/* "1 of 5 searches left today", under the search button. */
+.allowance {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
 /* The collapsed form: what was searched, as one line of mono-labelled facts. */
 .searchSummary {
   display: flex;

@@ -38,6 +38,14 @@
   cursor: not-allowed;
 }
 
+/* Locked by the plan: the label keeps a small padlock beside it. */
+.locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+}
+
 /* The fill is the sliding .indicator; the option itself only recolours. */
 .active {
   color: var(--accent);

@@ -1,0 +1,93 @@
+.page {
+  padding-bottom: var(--sp-9);
+}
+
+/* A reading column: legal text is read line by line, not scanned. */
+.doc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  max-width: 72ch;
+  margin: 0 auto;
+  padding-top: var(--sp-7);
+  color: var(--text-muted);
+  line-height: var(--lh-normal);
+}
+
+.doc p {
+  margin: 0;
+}
+
+.doc a {
+  color: var(--secondary);
+  text-underline-offset: 3px;
+}
+.doc a:hover {
+  color: var(--secondary-hover);
+}
+
+/* Keeps the banner's text beside its icon instead of wrapping under it. */
+.bannerText {
+  flex: 1 1 24ch;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-3xl);
+  letter-spacing: var(--ls-tighter);
+  line-height: var(--lh-tight);
+  color: var(--text);
+}
+
+.updated {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+
+.list {
+  margin: 0;
+  padding-left: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.others {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+.otherLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+}

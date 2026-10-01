@@ -11,6 +11,8 @@ import Icon from "../components/Icon.jsx";
 import Toast from "../components/Toast.jsx";
 import SegmentedControl from "../components/SegmentedControl.jsx";
 import { chatResume } from "../api/resumeApi.js";
+import { isPlanError } from "../billing/planErrors.js";
+import { remainingLabel } from "../billing/usePlan.js";
 import { coerceResume, emptyResume, isResumeEmpty } from "../utils/resumeModel.js";
 import {
   EXPORT_FORMATS,
@@ -132,7 +134,16 @@ function useStackedLayout() {
   return stacked;
 }
 
-export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
+export default function ResumeBuilderScreen({
+  onBack,
+  setLeaveGuard,
+  // The plan's export formats (null = all). Exports are built in the browser,
+  // so this is a UI lock only — the one plan limit the server can't enforce.
+  allowedExports = null,
+  usage = null,
+  onOpenPlans,
+  onUsageChange,
+}) {
   // Read once, on mount: the draft this tab was working on, if any.
   const [draft] = useState(loadDraft);
 
@@ -199,6 +210,9 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
       ? "The reply to your last message didn't arrive. Try again."
       : ""
   );
+  // The last error was the plan's daily message allowance, not a failure:
+  // the panel offers "See plans" instead of "Try again".
+  const [errorIsPlan, setErrorIsPlan] = useState(false);
 
   const runIdRef = useRef(0);
   const abortRef = useRef(null);
@@ -333,6 +347,7 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
     async (history) => {
       setMessages(history);
       setError("");
+      setErrorIsPlan(false);
       setBusyBoth(true);
 
       const runId = ++runIdRef.current;
@@ -359,14 +374,17 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
           { id: nextId(), role: "assistant", text: data.reply },
         ]);
         if (data.changed && data.resume) setResume(data.resume, "the AI rewrite");
+        onUsageChange?.(); // one fewer message left today
         setBusyBoth(false);
       } catch (err) {
         if (runIdRef.current !== runId || err?.aborted) return;
         setError(err.message || "The assistant couldn't respond. Please try again.");
+        setErrorIsPlan(isPlanError(err));
+        if (isPlanError(err)) onUsageChange?.();
         setBusyBoth(false);
       }
     },
-    [setResume]
+    [setResume, onUsageChange]
   );
 
   const stop = useCallback(() => {
@@ -626,18 +644,30 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
                     </button>
                   ))}
                 </div>
-                {EXPORT_FORMATS.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    role="menuitem"
-                    className={styles.menuItem}
-                    onClick={() => handleDownload(f.id)}
-                  >
-                    <span className={styles.menuLabel}>{f.label}</span>
-                    <span className={styles.menuHint}>{f.hint}</span>
-                  </button>
-                ))}
+                {EXPORT_FORMATS.map((f) => {
+                  const locked = allowedExports != null && !allowedExports.includes(f.id);
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      role="menuitem"
+                      className={styles.menuItem}
+                      onClick={() => {
+                        if (!locked) return handleDownload(f.id);
+                        setMenuOpen(false);
+                        onOpenPlans?.();
+                      }}
+                    >
+                      <span className={styles.menuLabel}>
+                        {locked && <Icon name="lock" />}
+                        {f.label}
+                      </span>
+                      <span className={styles.menuHint}>
+                        {locked ? "Part of Pro and Ultimate. Opens Plans." : f.hint}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -723,7 +753,9 @@ export default function ResumeBuilderScreen({ onBack, setLeaveGuard }) {
         error={error}
         onSend={send}
         onStop={stop}
-        onRetry={retry}
+        onRetry={errorIsPlan ? undefined : retry}
+        onOpenPlans={errorIsPlan ? onOpenPlans : undefined}
+        allowance={remainingLabel(usage, "resumeMessages", "AI messages")}
       />
     </section>
   );

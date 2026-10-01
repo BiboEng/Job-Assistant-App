@@ -51,7 +51,7 @@ export default function VideoPlaceholder({ label, src, embedUrl, poster }) {
   }
 
   return (
-    <div className={`${styles.frame} ${styles.placeholder}`} role="img" aria-label={`${label} — coming soon`}>
+    <div className={`${styles.frame} ${styles.placeholder}`} role="img" aria-label={`${label}, coming soon`}>
       <span className={styles.play} aria-hidden="true">
         <Icon name="play" strokeWidth={2} />
       </span>

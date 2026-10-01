@@ -5,9 +5,9 @@ import { PATHS } from "../routes.js";
 import styles from "./PublicHeader.module.css";
 
 /**
- * The public site's top bar: wordmark, the three landing sections, and Sign In.
+ * The public site's top bar: wordmark, the landing sections, and Sign In.
  *
- * The section links are real routes (/about, /how-it-works, /contact) that all
+ * The section links are real routes (/how-it-works, /pricing, /contact) that all
  * render the landing page — LandingScreen scrolls to the matching section — so
  * they can be bookmarked and shared, and work from /sign-in too.
  *
@@ -16,9 +16,11 @@ import styles from "./PublicHeader.module.css";
  * place, and the button is dropped on /sign-in itself.
  */
 
+// "Features" keeps the /how-it-works URL it had before About and How It Works
+// were merged into one section, so existing links still land on it.
 const LINKS = [
-  { to: PATHS.about, label: "About" },
-  { to: PATHS.howItWorks, label: "How It Works" },
+  { to: PATHS.howItWorks, label: "Features" },
+  { to: PATHS.pricing, label: "Pricing" },
   { to: PATHS.contact, label: "Contact" },
 ];
 

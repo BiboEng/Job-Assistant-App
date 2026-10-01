@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
-import { dirname, join, isAbsolute, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { config } from "../config.js";
+import { DATA_DIR } from "./dataDir.js";
 
 /**
  * Flat-file interview history. One JSON array in <dataDir>/interviews.json.
@@ -18,12 +18,6 @@ import { config } from "../config.js";
  * DB-backed one to deploy for real — the controllers don't need to change.
  */
 
-const DEFAULT_DIR = fileURLToPath(new URL("../../data", import.meta.url));
-const DATA_DIR = config.dataDir
-  ? isAbsolute(config.dataDir)
-    ? config.dataDir
-    : resolve(process.cwd(), config.dataDir)
-  : DEFAULT_DIR;
 const DATA_FILE = join(DATA_DIR, "interviews.json");
 const TMP_FILE = `${DATA_FILE}.tmp`;
 
@@ -92,13 +86,18 @@ function snippetOf(jd) {
   return body.replace(/\s+/g, " ").slice(0, 140);
 }
 
-/** Lightweight list for the home screen, newest first, scoped to one owner. */
-export async function listInterviews(ownerId) {
+/**
+ * Lightweight list for the home screen, newest first, scoped to one owner.
+ * `limit` (the plan's visible history) keeps only the newest N; older records
+ * stay stored — a downgrade hides them, it never deletes them.
+ */
+export async function listInterviews(ownerId, { limit = null } = {}) {
   if (!ownerId) return [];
   const all = await ensureLoaded();
-  return all
+  const mine = all
     .filter((it) => it.ownerId === ownerId)
-    .sort((a, b) => b.createdAt - a.createdAt)
+    .sort((a, b) => b.createdAt - a.createdAt);
+  return (limit == null ? mine : mine.slice(0, Math.max(0, limit)))
     .map((it) => ({
       id: it.id,
       createdAt: it.createdAt,
@@ -110,6 +109,27 @@ export async function listInterviews(ownerId) {
       answeredCount: (it.qaPairs ?? []).filter((p) => p.answer && p.answer.trim())
         .length,
     }));
+}
+
+/** How many interviews an owner has stored (visible or not). */
+export async function countInterviews(ownerId) {
+  if (!ownerId) return 0;
+  const all = await ensureLoaded();
+  return all.filter((it) => it.ownerId === ownerId).length;
+}
+
+/**
+ * Is this record among the owner's newest `limit`? (`limit` null = all are.)
+ * Used to keep a hidden interview hidden when it's opened by id.
+ */
+export async function isWithinNewest(id, ownerId, limit) {
+  if (limit == null) return true;
+  const all = await ensureLoaded();
+  return all
+    .filter((it) => it.ownerId === ownerId)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, Math.max(0, limit))
+    .some((it) => it.id === id);
 }
 
 /** Full record by id, or null if missing or owned by someone else. */

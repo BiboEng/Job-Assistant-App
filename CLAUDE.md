@@ -43,9 +43,20 @@ no link to mock interviews or Progress, and no reminders. See "Application
 Tracker" below.
 
 All five sit behind **sign-in** (Supabase email/password). Signed-out visitors
-get a public **landing page** — hero, About, How It Works (a tutorial-video slot
-per feature) and a Contact footer. See "Routing", "Authentication" and "Landing
-page" below.
+get a public **landing page**: hero, an at-a-glance strip, **Features** (one tab
+per tool, with real screenshots and a tutorial-video slot each), **Feedback**,
+**Pricing** (the plans and prices) and a Contact footer.
+See "Routing", "Authentication" and "Landing page" below.
+
+**Plans** — Regular (free), Pro and Ultimate — set daily limits (interviews,
+job searches, Resume Builder messages) and gate features (speak mode, 5–6
+questions, the Technical / System design focuses, Progress insights, export
+formats, Tracker cards over 15, history past 10, Ultimate's stronger feedback
+model). Paid plans are **Stripe** subscriptions: hosted Checkout, the Customer
+Portal, signed webhooks. Limits are enforced on the server. **With no Stripe
+keys configured, billing is off and nothing is limited** — the app as it was.
+Public `/terms`, `/privacy` and `/refunds` pages hold draft legal text. See
+"Plans & billing" below and `BILLING.md` (the owner's setup checklist).
 
 A signed-in user is also offered an optional **career survey** once — fifteen
 questions about their job search, stored in Supabase. **Nothing reads it yet.**
@@ -69,8 +80,11 @@ mock-interview/
 ├── supabase/
 │   ├── README.md                    how to apply a migration (by hand — nothing does it for you)
 │   └── migrations/                  the career-survey table, the rating tables the
-│                                    n8n email writes to, and the Application Tracker's
-│                                    user_applications; see "Career survey" / "Application Tracker"
+│                                    n8n email writes to, the Application Tracker's
+│                                    user_applications, and user_subscriptions (plans,
+│                                    server-only) + the 15-card trigger; see "Career survey" /
+│                                    "Application Tracker" / "Plans & billing"
+├── BILLING.md                       the owner's Stripe / legal / tax setup and go-live checklist
 ├── n8n/                             two importable workflows: the post-survey rating
 │                                    email and the webhook that records the answer.
 │                                    Outside the app entirely — see "Website ratings"
@@ -80,6 +94,7 @@ mock-interview/
 │       ├── config.js                all env-driven config in one object
 │       ├── timeLimit.js             heuristic: question text → answer seconds (60–300)
 │       ├── rubric.js                the four answer-quality dimensions + normalizeRubric
+│       ├── plans.js                 pure: the three plans' limits + checkInterviewSetup / quota wording
 │       ├── routes/                  thin route → controller mapping
 │       ├── controllers/             request validation + orchestration
 │       ├── services/
@@ -91,14 +106,22 @@ mock-interview/
 │       │   ├── jobs.service.js        Adzuna fetcher + normalizer
 │       │   ├── resume.service.js      resume doc shape: normalize + model-turn interpreter
 │       │   ├── roleLabel.js           pure: role title → grouping key, first-line fallback, groupByRole
-│       │   └── progress.service.js    role labelling (model, stored per interview) + recurring themes
+│       │   ├── progress.service.js    role labelling (model, stored per interview) + recurring themes
+│       │   ├── stripe.service.js      the ONLY module that talks to Stripe: checkout, portal, prices, webhook sync
+│       │   ├── entitlement.js         pure: a customer's Stripe subscriptions → the plan they're entitled to
+│       │   ├── plan.service.js        which plan a request runs under (cached per user) + billingEnabled
+│       │   ├── supabaseAdmin.js       user_subscriptions over PostgREST with the service-role key
+│       │   ├── usage.service.js       per-user daily quota counters (reserve/refund), mirrored to usage.json
+│       │   └── dataDir.js             DATA_DIR resolution shared by history + usage
 │       ├── middleware/
 │       │   ├── auth.js              requireApiToken + authenticate (verified sign-in) + assertOwner
+│       │   ├── plan.js              attachPlan (req.plan + model-call ceiling), denyFeature, takeQuota
 │       │   └── rateLimit.js         in-memory per-key sliding window
-│       ├── controllers/            interview, interviews, jobs, resume, progress
+│       ├── controllers/            interview, interviews, jobs, resume, progress, billing
 │       └── prompts/index.js         interviewer + evaluator + job-match + resume + progress prompts
 │   └── test/                        node:test unit tests (`npm test`)
 └── client/
+    ├── public/landing/              the landing page's screenshots (real captures, desktop + m- phone twins)
     └── src/
         ├── main.jsx                 ErrorBoundary → BrowserRouter → AuthProvider → App
         ├── App.jsx                  the route table (public routes + one guarded layout route)
@@ -117,6 +140,12 @@ mock-interview/
         │                            applicationsApi.js (the table), useApplications.js
         │                            (board state, optimistic writes), useTrackedJobs.js
         │                            (Job Matches' "Track this")
+        ├── billing/                 plans.js (the client's mirror of server/src/plans.js + copy,
+        │                            comparison rows, price formatting), usePlan.js (the user's
+        │                            plan + today's usage, owned by AppWorkspace), usePlanCatalog.js
+        │                            (public prices), planErrors.js (isPlanError)
+        ├── legal/                   business.js (the seller's details — fill in before selling),
+        │                            documents.js (Terms / Privacy / Refunds as data)
         ├── styles/tokens.css        every design token (dark only) — see "Design system"
         ├── index.css                imports the tokens; base styles, app frame, shared classes
         ├── identity.js              owner id → X-Client-Id (Supabase user id when
@@ -128,7 +157,9 @@ mock-interview/
         │                            (JD + options), Chat, Results, HistoryDetail, JobMatches,
         │                            ResumeBuilder, Progress (per-role trends + themes),
         │                            Tracker (the Application Tracker board),
-        │                            Survey (the optional career survey)
+        │                            Survey (the optional career survey), Plans (plan,
+        │                            usage, upgrade, billing), Legal (public /terms,
+        │                            /privacy, /refunds)
         ├── components/              Sidebar (app nav + AccountMenu), AccountMenu (avatar,
         │                            email, survey link, sign out), SurveyBanner (the one-time prompt),
         │                            PublicHeader (site nav + Sign In),
@@ -139,8 +170,11 @@ mock-interview/
         │                            PracticeAgainButton (repeat an interview's format),
         │                            KanbanColumn, ApplicationCard, ApplicationDialog (tracker),
         │                            CameraPreview (speak-mode self-view), ResumePreview,
-        │                            ResumeChatPanel, EditableText, and the shared primitives:
-        │                            Icon (lucide map), SegmentedControl, Toast
+        │                            ResumeChatPanel, EditableText, PlanComparison (plan cards +
+        │                            table, shared by landing and Plans), CheckoutDialog (the
+        │                            step before Stripe Checkout), UpgradeNotice ("See plans"),
+        │                            and the shared primitives: Icon (lucide map),
+        │                            SegmentedControl (supports per-option `disabled`/`locked`), Toast
         ├── utils/score.js           score → { color, soft, label } band, shared by every score chip
         ├── utils/parseResume.js     client-side PDF/text → resume text (lazy-loads pdfjs-dist)
         ├── utils/resumeModel.js     resume doc shape + immutable edit helpers
@@ -172,6 +206,10 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
   **`SUPABASE_URL`** (the same public URL as the client) so the server verifies
   sign-ins — without it history is scoped by a client-supplied header. See
   "Security model".
+- **Paid plans** need the `STRIPE_*` block, `APP_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` in `server/.env` plus the subscriptions
+  migration — all in `BILLING.md`. Without them billing is off and nothing is
+  limited; `DEV_PLAN=regular` applies a plan's limits locally with no Stripe.
 - Client env (`client/.env`, see `client/.env.example`): **`SUPABASE_URL` and
   `SUPABASE_ANON_KEY` are required** to sign in — without them the public pages
   still render but every app route redirects to `/sign-in`, which shows a
@@ -247,8 +285,8 @@ declared (an undeclared token fails silently in the browser).
   settling on a move, landing blocks revealing on scroll (`data-reveal`, only
   hidden once the observer is attached). Keyframes live in each module —
   CSS Modules hash keyframe names, so a module can't use one from `index.css`.
-  The only perpetual loops are decorative ones on the landing page and the
-  mic's ring while recording. The global reduced-motion rule also zeroes
+  The only perpetual loop is the mic's ring while recording (the landing page
+  has none). The global reduced-motion rule also zeroes
   delays, so staggered content doesn't arrive late.
 - **Page furniture:** `.page-sub` (one line under a page title), `.field` /
   `.field-label` / `.field-hint` / `.field-error` (label above, 8px gaps), and
@@ -297,8 +335,9 @@ declared (an undeclared token fails silently in the browser).
   `HomeScreen.module.css`. `FeedbackReport` is one surface with sections
   divided by 1px rules, opening on the big mono score.
 - **Reduced motion** is handled once, globally.
-- **Public pages** (landing) wrap in `.public-site` and render their body in
-  `.app-shell.app-shell--public` (`--shell-width-public`, 1080px). The wrapper
+- **Public pages** wrap in `.public-site`. The legal pages render their body in
+  `.app-shell.app-shell--public` (`--shell-width-public`, 1160px); the landing
+  page uses its own full-width bands (see "Landing page"). The wrapper
   is load-bearing: `#root` is pinned to `height: 100%`, and a sticky element
   only sticks inside its parent's box. `--public-header-offset` (declared in
   `tokens.css`, bumped under 680px) is the `scroll-margin-top` for sections
@@ -313,7 +352,8 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
 
 | Path | Access | Renders |
 | --- | --- | --- |
-| `/`, `/about`, `/how-it-works`, `/contact` | public | `LandingScreen` (scrolls to the section) |
+| `/`, `/about`, `/how-it-works`, `/pricing`, `/contact` | public | `LandingScreen` (scrolls to the section; `/about` and `/how-it-works` both go to Features) |
+| `/terms`, `/privacy`, `/refunds` | public | `LegalScreen` (Stripe Checkout links to `/terms` and `/refunds`) |
 | `/sign-in` (`?mode=sign-up`, `?mode=forgot`) | public; a signed-in visitor is redirected on | `SignInScreen` |
 | `/reset-password` | public (arrives with a recovery session) | `ResetPasswordScreen` |
 | `/dashboard` | protected | `HomeScreen` (history + the three features) |
@@ -326,6 +366,7 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
 | `/progress` (`?role=<key>`) | protected | `ProgressScreen` (per-role score trend + recurring feedback) |
 | `/applications` | protected | `TrackerScreen` (the Application Tracker's Kanban board) |
 | `/survey` | protected | `SurveyScreen` (the optional career survey) |
+| `/plans` (`?plan=`, `?interval=`, `?checkout=`, `?portal=`) | protected | `PlansScreen` (plan, usage, upgrade, Manage billing) |
 | `*` | — | redirect to `/` |
 
 - **One guard, one layout.** All protected paths are children of a single
@@ -445,37 +486,63 @@ visitor arrived on `?mode=sign-up` / `?mode=forgot`, or switches mode.
 
 ## Landing page
 
-`screens/LandingScreen.jsx`: `PublicHeader` → hero → About → How It Works →
-closing CTA → `SiteFooter` (Contact). One scrolling page; the four public paths
-all render the same element, so React Router keeps it mounted and moving
-between them is a scroll. The scroll effect keys on `location.key` (clicking
-the same link again still scrolls), jumps on first load and glides afterwards
-unless reduced motion is on, and moves focus to the section's `h2`
+`screens/LandingScreen.jsx`: `PublicHeader` → hero → at-a-glance strip →
+Features → Feedback → Pricing → closing CTA → `SiteFooter` (Contact). One
+scrolling page; the five public paths all render the same element, so React
+Router keeps it mounted and moving between them is a scroll. `/about` and
+`/how-it-works` both land on Features (About and How It Works said the same
+three things twice and were merged). The scroll effect keys on `location.key`
+(clicking the same link again still scrolls), jumps on first load and glides
+afterwards unless reduced motion is on, and moves focus to the section's `h2`
 (`tabIndex=-1`) so keyboard users land where they asked.
 
-- **PublicHeader:** text wordmark ("Jobassist", no logo graphic), About / How
-  It Works / Contact as `NavLink`s, and **Sign in as a `.btn-primary`**
-  ("Dashboard" when signed in). Under 680px the three links drop to a second
-  row. `/sign-in` and `/reset-password` don't render it — they're bare,
-  centred pages with their own skip link.
-- **About:** placeholder copy plus three non-interactive pillars (interview,
-  jobs, resume).
-- **How It Works:** `HOW_IT_WORKS` in `LandingScreen.jsx` — Resume Builder, Job
-  Finder, Mock Interview — each with summary, three steps and a
-  `VideoPlaceholder`. **To add a tutorial** set that entry's `video.src` (a file
-  in `client/public/`, e.g. `/videos/resume-builder.mp4` → native `<video>`) or
-  `video.embedUrl` (e.g. a YouTube embed URL → iframe). Empty = labelled
-  placeholder. Rows alternate sides on desktop; DOM order stays copy-first.
-- **Contact:** `SiteFooter` (`id="contact"`) — `mailto:` email and GitHub link
-  (new tab, `noopener noreferrer`). Constants at the top of the file.
-- The hero's product preview is decorative, static and `aria-hidden`.
-- All copy is placeholder and meant to be edited in place — but **keep it
-  short**. Pillars and walkthrough summaries are one sentence each by design;
-  they were paragraphs, and three paragraphs side by side get skipped wholesale
-  on a landing page. The same rule cost the dashboard its hero and then its
-  feature cards: `HomeScreen` is a "Home" header row, a mono stats strip and
-  the history as dense rows — the features are in the sidebar — and its empty
-  state is one line plus "Start new interview".
+- **Layout:** full-width bands, each with a centred `.inner` column
+  (`--shell-width-public`, 1160px), alternating `--bg` / `--surface` with a 1px
+  rule between them. The landing `<main>` is **not** an `.app-shell` (the legal
+  pages still are). It reads at the public type scale in `tokens.css`:
+  `--fs-public-body/lede/h3/h2/stat`, `--text-secondary` for paragraphs
+  (brighter than `--text-muted`), `--public-section-pad`, `--public-measure`.
+- **PublicHeader:** text wordmark, **Features / Pricing / Contact** as
+  `NavLink`s (Features keeps the `/how-it-works` URL), and **Sign in as a
+  `.btn-primary`** ("Dashboard" when signed in). Under 680px the links drop to
+  a second row. `/sign-in` and `/reset-password` don't render it.
+- **Hero:** headline, one sentence, two buttons, then a real screenshot at full
+  width. No eyebrow, no facts line under the buttons; those numbers live in the
+  **at-a-glance strip** below (`STATS`: every number there is a real product
+  limit, so keep it that way).
+- **Features** (`id="features"`): `FEATURES` in `LandingScreen.jsx`, one ARIA tab
+  per tool (mock interviews, job matches, resume builder, progress): a vertical
+  tab list on the left (a 2×2 grid under 860px, where the summary moves into
+  the panel), the selected tool's screenshot and three steps on the right.
+  Arrow keys / Home / End move between tabs; the old How It Works anchors
+  (`/how-it-works#job-finder`) open the matching tab. **To add a tutorial** set
+  that entry's `video.src` (a file in `client/public/`) or `video.embedUrl`; the
+  video replaces the screenshot through `VideoPlaceholder`.
+- **Feedback** (`id="feedback"`): the top of a real feedback report at full
+  width, with three short notes under it.
+- **Pricing** (`id="pricing"`, `/pricing`): `PlanComparison` with
+  `collapseTable` (three cards; the full comparison table folds behind a native
+  `<details>`, "Compare every feature") and a one-line renewal / refund note.
+  Paid cards say "Coming soon" while billing is off. See "Plans & billing".
+- **Contact:** `SiteFooter` (`id="contact"`): wordmark and one line on the left,
+  the Contact heading with plain `mailto:` and GitHub links on the right, legal
+  row below. The email comes from `legal/business.js`.
+- **Screenshots are real.** `client/public/landing/*.webp` are captures of the
+  actual screens rendered with sample data (a fictional candidate, "Maya
+  Okafor", and fictional employers), taken in headless Chrome at 2×. Each has
+  an `m-` twin captured at phone width; `Shot` serves it through `<picture>`
+  under 680px, because a desktop screen shrunk to 360px is unreadable. The
+  `SHOTS` table holds each file's real pixel size so nothing shifts on load.
+  **Retake them when the screens they show change visibly.** No fake UI built
+  from divs on this page.
+- **One label per intent:** "Start free" for every sign-up button (hero, the
+  Regular plan card, the closing band), "Open dashboard" in their place when
+  signed in.
+- **Copy:** plain, short, no em-dashes (en-dashes as separators too). Section
+  intros are one sentence. The same rule cost the dashboard its hero and then
+  its feature cards: `HomeScreen` is a "Home" header row, a mono stats strip
+  and the history as dense rows (the features are in the sidebar), and its
+  empty state is one line plus "Start new interview".
 - **A skip link** (`.skip-link` in `index.css`) sits first inside `PublicHeader`
   (and first on the sign-in / reset pages) and targets `#main-content`, which
   every screen puts on its `<main>` — including `AppWorkspace`'s.
@@ -1388,6 +1455,124 @@ the table is missing instead of throwing. A failed read collapses the same way
 on purpose: nobody came here to take a survey, and an error banner on the
 dashboard about one is worse than the prompt quietly not appearing.
 
+## Plans & billing
+
+Three plans, defined once in **`server/src/plans.js`** (pure; the client's
+`billing/plans.js` mirrors it and `client/test/plans.test.js` fails on drift):
+
+| | Regular (free) | Pro | Ultimate |
+| --- | --- | --- | --- |
+| Interviews / day | 3 | 15 | 40 |
+| Questions | 2–4 | 2–6 | 2–6 |
+| Focus | Mixed, Behavioral | all | all |
+| Speak mode | — | ✓ | ✓ |
+| Job searches / day | 1 | 5 | 15 |
+| Resume Builder messages / day | 20 | 100 | 300 |
+| Exports | print PDF, TXT | all | all |
+| Progress insights (rubric charts, themes) | — | ✓ | ✓ |
+| Tracker cards | 15 | ∞ | ∞ |
+| Visible history | 10 newest | 100 | 100 |
+| Feedback model | default | default | `ULTIMATE_EVALUATOR_MODEL` |
+
+**Billing on/off.** `billingStatus()` (config.js) is on only when
+`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, a monthly price, `SUPABASE_URL`
+and `SUPABASE_SERVICE_ROLE_KEY` are ALL set; partial config logs what's
+missing. **Off = `UNLIMITED_PLAN` for everyone** (the app exactly as before),
+unless `DEV_PLAN` names a plan to test locally (ignored when billing is on).
+`GET /api/billing/me` says `enforced: false` and the UI locks nothing.
+
+**Where each limit is enforced** — on the server, per request, from
+`req.plan` (`middleware/plan.js` → `attachPlan`, after `authenticate`, on every
+authenticated router):
+- `POST /interview/start`: `checkInterviewSetup` (speak / focus / count → 403
+  `plan_feature`), then `takeQuota("interviews")` (429 `plan_quota`). "Practice
+  again" goes through here too, so repeating a Pro-only interview on Regular is
+  refused the same way.
+- `POST /jobs/search`: `takeQuota("jobSearches")`; `/jobs/score` isn't counted
+  (the per-plan model-call backstop bounds it).
+- `POST /resume/chat`: `takeQuota("resumeMessages")`.
+- `GET /interviews` (list) and `GET /interviews/:id`: only the newest
+  `historyVisible`; an older one is 403. **Nothing is deleted** — a downgrade
+  hides history, an upgrade shows it again.
+- `GET /progress`: visible history only, and without `progressInsights` every
+  interview's `rubric` is nulled and `insights: false` returned;
+  `POST /progress/themes` is 403 before any model call.
+- Feedback: Ultimate passes `model: ULTIMATE_EVALUATOR_MODEL` to
+  `chatCompletionJson` (JSON-mode rejection is remembered **per model**).
+- **Tracker cards:** a Supabase trigger (`enforce_application_limit`, in the
+  subscriptions migration) — the tracker never touches the API. Insert-only:
+  an account over 15 after a downgrade keeps and edits every card.
+- **Export formats:** UI lock only (exports are built in the browser).
+
+**Quotas** (`services/usage.service.js`) count *actions*, per owner per UTC
+day, reserved before the work and `refund()`ed if it fails (no first
+question, profile call failed, Adzuna down with no results, resume model call
+failed). Mirrored to `<DATA_DIR>/usage.json` (debounced, atomic) so a restart
+doesn't reset the day.
+
+**Which plan a user has.** `services/plan.service.js` reads
+`public.user_subscriptions` (Supabase, **service-role only**: RLS on, no
+policies) through `services/supabaseAdmin.js`, cached `planCacheMs` (60s) per
+user; a read failure uses the last known plan, else Regular — never fails
+open. The row's `plan` is written **only** by `stripe.service.js`'s
+`syncCustomer`: it lists the customer's subscriptions from Stripe and
+`pickEntitlement` (`services/entitlement.js`, pure, tested) picks the best
+one with status `active | trialing | past_due` (past_due keeps access while
+Stripe retries). Prices map to plans by the `STRIPE_PRICE_*` ids (each may
+list several, comma-separated — first is sold, the rest are old prices still
+honoured) or Price metadata `jobassist_plan`. The billing period is read from
+the subscription **item** (API ≥ 2025-03-31 moved it there).
+
+**Stripe flows** (`services/stripe.service.js`, the only Stripe module; SDK
+pinned exactly, API version `2026-08-26.dahlia`):
+- `POST /api/billing/checkout {plan, interval}` → hosted Checkout, `mode:
+  subscription`, one customer per user (created here with an idempotency key,
+  mapped in the table), `consent_collection.terms_of_service: required`
+  (needs the Terms URL set in Stripe's public details), renewal wording in
+  `custom_text.submit`, links to `/terms` and `/refunds`, no
+  `payment_method_types` (dynamic methods). `automatic_tax` +
+  `billing_address_collection: required` + `customer_update` only with
+  `STRIPE_AUTOMATIC_TAX=true`. Refused (409) while the user already has a
+  paid plan — switching happens in the portal.
+- `POST /api/billing/portal` → Customer Portal (cancel, switch, card, invoices).
+- `POST /api/billing/webhook` — mounted in `index.js` **before
+  `express.json`** with `express.raw` (the signature covers the raw bytes);
+  400 on a bad signature, 500 on a handling failure (Stripe retries), else
+  200. Every handled event re-syncs the customer from Stripe — the payload is
+  never trusted, so duplicates and out-of-order events are harmless. One sync
+  per customer at a time.
+- `POST /api/billing/sync` — the Plans page calls it on return from Checkout
+  (which can beat the webhook), polling until the plan changes.
+- `GET /api/billing/plans` (public) — live prices from Stripe (cached 10 min;
+  an archived / wrong-interval price is dropped, not shown), plus
+  `strongerEvaluator` and `automaticTax`, so the page never advertises a
+  stronger model that isn't configured or "plus tax" when none is collected.
+
+**Client.** `AppWorkspace` owns `usePlan()` (refreshed on every navigation)
+and passes `limits` / `usage` / `onOpenPlans` to the screens through their
+`*Route` wrappers. `limits` is null until loaded or when not enforced — so
+nothing locks by mistake; the server decides anyway. Plan errors carry
+`err.code` (`api/client.js`); `isPlanError` turns them into an amber
+`UpgradeNotice` with "See plans" instead of an error with "Try again".
+`SegmentedControl` options take `disabled` + `locked` (padlock, skipped by
+arrow keys). The landing page's **Pricing** section and `/plans` share
+`PlanComparison` (the landing page passes `collapseTable`); paid CTAs go to `/plans?plan=…` (via sign-up with
+`state.from` for visitors), where `CheckoutDialog` states price, renewal,
+cancellation and the 14-day refund before redirecting to Stripe.
+
+**Legal.** `/terms`, `/privacy`, `/refunds` render `legal/documents.js` —
+drafts written against what the app actually does. **Keep them true**: a new
+data flow means a Privacy Policy change. `legal/business.js` holds the
+seller's details; while a required one is empty the pages say "Draft" and
+`CheckoutDialog` won't start checkout. The 14-day refund promised there, in
+the dialog and on the landing page is checked by a test. Sign-in shows "By
+continuing you agree to the Terms…".
+
+**Setup lives in `BILLING.md`** (Stripe dashboard, portal, emails, webhook
+events, restricted-key permissions, Supabase migration, Canadian
+business / GST-HST / legal items, local testing with the Stripe CLI and
+`DEV_PLAN`, go-live checklist, refunds and account-deletion procedure).
+
 ## Security model — read before deploying
 
 Users sign in with Supabase, and the API verifies those sign-ins when it is
@@ -1423,6 +1608,9 @@ configured to. Three mechanisms:
    background work a request kicks off, like Progress labelling after a save —
    is counted against its owner. Over the limit = a 429 "come back tomorrow".
    Without it one account could spend the whole global `MODEL_CALLS_PER_DAY`.
+   Once plans apply, `attachPlan` swaps in the plan's own backstop
+   (`modelCallsPerDay`: 150 / 600 / 1500) via `setOwnerCallLimit`; the env var
+   then only counts if set explicitly, as a ceiling over every plan.
 
 `assertOwner` **fails closed**: once a session has an owner, a request with no
 owner is rejected (404), not waved through. A wrong-owner request is rejected
@@ -1539,6 +1727,12 @@ Other guards already in place:
   `user_applications`), written from the client and protected by RLS. The
   Express server has no part in either. See "Career survey" and "Application
   Tracker".
+- **Plans** are the one Supabase table the *server* owns:
+  `user_subscriptions`, read and written with the service-role key (no RLS
+  policies, so no browser can touch it). Stripe itself is the source of
+  truth; the row is a cache of it, rebuilt on every webhook. Today's quota
+  counters live in `<DATA_DIR>/usage.json`, and the plan cache is in memory —
+  both single-process, like the rest.
 
 ## Conventions
 
@@ -1557,7 +1751,10 @@ Other guards already in place:
   `interviewFocuses`, `INTERVIEW_MODES` ↔ `interviewModes`, and
   `ADZUNA_COUNTRIES` ↔ `adzuna.supportedCountries`
   (`server/test/countrySync.test.js` guards that one), and `RUBRIC_DIMENSIONS`
-  ↔ `server/src/rubric.js` (`client/test/rubric.test.js`).
+  ↔ `server/src/rubric.js` (`client/test/rubric.test.js`). Plan limits:
+  `client/src/billing/plans.js` ↔ `server/src/plans.js` ↔ the 15 in the
+  subscriptions migration's trigger (`client/test/plans.test.js`). Changing a
+  paid plan's limits needs 30 days' notice to subscribers (Terms §3).
 - CSS: see "Design system" above. Style through the tokens; no raw hex, font
   size, spacing or radius literal in module CSS. The resume sheet
   (`ResumePreview` / `EditableText`) is the one deliberate exception — it's

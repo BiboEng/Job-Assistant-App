@@ -85,6 +85,11 @@ export async function request(path, options = {}) {
   if (!res.ok) {
     const err = new Error(data?.error || `Request failed (${res.status})`);
     err.status = res.status;
+    // Plan limits come back with a machine-readable code ("plan_feature",
+    // "plan_quota") so a screen can offer "See plans" next to the message
+    // rather than showing it as a plain failure (see billing/planErrors.js).
+    if (typeof data?.code === "string") err.code = data.code;
+    if (typeof data?.requiredPlan === "string") err.requiredPlan = data.requiredPlan;
     throw err;
   }
   return data;

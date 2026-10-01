@@ -8,7 +8,9 @@ import { withModelBudget } from "./modelBudget.js";
  * central error handler can surface them without leaking upstream detail.
  *
  * @param {Array<{role: string, content: string}>} messages
- * @param {{ json?: boolean, temperature?: number }} [options]
+ * @param {{ json?: boolean, temperature?: number, kind?: string, model?: string }} [options]
+ *   `model` overrides the configured model for this one call (Ultimate's
+ *   stronger evaluator).
  * @returns {Promise<string>} the assistant message content
  */
 export async function chatCompletion(messages, options = {}) {
@@ -23,7 +25,7 @@ export async function chatCompletion(messages, options = {}) {
 
 async function callOpenRouter(messages, options) {
   const body = {
-    model: config.model,
+    model: options.model || config.model,
     messages,
     temperature: options.temperature ?? 0.7,
   };
@@ -102,13 +104,13 @@ async function callOpenRouter(messages, options) {
  * disable JSON mode for the whole process lifetime.
  */
 const JSON_MODE_RETRY_AFTER_MS = 30 * 60 * 1000;
-let jsonModeRejectedAt = 0;
+// Per model: Ultimate's evaluator can be a different model from the default,
+// and one rejecting JSON mode says nothing about the other.
+const jsonModeRejectedAt = new Map(); // model → ms
 
-function jsonModeCurrentlyRejected() {
-  return (
-    jsonModeRejectedAt > 0 &&
-    Date.now() - jsonModeRejectedAt < JSON_MODE_RETRY_AFTER_MS
-  );
+function jsonModeCurrentlyRejected(model) {
+  const at = jsonModeRejectedAt.get(model) ?? 0;
+  return at > 0 && Date.now() - at < JSON_MODE_RETRY_AFTER_MS;
 }
 
 /**
@@ -124,7 +126,8 @@ const SUBJECT_BY_KIND = {
 };
 
 export async function chatCompletionJson(messages, options = {}) {
-  let useJsonMode = !jsonModeCurrentlyRejected();
+  const model = options.model || config.model;
+  let useJsonMode = !jsonModeCurrentlyRejected(model);
   let lastParseErr;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -134,10 +137,11 @@ export async function chatCompletionJson(messages, options = {}) {
         json: useJsonMode,
         temperature: 0.3,
         kind: options.kind,
+        model,
       });
     } catch (err) {
       if (err?.unsupportedJsonMode && useJsonMode) {
-        jsonModeRejectedAt = Date.now(); // remember for later calls (time-boxed)
+        jsonModeRejectedAt.set(model, Date.now()); // remember for later calls (time-boxed)
         useJsonMode = false; // immediate retry, plain mode
         continue;
       }

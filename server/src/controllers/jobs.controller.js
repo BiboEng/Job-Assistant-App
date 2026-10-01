@@ -11,6 +11,7 @@ import {
   dedupeJobs,
   resolveAdzunaCountry,
 } from "../services/jobs.service.js";
+import { takeQuota } from "../middleware/plan.js";
 
 /**
  * Job Matches is a two-phase flow so the client can show results immediately and
@@ -55,11 +56,17 @@ export async function searchJobs(req, res, next) {
       countryCode = resolved;
     }
 
+    // One search from the plan's daily allowance. Scoring the results
+    // (/score) doesn't count separately — it's part of the same search.
+    const hold = await takeQuota(req, res, "jobSearches");
+    if (!hold) return;
+
     // --- resume -> search profile (one model call) ---------------------
     let profile;
     try {
       profile = await deriveProfile(resume);
     } catch (err) {
+      hold.refund();
       console.error("[jobs] profile step failed:", err.message);
       const busy = err?.status === 429 || err?.status === 503;
       // Busy / over-quota errors already carry a user-safe message (which one
@@ -93,6 +100,9 @@ export async function searchJobs(req, res, next) {
     const pool = dedupeJobs(adzuna.jobs).slice(0, config.jobMatch.maxScored);
 
     if (pool.length === 0) {
+      // Adzuna being down isn't the user's search failing to find anything;
+      // don't spend their allowance on it.
+      if (adzuna.error) hold.refund();
       return res.status(200).json({
         profile: publicProfile(profile),
         jobs: [],

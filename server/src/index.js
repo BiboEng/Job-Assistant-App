@@ -1,13 +1,16 @@
 import express from "express";
 import cors from "cors";
-import { config } from "./config.js";
+import { billingStatus, config } from "./config.js";
 import { interviewRouter } from "./routes/interview.routes.js";
 import { interviewsRouter } from "./routes/interviews.routes.js";
 import { jobsRouter } from "./routes/jobs.routes.js";
 import { resumeRouter } from "./routes/resume.routes.js";
 import { progressRouter } from "./routes/progress.routes.js";
+import { billingRouter } from "./routes/billing.routes.js";
+import { getPlanCatalog, stripeWebhook } from "./controllers/billing.controller.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { requireApiToken, authenticate } from "./middleware/auth.js";
+import { attachPlan } from "./middleware/plan.js";
 import { ensureHistoryReady } from "./services/history.service.js";
 
 const app = express();
@@ -48,7 +51,27 @@ app.use((_req, res, next) => {
   next();
 });
 
+// Stripe webhooks. Mounted BEFORE express.json: the signature covers the exact
+// bytes Stripe sent, so the body must reach the handler unparsed. No user
+// token or API token — Stripe's signature (STRIPE_WEBHOOK_SECRET) is the
+// authentication. Its own rate limit is generous: Stripe can burst events.
+app.post(
+  "/api/billing/webhook",
+  rateLimit({ windowMs: config.rateLimit.windowMs, max: 300 }),
+  express.raw({ type: "application/json", limit: "1mb" }),
+  stripeWebhook
+);
+
 app.use(express.json({ limit: "64kb", strict: true }));
+
+// Public: which paid prices are on sale, read from Stripe, for the landing
+// page's "More features" section. No sign-in — visitors see prices before
+// they have an account.
+app.get(
+  "/api/billing/plans",
+  rateLimit({ windowMs: config.rateLimit.windowMs, max: 60 }),
+  getPlanCatalog
+);
 
 app.get(
   "/api/health",
@@ -63,6 +86,7 @@ app.use(
   rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max }),
   requireApiToken,
   authenticate,
+  attachPlan,
   interviewRouter
 );
 
@@ -72,6 +96,7 @@ app.use(
   rateLimit({ windowMs: config.rateLimit.windowMs, max: 100 }),
   requireApiToken,
   authenticate,
+  attachPlan,
   interviewsRouter
 );
 
@@ -86,6 +111,7 @@ app.use(
   }),
   requireApiToken,
   authenticate,
+  attachPlan,
   jobsRouter
 );
 
@@ -99,6 +125,7 @@ app.use(
   }),
   requireApiToken,
   authenticate,
+  attachPlan,
   resumeRouter
 );
 
@@ -112,7 +139,19 @@ app.use(
   }),
   requireApiToken,
   authenticate,
+  attachPlan,
   progressRouter
+);
+
+// Plans & billing for the signed-in user: current plan + usage, checkout,
+// the billing portal, and a re-check after returning from Checkout.
+app.use(
+  "/api/billing",
+  rateLimit({ windowMs: config.rateLimit.windowMs, max: 60 }),
+  requireApiToken,
+  authenticate,
+  attachPlan,
+  billingRouter
 );
 
 // 404
@@ -149,4 +188,5 @@ ensureHistoryReady().catch((err) =>
 app.listen(config.port, () => {
   console.log(`Mock interview API listening on http://localhost:${config.port}`);
   console.log(`Model: ${config.model}`);
+  console.log(`Billing: ${billingStatus().enabled ? "on (plans enforced)" : "off (no plan limits)"}`);
 });

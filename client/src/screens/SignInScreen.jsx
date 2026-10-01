@@ -511,6 +511,12 @@ export default function SignInScreen() {
               </>
             )}
           </p>
+          {!isForgot && (
+            <p className={styles.legal}>
+              By continuing you agree to the <Link to={PATHS.terms}>Terms of Service</Link> and
+              acknowledge the <Link to={PATHS.privacy}>Privacy Policy</Link>.
+            </p>
+          )}
           </>
           )}
         </div>

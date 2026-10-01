@@ -1,0 +1,14 @@
+.message {
+  flex: 1 1 24ch;
+}
+
+/* Inside another surface: no banner fill, the same icon · text · action row. */
+.compact {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}

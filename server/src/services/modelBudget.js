@@ -43,7 +43,17 @@ const ownerContext = new AsyncLocalStorage();
 
 /** Runs `fn` with `ownerId` as the owner that model calls inside it bill to. */
 export function runWithOwner(ownerId, fn) {
-  return ownerContext.run({ ownerId: ownerId || null }, fn);
+  return ownerContext.run({ ownerId: ownerId || null, callLimit: null }, fn);
+}
+
+/**
+ * Sets the current owner's daily model-call ceiling for the rest of this
+ * request (and anything it starts). `attachPlan` calls it with the plan's
+ * backstop; null keeps MODEL_CALLS_PER_USER_PER_DAY.
+ */
+export function setOwnerCallLimit(limit) {
+  const store = ownerContext.getStore();
+  if (store) store.callLimit = Number.isFinite(limit) ? limit : null;
 }
 
 function rollover() {
@@ -73,8 +83,10 @@ export async function withModelBudget(fn, { kind = "interview" } = {}) {
   rollover();
 
   const pool = pools[kind] || pools.interview;
-  const { modelCallsPerDay, modelCallsPerUserPerDay } = config.limits;
-  const ownerId = ownerContext.getStore()?.ownerId ?? null;
+  const { modelCallsPerDay } = config.limits;
+  const store = ownerContext.getStore();
+  const ownerId = store?.ownerId ?? null;
+  const modelCallsPerUserPerDay = store?.callLimit ?? config.limits.modelCallsPerUserPerDay;
 
   if (modelCallsPerDay > 0 && callsThisWindow >= modelCallsPerDay) {
     throw budgetError(
