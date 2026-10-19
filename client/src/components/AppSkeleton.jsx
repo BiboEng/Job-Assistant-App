@@ -18,7 +18,7 @@ export default function AppSkeleton({ label = "Loading…" }) {
   return (
     <div className="app-frame" aria-busy="true">
       <div className={styles.sidebar}>
-        <span className={styles.wordmark}>Jobassist</span>
+        <span className={styles.wordmark}>Jobuddy</span>
       </div>
 
       <div className="app-main app-shell">

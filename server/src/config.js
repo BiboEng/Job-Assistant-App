@@ -251,7 +251,7 @@ export const config = {
     // collects nothing. See BILLING.md → "Sales tax".
     automaticTax: process.env.STRIPE_AUTOMATIC_TAX === "true",
     // Where Checkout and the billing portal send the browser back to. The
-    // deployed client origin, e.g. https://jobassist.example.com.
+    // deployed client origin, e.g. https://jobuddy.example.com.
     appUrl: (process.env.APP_URL || "http://localhost:5173").trim().replace(/\/+$/, ""),
     // Server-only secret. NEVER put this in client/.env: Vite bundles every
     // SUPABASE_* variable there into the browser.

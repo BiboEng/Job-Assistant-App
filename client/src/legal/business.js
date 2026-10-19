@@ -9,12 +9,12 @@
  * a checkout — see `missingBusinessDetails()`.
  *
  * As a sole proprietor you sell under your own legal name. If you trade as
- * "Jobassist", most provinces require that business name to be registered —
+ * "Jobuddy", most provinces require that business name to be registered —
  * see BILLING.md → "Before you take real money".
  */
 export const BUSINESS = {
   // The brand the site uses.
-  tradeName: "Jobassist",
+  tradeName: "Jobuddy",
   // REQUIRED. Your full legal name — you are the seller as a sole proprietor.
   legalName: "",
   // REQUIRED. The province or territory whose law governs the Terms, e.g. "Ontario".

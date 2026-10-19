@@ -112,7 +112,7 @@ export default function Sidebar({
       aria-label="App"
     >
       <div className={styles.top}>
-        {!collapsed && <span className={styles.wordmark}>Jobassist</span>}
+        {!collapsed && <span className={styles.wordmark}>Jobuddy</span>}
         {!narrow && (
           <button
             type="button"

@@ -406,6 +406,207 @@
   color: var(--text-subtle);
 }
 
+/* --- overall readiness ------------------------------------------------------ */
+
+.readyTop {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.readyFigure {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-tighter);
+  line-height: var(--lh-tight);
+  color: var(--text);
+}
+
+.readyUnit {
+  margin-left: 2px;
+  font-size: var(--fs-xl);
+  color: var(--text-subtle);
+}
+
+.readyStage {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
+.readyScale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* The fill is scaled, not sized, so it can draw in with a transform. Ticks
+   mark where each stage starts. */
+.readyTrack {
+  position: relative;
+  height: 8px;
+  border-radius: var(--radius-xs);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.readyFill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: left center;
+  animation: readyDraw var(--dur-reveal) var(--ease) both;
+}
+
+.readyTick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--surface);
+}
+
+/* No `to`: the fill draws in to its own inline scale. */
+@keyframes readyDraw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.readyStages {
+  display: grid;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-subtle);
+}
+.readyStages span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.readyStageOn {
+  color: var(--text);
+}
+
+/* Too narrow for four labels; the stage name above says it. */
+@media (max-width: 640px) {
+  .readyStages {
+    display: none;
+  }
+}
+
+/* The four factors: dense rows, name | meter | value. */
+.factors {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.factor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 40px;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3);
+}
+.factor + .factor {
+  border-top: 1px solid var(--border);
+}
+
+.factorFocus {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.factorName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.factorTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
+.factorTag {
+  padding: 0 var(--sp-1);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-normal);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: var(--accent-text);
+}
+
+.factorDetail {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+  color: var(--text-subtle);
+}
+.factorDetail :global(.link-btn) {
+  font-size: var(--fs-xs);
+}
+
+.factorMeter {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-xs);
+  background: var(--border);
+  overflow: hidden;
+}
+.factorMeter span {
+  position: absolute;
+  inset: 0;
+  background: var(--text-muted);
+  transform-origin: left center;
+  animation: readyDraw var(--dur-reveal) var(--ease) both;
+}
+.factorFocus .factorMeter span {
+  background: var(--accent);
+}
+
+.factorValue {
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  text-align: right;
+  color: var(--text);
+}
+
+/* Phone: the name takes the full row, meter and value share the next. */
+@media (max-width: 640px) {
+  .factor {
+    grid-template-columns: minmax(0, 1fr) 40px;
+    gap: var(--sp-2) var(--sp-3);
+  }
+  .factorName {
+    grid-column: 1 / -1;
+  }
+}
+
 /* --- answer quality ------------------------------------------------------- */
 
 .qualityGrid {

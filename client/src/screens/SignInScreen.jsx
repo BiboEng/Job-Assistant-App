@@ -250,7 +250,7 @@ export default function SignInScreen() {
         {/* The brand side of the split. Wide screens only — on a phone the form
             is the whole page, as it always was. */}
         <aside className={styles.brandPanel} aria-label="What you get">
-          <p className="eyebrow">Jobassist</p>
+          <p className="eyebrow">Jobuddy</p>
           <p className={styles.brandTitle}>Practise the interview before it counts.</p>
           <ol className={styles.brandList}>
             <li>
@@ -272,7 +272,7 @@ export default function SignInScreen() {
           <div className={styles.head}>
             <h1 className={styles.title}>
               <Link to={PATHS.home} className={styles.wordmark}>
-                Jobassist
+                Jobuddy
               </Link>
             </h1>
             <p className={styles.subtitle}>

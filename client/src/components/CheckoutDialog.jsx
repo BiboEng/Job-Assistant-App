@@ -122,7 +122,7 @@ export default function CheckoutDialog({ plan, interval, price, automaticTax, on
           </li>
           <li>
             <Icon name="lock" />
-            <span>Payment is handled by Stripe. Your card details never reach Jobassist.</span>
+            <span>Payment is handled by Stripe. Your card details never reach Jobuddy.</span>
           </li>
         </ul>
 

@@ -1,4 +1,4 @@
-# Jobassist — full app review (2026-09-27)
+# Jobuddy — full app review (2026-09-27)
 
 Status (later on 2026-09-27): all High items plus M1, M2, M4, M5, M10 and M12
 are fixed in the working tree (uncommitted); L6 and L16 were fixed alongside.

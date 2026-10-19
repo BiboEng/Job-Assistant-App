@@ -1,4 +1,12 @@
-# Jobassist (mock-interview) — working notes for Claude
+# Jobuddy (mock-interview) — working notes for Claude
+
+> **Renamed from Jobassist.** Every user-facing string says Jobuddy. A few
+> machine identifiers deliberately keep the old name, because changing them
+> breaks things already in the wild: the Stripe Price metadata key
+> `jobassist_plan` (prices tagged in the dashboard would stop mapping to a
+> plan), `INTEGRATION_IDENTIFIER` and the `jobassist-customer-` idempotency
+> prefix in `stripe.service.js`, and the `jobassist:sidebarCollapsed:v1`
+> localStorage key. Leave them.
 
 AI-powered mock interview practice. Paste a job description, pick a question
 count (2–6), a focus (mixed / behavioral / technical / system-design) and a
@@ -183,6 +191,7 @@ mock-interview/
         ├── utils/faceTracker.js     MediaPipe Face Landmarker → on-camera % (lazy, fails soft to null)
         ├── utils/trendChart.js      pure: Progress chart geometry (fixed y domain, per-interview x)
         ├── utils/rubric.js          pure: per-role answer-quality series + the weakest dimension
+        ├── utils/readiness.js       pure: a role's "Overall readiness" 0–100, its stage and four factors
         ├── utils/repeatInterview.js pure: saved interview / session setup → "Practice again" settings
         ├── hooks/useSpeechRecognition.js   Web Speech API wrapper, client-only
         └── hooks/useDeliveryCapture.js     owns the camera+mic stream, analyser and face tracker
@@ -218,7 +227,7 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
 - Tests: `cd server && npm test`, and `cd client && npm test` (node:test, no
   bundler — so it covers only what imports cleanly outside Vite: the pure utils
   (`utils/deliveryMetrics.js`, `utils/trendChart.js`, `utils/rubric.js`,
-  `utils/repeatInterview.js`), the design-token contract, the survey's questions ↔
+  `utils/readiness.js`, `utils/repeatInterview.js`), the design-token contract, the survey's questions ↔
   migration ↔ row mapping, and the Application Tracker's model ↔ migration
   (`test/applications.test.js`). There is still no component/DOM test runner. Anything
   reading `import.meta.env` — the Supabase client, and so `survey/surveyApi.js`
@@ -233,7 +242,7 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
 
 ## Design system
 
-**Jobassist** is dark-only: an "instrument panel" look — a desaturated
+**Jobuddy** is dark-only: an "instrument panel" look — a desaturated
 blue-grey ink base, Geist type, and one soft aqua accent used sparingly
 (primary buttons, the active nav icon, focus rings, key numbers).
 
@@ -997,12 +1006,40 @@ interview count, latest date and a 0–100 sparkline; a horizontal strip under
 again**, which repeats the role's latest interview and says what it will
 repeat — "Same job description · 3 questions · Technical · typed"), a KPI strip
 (latest / average / best / change since first — "—" rather than a made-up
-value for a single interview), then four sections, each its own bordered
-surface with an icon, a title and a one-line explanation: **Overall score**
+value for a single interview), then five sections, each its own bordered
+surface with an icon, a title and a one-line explanation: **Overall
+readiness** (below), **Overall score**
 (the trend chart), **Answer quality** (the rubric, below), **Recurring
 feedback**, and **Interviews** (the role's interviews newest first as dense
 rows: number, posting line, date and format, change from the one before,
 score).
+
+### Overall readiness
+
+A per-role 0–100 with a stage (Not ready < 40 ≤ Getting there < 60 ≤ Almost
+ready < 80 ≤ Ready), computed **in the browser** by `utils/readiness.js` (pure,
+tested) from what `GET /api/progress` already returns. No model call and no
+new data, so it can't change on reload. **Every plan** gets it. Four factors,
+each 0–100 and each shown as a row so the number is never a black box:
+
+| factor | weight | from |
+| --- | --- | --- |
+| Recent performance | 45 | average of the last 3 overall scores |
+| Weakest dimension | 20 | lowest rubric average over the last 3 rated interviews, ×10 |
+| Consistency | 20 | `100 − 4 × std dev` of the last 5 scores |
+| Practice volume | 15 | interviews ÷ 5, capped at 100 |
+
+- **Capped at recent performance.** Consistency and volume can only hold
+  readiness back. Without the cap, someone steadily scoring 20 would read 40%+.
+- **Two kinds of missing data, handled differently on purpose.** Consistency
+  with one interview is *pending*: shown as "—" but counts 0, because one good
+  interview hasn't shown it repeats (so one interview is never "Ready"). A
+  missing rubric (legacy interviews, or *locked* on Regular where the server
+  nulls it) is *left out* and the other weights rescale. That data is
+  missing, and the candidate shouldn't pay for it.
+- The lowest measured factor under 80 is marked "Lowest" and becomes the
+  "Next step" line. Changing a weight or threshold moves every user's number,
+  so update the tests and this table together.
 
 ### Answer quality — the rubric
 

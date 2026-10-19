@@ -26,7 +26,7 @@ Object.assign(process.env, {
   STRIPE_AUTOMATIC_TAX: "",
   SUPABASE_URL: "https://project.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "sb_secret_fake",
-  APP_URL: "https://jobassist.example",
+  APP_URL: "https://jobuddy.example",
   ULTIMATE_EVALUATOR_MODEL: "",
   DEV_PLAN: "",
 });
@@ -224,9 +224,9 @@ test("checkout: creates one customer for the user, then a compliant subscription
   assert.deepEqual(params.consent_collection, { terms_of_service: "required" });
   assert.match(params.custom_text.submit.message, /renews automatically every month/);
   assert.match(params.custom_text.submit.message, /Cancel any time/);
-  assert.match(params.custom_text.terms_of_service_acceptance.message, /jobassist\.example\/terms/);
-  assert.match(params.success_url, /^https:\/\/jobassist\.example\/plans\?checkout=success/);
-  assert.equal(params.cancel_url, "https://jobassist.example/plans?checkout=cancelled");
+  assert.match(params.custom_text.terms_of_service_acceptance.message, /jobuddy\.example\/terms/);
+  assert.match(params.success_url, /^https:\/\/jobuddy\.example\/plans\?checkout=success/);
+  assert.equal(params.cancel_url, "https://jobuddy.example/plans?checkout=cancelled");
   assert.equal("payment_method_types" in params, false, "dynamic payment methods");
   assert.equal("automatic_tax" in params, false, "tax only when STRIPE_AUTOMATIC_TAX=true");
   assert.equal(params.subscription_data.metadata.user_id, USER);

@@ -37,7 +37,7 @@ export default function PublicHeader() {
       </a>
       <div className={styles.inner}>
         <Link to={PATHS.home} className={styles.wordmark}>
-          Jobassist
+          Jobuddy
         </Link>
 
         <nav className={styles.nav} aria-label="Site">

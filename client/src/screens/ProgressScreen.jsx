@@ -5,6 +5,7 @@ import ScoreTrendChart from "../components/ScoreTrendChart.jsx";
 import { getProgress, getRoleThemes } from "../api/progressApi.js";
 import UpgradeNotice from "../components/UpgradeNotice.jsx";
 import { INTERVIEW_FOCUSES, RUBRIC_MAX } from "../constants.js";
+import { READINESS_STAGES, readiness } from "../utils/readiness.js";
 import { rubricSeries, weakestDimension } from "../utils/rubric.js";
 import { pctOf, scoreBand } from "../utils/score.js";
 import styles from "./ProgressScreen.module.css";
@@ -48,8 +49,9 @@ function formatOf(it) {
  * each interview's role — see "Progress" in CLAUDE.md), one role at a time.
  *
  * Left, the roles as a vertical tab list, each with a sparkline of its scores.
- * Right, the selected role in four labelled sections: the overall score trend,
- * answer quality (the evaluator's four-dimension rubric, one small chart
+ * Right, the selected role in five labelled sections: overall readiness (a
+ * 0–100 built from the role's scores, see utils/readiness.js), the overall
+ * score trend, answer quality (the evaluator's four-dimension rubric, one small chart
  * each), the recurring feedback, and the role's interviews. Deliberately
  * per-role only — there is no combined view, since a score for a data-analyst
  * interview says nothing about progress towards a frontend one.
@@ -338,6 +340,9 @@ function RolePanel({ role, onOpenInterview, onPracticeAgain, repeating, insights
         />
       </dl>
 
+      {/* Every plan. Without insights the rubric factor is left out, not zeroed. */}
+      <Readiness role={role} insights={insights} onOpenPlans={onOpenPlans} />
+
       <Section
         icon="trendingUp"
         title="Overall score"
@@ -477,6 +482,165 @@ function Kpi({ label, value, band, tone, hint }) {
       </dd>
     </div>
   );
+}
+
+/* --- overall readiness ------------------------------------------------------- */
+
+const STAGE_COLOR = {
+  notReady: "var(--band-weak)",
+  gettingThere: "var(--band-mixed)",
+  almost: "var(--band-mixed)",
+  ready: "var(--band-strong)",
+};
+
+// Each stage's share of the 0–100 scale, for the labels under the bar.
+const STAGE_COLUMNS = READINESS_STAGES.map(
+  (s, i) => `${(READINESS_STAGES[i + 1]?.min ?? 100) - s.min}fr`
+).join(" ");
+
+/**
+ * How ready the candidate is for this role: one 0–100 figure with its stage,
+ * and the four factors it's built from (utils/readiness.js), so the number is
+ * never a black box. The lowest factor is marked and turned into a next step.
+ */
+function Readiness({ role, insights, onOpenPlans }) {
+  const result = useMemo(() => readiness(role.interviews, { insights }), [role.interviews, insights]);
+  if (!result) return null;
+  const { score, stage, capped, focus, factors } = result;
+  const performance = factors.find((f) => f.key === "performance").value;
+  const focused = factors.find((f) => f.key === focus);
+
+  return (
+    <Section
+      icon="flag"
+      title="Overall readiness"
+      sub="How ready you are for this role, built from the four factors below."
+    >
+      <div className={styles.readyTop}>
+        <p className={styles.readyFigure}>
+          {score}
+          <span className={styles.readyUnit}>%</span>
+        </p>
+        <p className={styles.readyStage}>
+          <span className={styles.swatch} style={{ background: STAGE_COLOR[stage.key] }} aria-hidden="true" />
+          {stage.label}
+        </p>
+      </div>
+
+      <div
+        className={styles.readyScale}
+        role="meter"
+        aria-label="Overall readiness"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={score}
+        aria-valuetext={`${score}%, ${stage.label}`}
+      >
+        <div className={styles.readyTrack}>
+          <span className={styles.readyFill} style={{ transform: `scaleX(${score / 100})` }} />
+          {READINESS_STAGES.slice(1).map((s) => (
+            <span key={s.key} className={styles.readyTick} style={{ left: `${s.min}%` }} />
+          ))}
+        </div>
+        <div className={styles.readyStages} style={{ gridTemplateColumns: STAGE_COLUMNS }} aria-hidden="true">
+          {READINESS_STAGES.map((s) => (
+            <span key={s.key} className={s.key === stage.key ? styles.readyStageOn : undefined}>
+              {s.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {capped && (
+        <p className={styles.note}>
+          Held at your recent average of <span className="mono">{performance}</span>. Readiness
+          never runs ahead of your scores.
+        </p>
+      )}
+
+      <ul className={styles.factors}>
+        {factors.map((f) => (
+          <li
+            key={f.key}
+            className={`${styles.factor} ${f.key === focus ? styles.factorFocus : ""}`}
+            title={`Weight: ${f.weight}% of readiness`}
+          >
+            <span className={styles.factorName}>
+              <span className={styles.factorTitle}>
+                {f.label}
+                {f.key === focus && <span className={styles.factorTag}>Lowest</span>}
+              </span>
+              <span className={styles.factorDetail}>
+                {factorDetail(f)}
+                {f.status === "locked" && onOpenPlans && (
+                  <>
+                    {" "}
+                    <button type="button" className="link-btn" onClick={onOpenPlans}>
+                      See plans
+                    </button>
+                  </>
+                )}
+              </span>
+            </span>
+            <span className={styles.factorMeter} aria-hidden="true">
+              {f.value !== null && <span style={{ transform: `scaleX(${f.value / 100})` }} />}
+            </span>
+            <span className={styles.factorValue}>
+              {f.value ?? "—"}
+              {f.value === null && <span className="sr-only">not measured</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {focused && (
+        <p className={styles.focusNote}>
+          <Icon name="target" />
+          <span>
+            <strong>Next step:</strong> {nextStep(focused)}
+          </span>
+        </p>
+      )}
+    </Section>
+  );
+}
+
+function factorDetail(f) {
+  const d = f.detail;
+  switch (f.key) {
+    case "performance":
+      return d.count === 1 ? "Your only score so far" : `Average of your last ${d.count} scores`;
+    case "consistency":
+      return f.status === "pending"
+        ? "Needs a second interview. Adds nothing until then"
+        : `Your last ${d.count} scores ranged ${d.low}–${d.high}`;
+    case "quality":
+      if (f.status === "locked") return "Answer-quality ratings are part of Pro and Ultimate. Left out for now.";
+      if (f.status === "unrated") return "Starts with your next rated interview. Left out until then";
+      return `${d.dimension.label}, ${d.average}/${RUBRIC_MAX} over your last ${plural(d.count, "rated interview")}`;
+    case "volume":
+      return d.count >= d.target
+        ? `${plural(d.count, "interview")} for this role`
+        : `${d.count} of ${d.target} interviews for this role`;
+    default:
+      return "";
+  }
+}
+
+function nextStep(f) {
+  const d = f.detail;
+  switch (f.key) {
+    case "performance":
+      return `lift your scores. Readiness can't pass your recent average of ${f.value}.`;
+    case "consistency":
+      return `aim for steadier results. Your last ${d.count} scores ranged from ${d.low} to ${d.high}.`;
+    case "quality":
+      return `work on ${d.dimension.label.toLowerCase()} (${d.dimension.hint.toLowerCase()}). It averages ${d.average}/${RUBRIC_MAX} lately.`;
+    case "volume":
+      return `practise more for this role. ${d.count} of ${d.target} interviews so far.`;
+    default:
+      return "";
+  }
 }
 
 /* --- answer quality ------------------------------------------------------------ */

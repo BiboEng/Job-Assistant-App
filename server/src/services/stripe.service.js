@@ -45,7 +45,7 @@ function stripe() {
     client = new Stripe(config.billing.stripeKey, {
       maxNetworkRetries: 2,
       timeout: 20_000,
-      appInfo: { name: "Jobassist" },
+      appInfo: { name: "Jobuddy" },
     });
   }
   return client;
@@ -213,7 +213,7 @@ export async function createCheckoutSession({ userId, email, plan, interval, row
         message: `I agree to the [Terms of Service](${appUrl}/terms) and have read the [Refund & Cancellation Policy](${appUrl}/refunds).`,
       },
       submit: {
-        message: `Your subscription renews automatically every ${period} at this price until you cancel. Cancel any time in Jobassist under Plans → Manage billing; you keep ${PLANS[plan].name} until the end of the period you've paid for.`,
+        message: `Your subscription renews automatically every ${period} at this price until you cancel. Cancel any time in Jobuddy under Plans → Manage billing; you keep ${PLANS[plan].name} until the end of the period you've paid for.`,
       },
     },
     integration_identifier: INTEGRATION_IDENTIFIER,

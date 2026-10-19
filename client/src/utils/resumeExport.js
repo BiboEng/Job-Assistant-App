@@ -469,7 +469,7 @@ async function exportTextPdf(resume, filename, PAGE) {
   doc.setProperties({
     title: toPdfText(resume.contact.name || "Resume"),
     subject: toPdfText(resume.contact.title || "Resume"),
-    creator: "Jobassist",
+    creator: "Jobuddy",
   });
 
   const L = createLayout(doc, PAGE);

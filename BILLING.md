@@ -1,6 +1,6 @@
 # Plans & billing — setup and go-live checklist
 
-Everything you have to do yourself to take payments for Jobassist Pro and
+Everything you have to do yourself to take payments for Jobuddy Pro and
 Ultimate through Stripe, in the order you'd do it. The code is done; this is
 the part that lives in Stripe, Supabase, your server's environment, and the
 law.
@@ -46,7 +46,7 @@ law.
 You don't need a corporation to sell. As a sole proprietor, you are the
 seller, under your own legal name.
 
-- [ ] **Register the business name if you trade as "Jobassist".** Most
+- [ ] **Register the business name if you trade as "Jobuddy".** Most
       provinces require a business name that differs from your own legal name
       to be registered (Ontario, for example, under the Business Names Act
       through the Ontario Business Registry). It's a small fee and usually
@@ -137,9 +137,9 @@ for everything**: products, prices, webhook secret, portal configuration.
       the integration requires ticking agreement to it. Add the Privacy policy
       URL `https://YOUR-SITE/privacy` too.
 - [ ] **Statement descriptor.** Something recognisable on a card statement,
-      e.g. `JOBASSIST`. It reduces "I don't recognise this charge" disputes.
-- [ ] **Products** (Product catalog): create **two Products**, "Jobassist
-      Pro" and "Jobassist Ultimate".
+      e.g. `JOBUDDY`. It reduces "I don't recognise this charge" disputes.
+- [ ] **Products** (Product catalog): create **two Products**, "Jobuddy
+      Pro" and "Jobuddy Ultimate".
   - On each: a **monthly** recurring Price (e.g. $9 / $19) and optionally a
     **yearly** one (e.g. $90 / $190, about two months free). Pick your
     currency: CAD, or USD if most customers will be American. The site shows
