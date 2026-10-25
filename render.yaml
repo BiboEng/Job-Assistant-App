@@ -1,0 +1,42 @@
+# Render Blueprint for the API server (the client is on Vercel).
+# Render → New → Blueprint → pick this repo. Values marked `sync: false` are
+# prompted for on first deploy and never stored in git.
+#
+# Free plan caveats: the service sleeps after ~15 min idle (first request then
+# takes ~30–60s), and there's no persistent disk, so interviews.json and
+# usage.json are wiped on every restart/deploy. Live interviews are lost if it
+# sleeps mid-session. Fine for a demo; move to a paid plan + disk (and set
+# DATA_DIR to the mount path) before real users depend on history.
+services:
+  - type: web
+    name: jobuddy-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Render terminates TLS at its proxy in front of the app.
+      - key: TRUST_PROXY
+        value: "1"
+      - key: FORCE_HTTPS
+        value: "true"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      # Your Vercel URL, e.g. https://jobuddy.vercel.app (comma-separate several).
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: ADZUNA_APP_ID
+        sync: false
+      - key: ADZUNA_APP_KEY
+        sync: false
