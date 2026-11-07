@@ -139,19 +139,52 @@
   color: var(--text-muted);
 }
 
+/* Phones: two lines instead of four columns. Squeezed into columns the role
+   got about 45px, and because the title doesn't shrink it was painted over
+   the date, the score and the action icons. Here the role has the full width
+   (up to two lines), the date sits under it and the score pill on the right.
+   HomeScreen hides the column header at the same width. */
 @media (max-width: 640px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
   .open {
-    grid-template-columns: minmax(0, 1fr) 96px 48px;
-    gap: var(--sp-3);
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "role score"
+      "date score";
+    column-gap: var(--sp-3);
+    row-gap: 2px;
+    padding: var(--sp-3) 0 var(--sp-3) var(--sp-4);
   }
-  .answered {
-    display: none;
+  .role {
+    grid-area: role;
+    display: block;
   }
+  .date {
+    grid-area: date;
+  }
+  .scoreCell {
+    grid-area: score;
+  }
+  .answered,
   .snippet {
     display: none;
   }
   .title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     max-width: none;
+    white-space: normal;
+    line-height: var(--lh-snug);
+  }
+  .actions {
+    padding: 0 var(--sp-1);
+  }
+  .deleteBtn {
+    width: 36px;
+    height: 36px;
   }
 }
 

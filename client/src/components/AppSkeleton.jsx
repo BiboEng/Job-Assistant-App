@@ -8,8 +8,9 @@ import styles from "./AppSkeleton.module.css";
  * Suspense fallback while the workspace chunk downloaded — so every refresh of
  * /dashboard, /jobs or /resume was a second of blank dark page.
  *
- * It mirrors the real frame — sidebar with the wordmark, then a page header
- * and a few list rows — so nothing jumps when the app replaces it. The nav is
+ * It mirrors the real frame — sidebar with the wordmark (on a phone, the top
+ * bar), then a page header and a few list rows — so nothing jumps when the app
+ * replaces it. The nav is
  * left out: guessing at it would be worse than leaving it out, since we don't
  * yet know whether the person is signed in. `aria-busy` and the polite status
  * line cover the non-visual version.

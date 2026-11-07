@@ -150,6 +150,24 @@
   padding-top: var(--sp-2);
 }
 
+/* One column of cards: there's no row of neighbours to line the notes up
+   with, so the reserved space just reads as a gap ("Coming soon" then
+   nothing for 80px). */
+@media (max-width: 880px) {
+  .priceNote {
+    min-height: 0;
+  }
+  .priceNote:empty,
+  .action:empty {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .card {
+    padding: var(--sp-4);
+  }
+}
+
 /* --- the full table ------------------------------------------------------ */
 
 .tableWrap {
@@ -224,4 +242,35 @@
 .no {
   display: inline-flex;
   vertical-align: middle;
+}
+
+/* --- the table on a phone: one plan at a time ------------------------------
+   Last in the file so it beats the table rules above. Four columns don't fit
+   a phone, and swiping a table sideways loses its row labels; the switcher
+   (PlanComparison.jsx) picks which plan's column shows. */
+
+.tableSwitch {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .tableSwitch {
+    display: flex;
+  }
+  .tableSwitch > * {
+    flex: 1;
+  }
+  .offPlan {
+    display: none;
+  }
+  .table {
+    min-width: 0;
+  }
+  .table thead th:first-child {
+    width: 55%;
+  }
+  .table tbody th,
+  .table td {
+    min-width: 0;
+  }
 }

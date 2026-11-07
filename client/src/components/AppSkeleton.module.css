@@ -18,12 +18,18 @@
   color: var(--text);
 }
 
+/* Phones: Sidebar is a top bar there, with the wordmark after the menu
+   button, so the placeholder is a bar of the same height with the wordmark in
+   the same spot. */
 @media (max-width: 767px) {
   .sidebar {
-    width: var(--sidebar-width-collapsed);
-  }
-  .wordmark {
-    visibility: hidden;
+    display: flex;
+    align-items: center;
+    width: auto;
+    height: var(--mobile-bar-height);
+    padding: 0 var(--sp-2) 0 calc(var(--touch-target) + 2 * var(--sp-2));
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
 }
 

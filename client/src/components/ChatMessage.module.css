@@ -126,3 +126,18 @@
   height: 1px;
   background: var(--border);
 }
+
+/* --- phones -------------------------------------------------------------------
+   The avatar and a 78% cap left a ~200px bubble on a phone. The role label
+   above each bubble already says who's speaking, so the avatar goes. */
+@media (max-width: 767px) {
+  .avatar {
+    display: none;
+  }
+  .bubbleWrap {
+    max-width: 90%;
+  }
+  .bubble {
+    padding: var(--sp-3);
+  }
+}

@@ -225,17 +225,24 @@
   }
 }
 
-@media (max-width: 520px) {
-  .bar {
-    align-items: stretch;
+/* Phones: the composer is pinned under the transcript (ChatScreen), so every
+   line it takes is a line of conversation lost. "Use voice" shares the row
+   with Skip / Send when it fits; the textarea stops growing at about a third
+   of the screen and scrolls after that; controls are finger-sized. */
+@media (max-width: 767px) {
+  .input {
+    padding: var(--sp-3) var(--sp-3) var(--sp-1);
+    max-height: 32dvh;
   }
-  .actions {
-    width: 100%;
+  .bar {
+    gap: var(--sp-2);
+    padding: var(--sp-1) var(--sp-2) var(--sp-2);
+  }
+  .mic {
+    width: var(--touch-target);
+    height: var(--touch-target);
   }
   .actions .mic {
     flex-shrink: 0;
-  }
-  .actions > button:not(.mic) {
-    flex: 1;
   }
 }

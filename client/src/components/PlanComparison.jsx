@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Icon from "./Icon.jsx";
 import SegmentedControl from "./SegmentedControl.jsx";
 import {
@@ -21,6 +22,11 @@ import styles from "./PlanComparison.module.css";
  * Prices come from `catalog` (GET /api/billing/plans), i.e. from Stripe, so
  * what's shown is what Checkout charges. With billing off — or a price that
  * can't be read — a paid card says so instead of showing a made-up number.
+ *
+ * On a phone the table shows one plan at a time: four columns don't fit, and
+ * a table you have to swipe sideways loses its row labels. A switcher above
+ * it picks the plan; the other plans' cells are hidden by CSS (`.offPlan`),
+ * so desktop is untouched.
  */
 export default function PlanComparison({
   catalog,
@@ -37,6 +43,13 @@ export default function PlanComparison({
   const automaticTax = Boolean(catalog?.automaticTax);
   const H = `h${headingLevel}`;
   const rows = comparisonRows({ evaluator });
+  // Which plan the phone table shows: your own if it's a paid one, else Pro.
+  const [tablePlan, setTablePlan] = useState(
+    currentPlan && currentPlan !== "regular" && PLAN_ORDER.includes(currentPlan)
+      ? currentPlan
+      : "pro"
+  );
+  const offPlan = (id) => (id === tablePlan ? "" : styles.offPlan);
 
   return (
     <div className={styles.wrap}>
@@ -107,7 +120,7 @@ export default function PlanComparison({
                       ]
                         .filter(Boolean)
                         .join(" ")
-                    : " "}
+                    : ""}
               </p>
 
               <ul className={styles.highlights}>
@@ -127,6 +140,14 @@ export default function PlanComparison({
 
       {showTable && (
         <>
+          <div className={styles.tableSwitch}>
+            <SegmentedControl
+              options={PLAN_ORDER.map((id) => ({ value: id, label: PLAN_COPY[id].name }))}
+              value={tablePlan}
+              onChange={setTablePlan}
+              ariaLabel="Plan to compare"
+            />
+          </div>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <caption className="sr-only">What each plan includes</caption>
@@ -136,7 +157,7 @@ export default function PlanComparison({
                     <span className="sr-only">Feature</span>
                   </th>
                   {PLAN_ORDER.map((id) => (
-                    <th key={id} scope="col">
+                    <th key={id} scope="col" className={offPlan(id)}>
                       {PLAN_COPY[id].name}
                     </th>
                   ))}
@@ -149,7 +170,7 @@ export default function PlanComparison({
                     {PLAN_ORDER.map((id) => {
                       const v = row.values[id];
                       return (
-                        <td key={id}>
+                        <td key={id} className={offPlan(id)}>
                           {v === true ? (
                             <span className={styles.yes}>
                               <Icon name="check" />

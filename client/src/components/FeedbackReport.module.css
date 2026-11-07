@@ -114,6 +114,11 @@
     flex-direction: column;
     gap: var(--sp-4);
   }
+  /* 24px inside a 1px border inside the page gutter costs a phone too much.
+     (.points gets the same below, after its own rule.) */
+  .section {
+    padding: var(--sp-4);
+  }
 }
 
 /* --- strengths / weaknesses ------------------------------------------------ */
@@ -139,6 +144,9 @@
   .points + .points {
     border-left: none;
     border-top: 1px solid var(--border);
+  }
+  .points {
+    padding: var(--sp-4);
   }
 }
 
@@ -284,6 +292,24 @@
 .qChevron {
   color: var(--text-subtle);
   transition: transform var(--dur) var(--ease);
+}
+
+/* Phones: the right-hand cluster (time allowed, score, chevron) is ~190px
+   and never shrinks, which left the question one word wide and spilling into
+   it. The question takes its own full-width line; Q-number and the cluster
+   share the line under it. */
+@media (max-width: 560px) {
+  .qToggle {
+    flex-wrap: wrap;
+    row-gap: var(--sp-2);
+  }
+  .qText {
+    order: -1;
+    flex-basis: 100%;
+  }
+  .qRight {
+    margin-left: auto;
+  }
 }
 .qChevronOpen {
   transform: rotate(180deg);

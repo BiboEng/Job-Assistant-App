@@ -70,9 +70,15 @@ export default function HistoryDetailScreen({
             {backLabel}
           </button>
           {record && (
-            <button className="btn-ghost" onClick={() => window.print()}>
+            <button
+              className="btn-ghost"
+              onClick={() => window.print()}
+              aria-label="Print / save PDF"
+              title="Print / save PDF"
+            >
               <Icon name="printer" />
-              Print / save PDF
+              {/* Icon-only on a phone, so the three actions share a row. */}
+              <span className={styles.printLabel}>Print / save PDF</span>
             </button>
           )}
           {record && onPracticeAgain && (

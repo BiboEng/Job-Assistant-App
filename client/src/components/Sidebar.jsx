@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import AccountMenu from "./AccountMenu.jsx";
 import styles from "./Sidebar.module.css";
@@ -8,8 +8,14 @@ import styles from "./Sidebar.module.css";
  *
  * Collapsible, Linear-style — 240px with labels, or a 56px icon rail with
  * tooltips. The toggle button and the `[` key both flip it, and the choice is
- * remembered per browser. Below 768px it is always the rail: an expanded
- * sidebar would take two-thirds of a phone.
+ * remembered per browser.
+ *
+ * Below 768px it is neither: a phone can't spare even the 56px rail (it was
+ * 15% of the screen, and every row on every page was squeezed to fit). It
+ * becomes a slim top bar (menu button, wordmark, account avatar) and the nav
+ * moves into a drawer that slides in from the left. The drawer is a native
+ * <dialog> opened with showModal(), which supplies the focus trap, the inert
+ * page behind it and Escape, like ApplicationDialog.
  *
  * `active` is the *section*, not the screen: setup/chat/results all belong to
  * "practice", a saved interview belongs to "home". During a live interview
@@ -76,7 +82,47 @@ export default function Sidebar({
 }) {
   const [userCollapsed, setUserCollapsed] = useState(readCollapsed);
   const narrow = useNarrow();
-  const collapsed = narrow || userCollapsed;
+  const collapsed = !narrow && userCollapsed;
+
+  // --- phone drawer ---------------------------------------------------------
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const pressStartedOnBackdrop = useRef(false);
+  const drawerId = useId();
+
+  // Mirror the state onto the dialog. Closing hands focus back to the menu
+  // button, so a keyboard user isn't dropped at the top of the document.
+  useEffect(() => {
+    const dialog = drawerRef.current;
+    if (!dialog) return undefined;
+    if (drawerOpen && !dialog.open) {
+      dialog.showModal();
+      // The page behind a modal can still scroll on touch; hold it still.
+      const root = document.documentElement;
+      const previous = root.style.overflow;
+      root.style.overflow = "hidden";
+      return () => {
+        root.style.overflow = previous;
+      };
+    }
+    if (!drawerOpen && dialog.open) {
+      dialog.close();
+      menuButtonRef.current?.focus();
+    }
+    return undefined;
+  }, [drawerOpen]);
+
+  // Widening past the breakpoint unmounts the drawer; don't let it reopen by
+  // itself on the way back down. A live interview starting closes it too.
+  useEffect(() => {
+    if (!narrow || !interactive) setDrawerOpen(false);
+  }, [narrow, interactive]);
+
+  function navigateFromDrawer(id) {
+    setDrawerOpen(false);
+    onNavigate?.(id);
+  }
 
   const toggle = useCallback(() => {
     setUserCollapsed((prev) => {
@@ -92,7 +138,9 @@ export default function Sidebar({
 
   // `[` toggles, unless the keystroke is text going into a field (the chat
   // composer, the resume sheet's editable text, any input) or part of a chord.
+  // There's nothing to collapse on a phone, so the shortcut is off there.
   useEffect(() => {
+    if (narrow) return undefined;
     function onKeyDown(e) {
       if (e.key !== "[" || e.defaultPrevented) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -102,9 +150,99 @@ export default function Sidebar({
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [toggle]);
+  }, [toggle, narrow]);
 
   const disabledTip = "Finish or end the interview to navigate away";
+
+  if (narrow) {
+    const activeLabel = NAV.find((item) => item.id === active)?.label;
+    return (
+      <>
+        <header className={`${styles.bar} no-print`}>
+          <button
+            ref={menuButtonRef}
+            type="button"
+            className={styles.menuButton}
+            onClick={() => setDrawerOpen(true)}
+            disabled={!interactive}
+            aria-label={activeLabel ? `Open menu. Current section: ${activeLabel}` : "Open menu"}
+            aria-haspopup="dialog"
+            aria-expanded={drawerOpen}
+            aria-controls={drawerId}
+            title={interactive ? undefined : disabledTip}
+          >
+            <Icon name="menu" />
+          </button>
+          <span className={styles.barWordmark}>Jobuddy</span>
+          {onSignOut && (
+            <AccountMenu
+              user={user}
+              collapsed
+              placement="down"
+              onSignOut={onSignOut}
+              onOpenSurvey={onOpenSurvey}
+              surveyState={surveyState}
+              interactive={interactive}
+            />
+          )}
+        </header>
+
+        <dialog
+          ref={drawerRef}
+          id={drawerId}
+          className={`${styles.drawer} no-print`}
+          aria-label="App menu"
+          // Escape: let the state close it, so focus goes back to the button.
+          onCancel={(e) => {
+            e.preventDefault();
+            setDrawerOpen(false);
+          }}
+          // A click on the backdrop lands on the <dialog> itself (the panel
+          // inside fills it). Only close when the press began there too, so a
+          // drag that ends outside doesn't dismiss it.
+          onPointerDown={(e) => {
+            pressStartedOnBackdrop.current = e.target === e.currentTarget;
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && pressStartedOnBackdrop.current) {
+              setDrawerOpen(false);
+            }
+          }}
+        >
+          <div className={styles.drawerPanel}>
+            <div className={styles.drawerHead}>
+              <span className={styles.wordmark}>Jobuddy</span>
+              <button
+                type="button"
+                className={styles.toggle}
+                onClick={() => setDrawerOpen(false)}
+                aria-label="Close menu"
+              >
+                <Icon name="x" />
+              </button>
+            </div>
+            <nav className={styles.nav} aria-label="Sections">
+              {NAV.map((item) => {
+                const isActive = active === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`${styles.item} ${styles.drawerItem} ${isActive ? styles.active : ""}`}
+                    onClick={() => navigateFromDrawer(item.id)}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <Icon name={item.icon} />
+                    <span className={styles.label}>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </dialog>
+      </>
+    );
+  }
 
   return (
     <aside

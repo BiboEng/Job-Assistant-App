@@ -169,3 +169,58 @@
     transition: none;
   }
 }
+
+/* --- phones ------------------------------------------------------------------
+   The shell is bounded to the screen here (.app-shell--chat in index.css), so
+   the transcript is the one thing that scrolls and the timer + composer stay
+   pinned under it — no scrolling down to answer and back up to re-read the
+   question. Every pixel of width goes to the conversation. */
+@media (max-width: 767px) {
+  .wrap {
+    gap: var(--sp-2);
+  }
+
+  /* Question count, segments and End interview on one line: the segments
+     shrink (six questions would otherwise push End onto a line of its own). */
+  .progress {
+    flex: 1 1 auto;
+  }
+  .segments {
+    flex: 1;
+    min-width: 0;
+    max-width: calc(6 * 26px);
+  }
+  .segment {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 6px;
+    max-width: 26px;
+  }
+
+  /* No box around the transcript: the screen edge is its frame. */
+  .thread {
+    min-height: 0;
+    padding: var(--sp-2) 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* One compact line: clock, time left, note, then the depleting track. */
+  .timer {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .timerHead {
+    flex-shrink: 0;
+    font-size: var(--fs-sm);
+  }
+  .timerValue {
+    font-size: var(--fs-md);
+  }
+  .timerTrack {
+    flex: 1;
+  }
+}

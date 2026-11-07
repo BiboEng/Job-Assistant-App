@@ -33,3 +33,11 @@
 .iconBtn[aria-busy="true"] {
   color: var(--accent);
 }
+
+/* A fingertip needs more than 28px. */
+@media (max-width: 640px) {
+  .iconBtn {
+    width: 36px;
+    height: 36px;
+  }
+}

@@ -22,6 +22,9 @@ import styles from "./AccountMenu.module.css";
 export default function AccountMenu({
   user,
   collapsed = false,
+  // "up" from the sidebar's foot (or right from the rail); "down" from the
+  // phone top bar, where the trigger sits at the top-right of the screen.
+  placement = "up",
   onSignOut,
   onOpenSurvey,
   surveyState = "unavailable",
@@ -82,7 +85,12 @@ export default function AccountMenu({
       : "Take career survey";
 
   return (
-    <div className={`${styles.wrap} ${collapsed ? styles.collapsed : ""}`} ref={wrapRef}>
+    <div
+      className={`${styles.wrap} ${collapsed ? styles.collapsed : ""} ${
+        placement === "down" ? styles.down : ""
+      }`}
+      ref={wrapRef}
+    >
       <button
         ref={buttonRef}
         type="button"

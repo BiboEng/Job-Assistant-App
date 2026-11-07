@@ -329,19 +329,48 @@ declared (an undeclared token fails silently in the browser).
   icon rail with instant CSS tooltips; the toggle button and the `[` key flip it
   (ignored while typing in an input, textarea or contentEditable, or with a
   modifier), and the choice persists in localStorage
-  (`jobassist:sidebarCollapsed:v1`). Below 768px it is always the rail. The
-  account menu (avatar from `user_metadata.avatar_url`/`picture`, initial
-  otherwise) sits at its foot and opens upward — or rightward from the rail.
+  (`jobassist:sidebarCollapsed:v1`). The account menu (avatar from
+  `user_metadata.avatar_url`/`picture`, initial otherwise) sits at its foot and
+  opens upward — or rightward from the rail.
   **`.app-shell` must not get a `z-index`**: that makes it a stacking context
   and traps the Resume Builder's fixed fullscreen layer under the sidebar.
   Width modifiers are chosen by `shellClass()` in `AppWorkspace`:
-  `.app-shell--wide` (Resume Builder — wide *and* bounded to the viewport) and
+  `.app-shell--wide` (Resume Builder — wide *and* bounded to the viewport),
   `.app-shell--board` (Application Tracker — wide, but scrolls as a normal page,
-  because its columns grow with their cards).
+  because its columns grow with their cards) and `.app-shell--chat` (the live
+  interview; phones only, see below).
+- **Phones (below 768px)** get no sidebar at all. Even the 56px rail was 15% of
+  a phone and squeezed every row on every page. `Sidebar` renders a sticky top
+  bar instead (`--mobile-bar-height`: menu button, wordmark, the account
+  avatar, whose menu drops *down*: `AccountMenu placement="down"`), and the
+  nav lives in a drawer: a native `<dialog>` opened with `showModal()` (focus
+  trap, inert page, Escape; same pattern as `ApplicationDialog`), sliding in
+  from the left, closed by Escape, a backdrop tap, the close button or picking
+  a section, and handing focus back to the menu button. It locks page scroll
+  while open. During a live interview the menu button is disabled, like the
+  nav. `.app-frame` stacks as a column at that width. Other phone rules:
+  - Controls are at least `--touch-target` (40px) tall; `.btn-sm` 36px.
+  - Text fields are forced to `--fs-input-touch` (16px) with `!important`,
+    because iOS Safari zooms the page into any field under 16px and module
+    classes set smaller sizes for desktop. Both rules sit at the **end** of
+    `index.css` so they beat the base rules at equal specificity.
+  - `.app-shell--chat` bounds the interview to `100dvh` minus the bar, so the
+    transcript scrolls between the progress bar and a pinned timer +
+    composer. It needs `flex: none`: `<main>` is also `.app-main` (`flex: 1`),
+    and in a column of indefinite height that basis sizes from content and
+    ignores `height`.
+  - Desktop-only multi-column rows reflow rather than ellipsing: history rows
+    become two lines, report questions put the text on its own line, Job
+    Matches rows wrap and share one facts line (`.facts` is `display:
+    contents` on desktop so the grid is unchanged there), and the Plans table
+    shows one plan at a time behind a switcher (`.offPlan`).
+  - Check a change at 360 / 390 / 430 px and confirm `scrollWidth` never
+    exceeds the viewport.
 - **Never render nothing while waiting.** `components/AppSkeleton.jsx` is the
   fallback for both pre-render waits on a protected route — `RequireAuth` while
   the stored session is read, and `App.jsx`'s `<Suspense>` while the workspace
-  chunk downloads. It mirrors the sidebar frame so nothing jumps.
+  chunk downloads. It mirrors the sidebar frame (the top bar on a phone) so
+  nothing jumps.
 - **Screen slot:** each route's screen renders into `.screen-slot.screen-enter`
   keyed on the pathname. The slot must stay a growing flex column —
   ChatScreen and ResumeBuilderScreen depend on `flex: 1; min-height: 0` to
@@ -358,7 +387,8 @@ declared (an undeclared token fails silently in the browser).
   page uses its own full-width bands (see "Landing page"). The wrapper
   is load-bearing: `#root` is pinned to `height: 100%`, and a sticky element
   only sticks inside its parent's box. `--public-header-offset` (declared in
-  `tokens.css`, bumped under 680px) is the `scroll-margin-top` for sections
+  `tokens.css`, lowered under 680px and raised again under 350px, following the
+  header) is the `scroll-margin-top` for sections
   scrolled to from the nav. Sign-in and reset-password are bare centred pages
   with no header.
 
@@ -408,8 +438,9 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
   read only when the workspace mounts on `/interview` or `/interview/results`;
   any other path starts clean, as non-resumable screens always did. A reload on
   the results page re-fires the idempotent save.
-- The header nav (and Sign out) is disabled on `/interview`, as before. The
-  browser Back button is not blockable in declarative mode; going Back from a
+- The sidebar nav (and Sign out; on a phone, the menu button) is disabled on
+  `/interview`, as before. The browser Back button is not blockable in
+  declarative mode; going Back from a
   live interview unmounts `ChatScreen` (camera released as on any unmount) but
   keeps the session in workspace state until "Start an interview" clears it.
 - **Deploying:** it's a client-side router — the static host must rewrite
@@ -551,8 +582,11 @@ to the section's `h2` (`tabIndex=-1`) so keyboard users land where they asked.
   `--text-secondary` for paragraphs, `--public-section-pad`, `--public-measure`.
 - **PublicHeader:** the mascot's head + "Jobuddy" wordmark, **How it works /
   Pricing / Contact** as `NavLink`s, and **Sign in as a `.btn-primary`**
-  ("Dashboard" when signed in). Under 680px the links drop to a second row.
-  `/sign-in` and `/reset-password` don't render it.
+  ("Dashboard" when signed in). Under 680px it stays one ~57px row: the head
+  alone stands in for the wordmark (the word is visually hidden, still read
+  out), the links tighten and the button drops its icon. Only under 350px do
+  the links fall back to a second row. `/sign-in` and `/reset-password` don't
+  render it.
 - **Hero:** headline, one sentence, one "Start free" button with "Free plan.
   No card needed." beside it (visitors only), the split-flap "Now
   interviewing" board, and "Try a sample question"; the mascot on the right

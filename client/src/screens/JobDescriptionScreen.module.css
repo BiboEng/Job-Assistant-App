@@ -233,3 +233,30 @@
 .remaining {
   color: var(--text-subtle);
 }
+
+/* --- phones ------------------------------------------------------------------
+   One card holding a bordered options box held 24px + 16px of padding on each
+   side before any control. The options lose their box (the legend still
+   heads them), the card its outer padding, and the job description box starts
+   at eight lines rather than twelve. Start interview spans the width. */
+@media (max-width: 640px) {
+  .card {
+    padding: var(--sp-4);
+  }
+  .textarea {
+    height: calc(8lh + 2 * var(--sp-3));
+    min-height: 160px;
+  }
+  .options {
+    padding: var(--sp-3) 0 0;
+    border-width: 1px 0 0;
+    background: transparent;
+    border-radius: 0;
+  }
+  .optionsLegend {
+    padding: 0 var(--sp-2) 0 0;
+  }
+  .footer :global(.btn-primary) {
+    flex: 1 1 100%;
+  }
+}

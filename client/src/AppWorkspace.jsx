@@ -82,6 +82,10 @@ const BOARD_PATHS = new Set([PATHS.applications]);
 function shellClass(pathname) {
   if (WIDE_PATHS.has(pathname)) return "app-shell--wide";
   if (BOARD_PATHS.has(pathname)) return "app-shell--board";
+  // The live interview: on a phone it's bounded to the screen so the composer
+  // stays in reach while the transcript scrolls (index.css). No effect above
+  // the phone breakpoint.
+  if (pathname === PATHS.chat) return "app-shell--chat";
   return "";
 }
 

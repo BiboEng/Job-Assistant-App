@@ -88,6 +88,30 @@
   transform-origin: bottom left;
 }
 
+/* Phone top bar: an avatar-sized trigger at the right edge, and a menu that
+   drops down and stays inside the screen. */
+.wrap.down .trigger {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  min-height: 0;
+}
+.wrap.down .avatar {
+  width: 28px;
+  height: 28px;
+  font-size: var(--fs-xs);
+}
+.wrap.down .menu {
+  top: calc(100% + var(--sp-1));
+  right: 0;
+  bottom: auto;
+  left: auto;
+  max-width: calc(100vw - 2 * var(--sp-2));
+  transform-origin: top right;
+}
+.wrap.down .item {
+  height: var(--touch-target);
+}
+
 @keyframes menu-in {
   from {
     opacity: 0;

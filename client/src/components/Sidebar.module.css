@@ -168,6 +168,120 @@
   }
 }
 
+/* --- phones: top bar + drawer ----------------------------------------------
+   Below 768px (Sidebar.jsx renders these instead of the rail). The bar is
+   sticky so the menu is always one tap away; the drawer is a modal <dialog>. */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: var(--mobile-bar-height);
+  padding: 0 var(--sp-2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  transition: background-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.menuButton:hover:not(:disabled) {
+  background: var(--surface-raised);
+}
+.menuButton:active:not(:disabled) {
+  transform: scale(var(--press-scale));
+}
+.menuButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.barWordmark {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tighter);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* The native dialog, pinned to the left edge at full height. UA styles centre
+   a dialog with margins and a max size; all of that goes. */
+.drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--drawer-width);
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  overscroll-behavior: contain;
+}
+.drawer[open] {
+  animation: drawer-in var(--dur-enter) var(--ease) both;
+}
+.drawer::backdrop {
+  background: var(--scrim);
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+/* Fills the dialog, so a click that lands on the dialog itself can only be a
+   click on the backdrop. */
+.drawerPanel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: var(--sp-2) var(--sp-3) var(--sp-4);
+}
+
+.drawerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-height: var(--mobile-bar-height);
+  padding-left: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.drawerHead .toggle {
+  width: var(--touch-target);
+  height: var(--touch-target);
+}
+
+/* Finger-sized rows; the label never animates in here (no width change). */
+.drawerItem {
+  height: auto;
+  min-height: 44px;
+  font-size: var(--fs-lg);
+}
+.drawerItem .label {
+  animation: none;
+}
+
 /* Expanding: labels mount at once but the column is still growing, so they'd
    show squeezed and ellipsed for the whole transition. They wait out most of
    the width change, then fade in. (Collapsing unmounts them immediately.) */

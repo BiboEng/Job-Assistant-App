@@ -132,39 +132,43 @@ export default function JobRow({ job, scoring = false, trackState, onTrack, onOp
         )}
       </div>
 
-      <span className={`${styles.salary} mono`}>{salary || ""}</span>
+      {/* Salary, posted and Track: separate grid cells on a wide screen (this
+          wrapper is display: contents there), one wrapping line on a phone. */}
+      <div className={styles.facts}>
+        <span className={`${styles.salary} mono`}>{salary || ""}</span>
 
-      <span className={styles.postedCell}>
-        {posted && (
-          <span className={`${styles.posted} mono ${stale ? styles.stalePosted : ""}`}>
-            {posted}
-          </span>
-        )}
-        {stale && (
-          <span className={styles.staleFlag}>
-            <Icon name="alert" />
-            May have closed
-          </span>
-        )}
-      </span>
+        <span className={styles.postedCell}>
+          {posted && (
+            <span className={`${styles.posted} mono ${stale ? styles.stalePosted : ""}`}>
+              {posted}
+            </span>
+          )}
+          {stale && (
+            <span className={styles.staleFlag}>
+              <Icon name="alert" />
+              May have closed
+            </span>
+          )}
+        </span>
 
-      {trackState && (
-        <button
-          type="button"
-          className={`btn-ghost btn-sm ${styles.track} ${trackState === "tracked" ? styles.tracked : ""}`}
-          onClick={() => (trackState === "tracked" ? onOpenTracker?.() : onTrack?.(job))}
-          disabled={trackState === "saving"}
-          aria-label={
-            trackState === "tracked"
-              ? `${title} is in your applications. Open the tracker`
-              : `Track ${title} at ${company} in your applications`
-          }
-          title={trackState === "tracked" ? "In your Applications — open the board" : undefined}
-        >
-          <Icon name={trackState === "tracked" ? "bookmarkCheck" : "bookmark"} />
-          {TRACK_LABEL[trackState] || TRACK_LABEL.idle}
-        </button>
-      )}
+        {trackState && (
+          <button
+            type="button"
+            className={`btn-ghost btn-sm ${styles.track} ${trackState === "tracked" ? styles.tracked : ""}`}
+            onClick={() => (trackState === "tracked" ? onOpenTracker?.() : onTrack?.(job))}
+            disabled={trackState === "saving"}
+            aria-label={
+              trackState === "tracked"
+                ? `${title} is in your applications. Open the tracker`
+                : `Track ${title} at ${company} in your applications`
+            }
+            title={trackState === "tracked" ? "In your Applications — open the board" : undefined}
+          >
+            <Icon name={trackState === "tracked" ? "bookmarkCheck" : "bookmark"} />
+            {TRACK_LABEL[trackState] || TRACK_LABEL.idle}
+          </button>
+        )}
+      </div>
 
       <Icon name="arrowUpRight" className={styles.linkIcon} />
 

@@ -55,6 +55,12 @@
   }
 }
 
+@media (max-width: 560px) {
+  .summary {
+    padding: var(--sp-4);
+  }
+}
+
 .meter {
   display: flex;
   flex-direction: column;

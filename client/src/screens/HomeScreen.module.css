@@ -52,6 +52,15 @@
 @media (max-width: 560px) {
   .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: var(--sp-6);
+  }
+  /* Four figures in a 2×2 grid: smaller numbers, less padding, so the strip
+     doesn't take half the first screen. */
+  .stat {
+    padding: var(--sp-3) var(--sp-4);
+  }
+  .statValue {
+    font-size: var(--fs-2xl);
   }
   .stat:nth-child(3) {
     border-left: none;
@@ -170,16 +179,30 @@
   border-top: 1px solid var(--border);
 }
 
+/* Phones: rows are two lines with no columns to label (InterviewRow), and the
+   search takes whatever the sort menu leaves. */
 @media (max-width: 640px) {
   .columns {
-    grid-template-columns: minmax(0, 1fr) 96px 48px 60px;
-    gap: var(--sp-3);
-  }
-  .colAnswered {
     display: none;
   }
+  .controls {
+    width: 100%;
+  }
+  .searchField {
+    flex: 1;
+    min-width: 0;
+  }
   .search {
-    width: 160px;
+    width: 100%;
+    height: var(--touch-target);
+  }
+  .sortSelect {
+    height: var(--touch-target);
+  }
+  /* With the header gone, the first row's top rule would double the table's
+     own border. */
+  .table > .columns + * {
+    border-top: none;
   }
 }
 

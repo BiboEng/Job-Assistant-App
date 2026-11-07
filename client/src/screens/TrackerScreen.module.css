@@ -26,6 +26,21 @@
   scroll-snap-align: start;
 }
 
+/* Phones: one column at a time, nearly the full width, with the next one
+   peeking in so it's clear there's more to the right. The strip runs to the
+   screen edges (the gutter moves inside it), and each swipe lands on a
+   column. */
+@media (max-width: 767px) {
+  .board {
+    grid-template-columns: repeat(4, calc(100% - var(--sp-9)));
+    gap: var(--sp-3);
+    margin: 0 calc(-1 * var(--sp-4));
+    padding: 0 var(--sp-4) var(--sp-2);
+    scroll-padding: 0 var(--sp-4);
+    scroll-snap-type: x mandatory;
+  }
+}
+
 .skeletonColumn {
   min-height: 320px;
   border-radius: var(--radius-lg);

@@ -129,12 +129,65 @@
   }
 }
 
-/* Narrow: the section links drop to their own row under the wordmark. */
+/* Narrow: still one row. Two rows made a sticky bar of about 90px, a tenth
+   of a phone screen held for the whole page. The mascot's head stands in for
+   the wordmark (the word stays for screen readers), the links tighten, and
+   the button drops its icon. --public-header-offset follows (tokens.css). */
 @media (max-width: 680px) {
   .inner {
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-4);
+  }
+  .wordmarkText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .wordmarkMark {
+    width: 32px;
+    height: 32px;
+  }
+  .nav {
+    gap: 0;
+  }
+  .navItem {
+    min-height: var(--touch-target);
+    padding: 0 var(--sp-2);
+    font-size: var(--fs-sm);
+  }
+  .navItem::after {
+    left: var(--sp-2);
+    right: var(--sp-2);
+    bottom: var(--sp-2);
+  }
+  .cta svg {
+    display: none;
+  }
+}
+@media (max-width: 400px) {
+  .inner {
+    gap: var(--sp-1);
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .navItem {
+    padding: 0 var(--sp-1);
+  }
+  .navItem::after {
+    left: var(--sp-1);
+    right: var(--sp-1);
+  }
+}
+
+/* The smallest phones (320px and under 350px generally) can't fit the row,
+   so the links go back to a second row of their own. */
+@media (max-width: 349px) {
+  .inner {
     flex-wrap: wrap;
-    row-gap: var(--sp-2);
-    padding: var(--sp-3) var(--sp-4) var(--sp-2);
+    row-gap: 0;
   }
   .tail {
     margin-left: auto;
@@ -144,8 +197,5 @@
     width: 100%;
     margin-left: 0;
     justify-content: space-between;
-  }
-  .navItem {
-    padding: 0 var(--sp-2);
   }
 }

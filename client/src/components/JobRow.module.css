@@ -278,29 +278,84 @@
   color: var(--accent);
 }
 
+/* Salary + posted + Track. On a wide screen the wrapper steps aside and its
+   children are the row's own grid cells. */
+.facts {
+  display: contents;
+}
+
+/* Narrow: score | everything else | open icon. The text column wraps instead
+   of ellipsing — at phone width one-line truncation left "Royal Bank o…",
+   "Toro…" and a three-word reason. Salary, posted and Track share a line. */
 @media (max-width: 760px) {
   .row,
   .trackable {
     grid-template-columns: 40px minmax(0, 1fr) 16px;
-    row-gap: var(--sp-1);
-  }
-  .track {
-    grid-column: 2;
-    justify-self: start;
-  }
-  .salary,
-  .postedCell {
-    grid-column: 2;
-    justify-self: start;
-    text-align: left;
-    align-items: flex-start;
+    align-items: start;
+    row-gap: var(--sp-2);
   }
   .linkIcon {
     grid-row: 1;
     grid-column: 3;
+    margin-top: 2px;
+  }
+
+  .title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    white-space: normal;
+  }
+  /* Company over location. Wrapped as one line, a long company name left
+     its "·" dangling at the end of the line. The data source ("adzuna") is
+     noise at this width. */
+  .meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    white-space: normal;
+  }
+  .meta > span {
+    overflow: visible;
+  }
+  .meta > [aria-hidden="true"],
+  .source {
+    display: none;
+  }
+  .company {
+    max-width: none;
+  }
+  .reasonLine {
+    flex-wrap: wrap;
+    row-gap: var(--sp-1);
+  }
+  .reason {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+  }
+
+  .facts {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-1) var(--sp-3);
+  }
+  .salary {
+    text-align: left;
   }
   .salary:empty {
     display: none;
+  }
+  .postedCell {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+  .track {
+    margin-left: auto;
   }
   .explain {
     margin-left: 0;

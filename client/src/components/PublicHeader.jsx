@@ -37,7 +37,8 @@ export default function PublicHeader() {
       <div className={styles.inner}>
         <Link to={PATHS.home} className={styles.wordmark}>
           {/* The mascot's head, as a small round avatar. Decorative: the
-              link's name is the word next to it. */}
+              link's name is the word next to it (visually hidden on a phone,
+              where the head alone carries the brand so the bar fits one row). */}
           <img
             src="/landing/mascot/head.webp"
             width="96"
@@ -46,7 +47,7 @@ export default function PublicHeader() {
             className={styles.wordmarkMark}
             decoding="async"
           />
-          Jobuddy
+          <span className={styles.wordmarkText}>Jobuddy</span>
         </Link>
 
         <nav className={styles.nav} aria-label="Site">

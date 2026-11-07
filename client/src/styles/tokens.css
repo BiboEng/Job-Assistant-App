@@ -235,14 +235,32 @@
   --control-height: 32px;
   --row-height: 44px;
   --public-header-offset: 72px;
+
+  /* --- phones -------------------------------------------------------------
+     Below 768px the sidebar becomes a top bar with a slide-out drawer (see
+     Sidebar.jsx), so a phone gets its whole width back. */
+  --mobile-bar-height: 52px;
+  --drawer-width: min(288px, 84vw);
+  /* A fingertip needs a bigger target than a cursor: controls on phones are
+     at least this tall. */
+  --touch-target: 40px;
+  /* iOS Safari zooms the whole page into any text field set below 16px. */
+  --fs-input-touch: 1rem;
 }
 
-/* Under 680px the public header wraps its links onto a second row. */
+/* Under 680px the public header tightens to one shorter row. */
 @media (max-width: 680px) {
   :root {
-    --public-header-offset: 104px;
+    --public-header-offset: 64px;
     --flap-w: 16px;
     --flap-h: 24px;
     --flap-fs: var(--fs-md);
+  }
+}
+
+/* Under 350px the header's links fall back to a second row of their own. */
+@media (max-width: 349px) {
+  :root {
+    --public-header-offset: 104px;
   }
 }

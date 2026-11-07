@@ -190,7 +190,31 @@ time {
 
 @media (max-width: 680px) {
   .app-shell {
-    padding: var(--sp-6) var(--sp-4) var(--sp-9);
+    padding: var(--sp-4) var(--sp-4) var(--sp-9);
+  }
+}
+
+/* --- phones -----------------------------------------------------------------
+   Below 768px the sidebar is a top bar (see Sidebar.jsx), so the frame stacks:
+   bar, then the page at full width. */
+@media (max-width: 767px) {
+  .app-frame {
+    flex-direction: column;
+  }
+
+  /* The live interview is bounded to the screen, so the transcript scrolls
+     between the progress bar and a composer that stays in reach, instead of
+     the answer box sitting below the fold. dvh follows the mobile browser's
+     own toolbars as they come and go. */
+  .app-shell--chat {
+    /* <main> is also .app-main, a flex item with flex: 1 — and in a column
+       of indefinite height that basis sizes from content and ignores
+       `height`, so the transcript grew the page instead of scrolling. */
+    flex: none;
+    height: calc(100dvh - var(--mobile-bar-height));
+    min-height: 0;
+    padding-bottom: var(--sp-3);
+    overflow: hidden;
   }
 }
 
@@ -579,6 +603,38 @@ input[type="radio"] {
   text-transform: uppercase;
   letter-spacing: var(--ls-wide);
   color: var(--text-subtle);
+}
+
+/* --- phones: touch sizing ------------------------------------------------------
+   Last in the file on purpose: these have to beat the base rules above at the
+   same specificity. */
+@media (max-width: 767px) {
+  /* Fingertip-sized controls. */
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger,
+  .btn-subtle {
+    min-height: var(--touch-target);
+  }
+  .btn-sm,
+  .error-banner .btn-ghost,
+  .warn-banner .btn-ghost,
+  .info-banner .btn-ghost {
+    min-height: 36px;
+  }
+
+  /* iOS Safari zooms the page into any text field under 16px and leaves it
+     zoomed. Module classes set smaller sizes on purpose for desktop, so this
+     has to win over them. Text-entry fields only. */
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="button"], [type="submit"]),
+  textarea,
+  select {
+    font-size: var(--fs-input-touch) !important;
+  }
+
+  .empty-state {
+    padding: var(--sp-7) var(--sp-4);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
