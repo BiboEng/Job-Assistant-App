@@ -33,11 +33,25 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--inner-highlight);
+  transition: transform var(--dur-slow) var(--ease), border-color var(--dur) var(--ease);
 }
 
 /* Pro is the plan most people practising for a real search want. */
 .featured {
   border-color: var(--accent-border);
+}
+
+/* Micro-interaction: a hovered card steps up and its edge brightens. A lift,
+   not a shadow (the design system has none); the featured card brightens to
+   full mint rather than to grey. */
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+  }
+  .featured:hover {
+    border-color: var(--accent);
+  }
 }
 
 .current {
@@ -210,43 +224,4 @@
 .no {
   display: inline-flex;
   vertical-align: middle;
-}
-
-/* --- the landing page's folded table (collapseTable) ---------------------- */
-
-.disclosure {
-  border-top: 1px solid var(--border);
-}
-
-.disclosureSummary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-top: var(--sp-4);
-  padding: var(--sp-1) 0;
-  color: var(--secondary);
-  font-size: var(--fs-md);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-  list-style: none;
-  border-radius: var(--radius-sm);
-}
-.disclosureSummary::-webkit-details-marker {
-  display: none;
-}
-.disclosureSummary:hover {
-  color: var(--secondary-hover);
-}
-.disclosureSummary > svg {
-  transition: transform var(--dur) var(--ease);
-}
-.disclosure[open] > .disclosureSummary > svg {
-  transform: rotate(180deg);
-}
-
-.disclosureBody {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  margin-top: var(--sp-4);
 }

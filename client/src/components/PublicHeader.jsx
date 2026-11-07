@@ -16,10 +16,9 @@ import styles from "./PublicHeader.module.css";
  * place, and the button is dropped on /sign-in itself.
  */
 
-// "Features" keeps the /how-it-works URL it had before About and How It Works
-// were merged into one section, so existing links still land on it.
+// /about still works too; it lands on the same section as /how-it-works.
 const LINKS = [
-  { to: PATHS.howItWorks, label: "Features" },
+  { to: PATHS.howItWorks, label: "How it works" },
   { to: PATHS.pricing, label: "Pricing" },
   { to: PATHS.contact, label: "Contact" },
 ];
@@ -37,6 +36,16 @@ export default function PublicHeader() {
       </a>
       <div className={styles.inner}>
         <Link to={PATHS.home} className={styles.wordmark}>
+          {/* The mascot's head, as a small round avatar. Decorative: the
+              link's name is the word next to it. */}
+          <img
+            src="/landing/mascot/head.webp"
+            width="96"
+            height="96"
+            alt=""
+            className={styles.wordmarkMark}
+            decoding="async"
+          />
           Jobuddy
         </Link>
 

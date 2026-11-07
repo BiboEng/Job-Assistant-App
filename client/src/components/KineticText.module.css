@@ -1,0 +1,41 @@
+/*
+ * Kinetic headings: each word is clipped by its own box and rises up into
+ * it, staggered by --reveal-delay (set inline per word). Transform and
+ * opacity only. The mask is padded just below the line (and pulled back with
+ * a matching negative margin) so descenders aren't shaved off.
+ */
+
+.word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: var(--kinetic-descender);
+  margin-bottom: calc(-1 * var(--kinetic-descender));
+}
+
+.inner {
+  display: inline-block;
+}
+
+/* On mount (the hero). */
+.onLoad .inner {
+  animation: wordRise var(--dur-enter) var(--ease) var(--reveal-delay) both;
+}
+
+/* On first sight (everything below the fold). The hidden start only applies
+   once the page's observer is attached, so nothing can be stuck invisible. */
+[data-reveal-ready] .kinetic[data-reveal] .inner {
+  transition: transform var(--dur-enter) var(--ease) var(--reveal-delay),
+    opacity var(--dur-enter) var(--ease) var(--reveal-delay);
+}
+[data-reveal-ready] .kinetic[data-reveal]:not([data-revealed]) .inner {
+  opacity: 0;
+  transform: translateY(125%);
+}
+
+@keyframes wordRise {
+  from {
+    opacity: 0;
+    transform: translateY(125%);
+  }
+}

@@ -2,155 +2,134 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import PublicHeader from "../components/PublicHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
-import VideoPlaceholder from "../components/VideoPlaceholder.jsx";
 import PlanComparison from "../components/PlanComparison.jsx";
 import Icon from "../components/Icon.jsx";
+import KineticText from "../components/KineticText.jsx";
+import SplitFlap from "../components/SplitFlap.jsx";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import { usePlanCatalog } from "../billing/usePlanCatalog.js";
 import { planName } from "../billing/plans.js";
 import { PATHS } from "../routes.js";
+import {
+  BOARD_INTRO,
+  BOARD_WIDTH,
+  MASCOT_CLICKS,
+  SAMPLE_ROLES,
+} from "./landingSamples.js";
 import styles from "./LandingScreen.module.css";
 
 /**
- * The public front door: hero → at a glance → Features → Feedback → Pricing →
- * closing call to action → Contact (footer).
+ * The public front door, told as one practice session with the Jobuddy
+ * mascot as the interviewer: hero (he says hello) → how a session goes (he
+ * asks, follows up, gives feedback) → the other tools → Pricing → closing
+ * (he celebrates) → Contact (footer).
  *
  * One scrolling page, five routes. "/", "/about", "/how-it-works", "/pricing"
  * and "/contact" all render this component; the path picks the section to
  * scroll to. React Router keeps the same element mounted across them, so a nav
- * click is a scroll, not a reload, and each section still has a URL that can be
- * bookmarked. About and How It Works were one section's worth of content said
- * twice, so both paths now land on Features.
+ * click is a scroll, not a reload, and each section still has a URL.
  *
- * The product images are real screenshots of the app (public/landing/*.webp),
- * taken with sample data. Retake them when the screens they show change.
- * Tutorial videos are wired through FEATURES below: set `video.src` or
- * `video.embedUrl` and it replaces that tab's screenshot.
+ * Playful, but one-shot: headings rise in word by word (KineticText), and a
+ * split-flap board in the hero turns through a few roles once and lands on
+ * "YOUR NEXT JOB" (SplitFlap). Nothing loops.
+ *
+ * The hero is interactive. "Try a sample question" buttons flip the board to
+ * a role and have the mascot ask a sample question for it (landingSamples.js:
+ * plain data, no model call). The mascot gives a thumbs-up while "Start free"
+ * is hovered or focused, and pressing him steps through his expressions.
+ *
+ * The mascot art is public/landing/mascot/*.webp, trimmed and resized from
+ * the PNGs in the mascot kit. The one product image is a real screenshot of a
+ * feedback report (public/landing/feedback-report.webp), taken with sample
+ * data. Retake it if the report changes visibly.
  *
  * Copy rule for this page: short, plain, no em-dashes.
  */
 
 const SECTION_BY_PATH = {
-  [PATHS.about]: "features",
-  [PATHS.howItWorks]: "features",
+  [PATHS.about]: "how-it-works",
+  [PATHS.howItWorks]: "how-it-works",
   [PATHS.pricing]: "pricing",
   [PATHS.contact]: "contact",
 };
 
-/*
- * The screenshots, each with a phone-width capture of the same screen: a whole
- * desktop screen shrunk to 360px is unreadable, so narrow viewports get the
- * app as it looks on a phone. Sizes are the files' real pixel dimensions
- * (captured at 2x), so the browser reserves the space before they load.
- */
-const shot = (name, width, height, mobileWidth, mobileHeight, alt) => ({
-  src: `/landing/${name}.webp`,
-  width,
-  height,
-  mobile: { src: `/landing/m-${name}.webp`, width: mobileWidth, height: mobileHeight },
-  alt,
-});
-
-const SHOTS = {
-  hero: shot("hero-interview", 2560, 1360, 860, 1280,
-    "A mock interview in progress: the interviewer's follow-up question, the candidate's earlier answer, a countdown timer and a half-typed reply."),
-  interview: shot("feature-interview", 2080, 1400, 860, 1280,
-    "The new interview screen with a pasted job description and options for question count and answer mode."),
-  jobs: shot("feature-jobs", 2080, 1400, 860, 1280,
-    "Job matches for a frontend engineer in Toronto, each with a match score and a one-line reason."),
-  resume: shot("feature-resume", 2080, 1400, 860, 1280,
-    "The resume builder: a chat with the assistant beside the live resume."),
-  progress: shot("feature-progress", 2080, 1400, 860, 1280,
-    "The progress page for a frontend engineer role, with scores rising from 58 to 78 over six interviews."),
-  report: shot("feedback-report", 2068, 832, 680, 894,
-    "A feedback report: overall score 78 out of 100, ratings for relevance, specificity, structure and depth, and lists of strengths and areas to work on."),
+/** The mascot's poses, with each file's real pixel size so nothing shifts on load. */
+const POSES = {
+  welcome: { src: "/landing/mascot/welcome.webp", width: 880, height: 857 },
+  interviewing: { src: "/landing/mascot/interviewing.webp", width: 560, height: 576 },
+  thinking: { src: "/landing/mascot/thinking.webp", width: 560, height: 683 },
+  feedback: { src: "/landing/mascot/feedback.webp", width: 560, height: 524 },
+  celebrate: { src: "/landing/mascot/celebrate.webp", width: 560, height: 573 },
+  positive: { src: "/landing/mascot/positive.webp", width: 560, height: 576 },
 };
 
-/** The facts under the hero. Every number is a real limit of the product. */
-const STATS = [
-  { value: "2-6", label: "questions, written from the posting you paste" },
-  { value: "4", label: "answer-quality ratings on every interview" },
-  { value: "19", label: "countries searched for open roles" },
-  { value: "Free", label: "to start, no card needed" },
-];
+/** Every pose the hero mascot can take. All but "welcome" load after the page. */
+const HERO_POSES = ["welcome", "interviewing", "positive", "thinking", "feedback", "celebrate"];
+
+const REPORT = {
+  src: "/landing/feedback-report.webp",
+  width: 2068,
+  height: 832,
+  mobile: { src: "/landing/m-feedback-report.webp", width: 680, height: 894 },
+  alt: "A feedback report: overall score 78 out of 100, ratings for relevance, specificity, structure and depth, and lists of strengths and areas to work on.",
+};
+
+const HELLO = "Hi, I'm Jobuddy. Paste a job posting and I'll interview you for it.";
 
 /*
- * One tab per tool. To add a tutorial, set `video.src` (a file in
- * client/public/, e.g. "/videos/resume-builder.mp4") or `video.embedUrl`
- * (e.g. a YouTube embed URL); it takes the screenshot's place. The `id`s are
- * the old How It Works anchors, so /how-it-works#job-finder still opens the
- * right tab.
+ * The session, one beat per step. `say` is what the mascot says in that
+ * step: lines in the voice of a real session (the questions match the sample
+ * report further down), not claims about the product.
  */
-const FEATURES = [
+const SESSION = [
   {
-    id: "mock-interview",
-    icon: "messageSquare",
-    title: "Mock interviews",
-    summary: "Paste a job description and answer questions written for that role, typed or out loud.",
-    steps: [
-      "Paste the posting and pick a focus",
-      "Answer against a timer, typed or on camera",
-      "Get a scored report with what to fix",
-    ],
-    image: SHOTS.interview,
-    video: { src: "", embedUrl: "", poster: "" },
+    pose: "interviewing",
+    title: "Paste the job you want",
+    body: "Pick 2 to 6 questions and a focus. Every question is written from that posting, so you practise for the role in front of you.",
+    say: "The posting mentions a legacy checkout. Tell me about a migration you led.",
   },
   {
-    id: "job-finder",
-    icon: "briefcase",
-    title: "Job matches",
-    summary: "Upload your resume and get open roles in your city, each scored against your background.",
-    steps: [
-      "Upload a PDF and pick a city",
-      "See each role's match score and the reason",
-      "Track the ones you like on a board",
-    ],
-    image: SHOTS.jobs,
-    video: { src: "", embedUrl: "", poster: "" },
+    pose: "thinking",
+    title: "Answer like it's the real thing",
+    body: "Type your answers, or say them out loud on camera, with a timer running. Follow-up questions build on what you just said.",
+    say: "Good. Now walk me through your first hour after a bad release.",
   },
   {
-    id: "resume-builder",
-    icon: "fileText",
-    title: "Resume builder",
-    summary: "Describe your experience in a chat and the resume updates beside it. Every line stays editable.",
-    steps: [
-      "Tell the assistant about a role or project",
-      "Edit any line directly on the page",
-      "Download a PDF that applicant systems can read",
-    ],
-    image: SHOTS.resume,
-    video: { src: "", embedUrl: "", poster: "" },
-  },
-  {
-    id: "progress",
-    icon: "trendingUp",
-    title: "Progress",
-    summary: "Interviews are grouped by role, so you can watch your scores move as you practise.",
-    steps: [
-      "A score trend for each role",
-      "Four answer-quality ratings over time",
-      "The feedback that keeps coming up",
-    ],
-    image: SHOTS.progress,
-    video: { src: "", embedUrl: "", poster: "" },
+    pose: "feedback",
+    title: "Find out what to fix",
+    body: "Every interview ends with a score out of 100, four ratings to work on, and notes for each answer.",
+    say: "Strong story. Next time, give the result in numbers.",
   },
 ];
 
-const FEEDBACK_NOTES = [
+/**
+ * Everything else in the app, one line each. `motion` is how the icon moves
+ * when its item is hovered (LandingScreen.module.css, [data-motion]).
+ */
+const TOOLS = [
   {
-    icon: "gauge",
-    title: "A score and a summary",
-    body: "An overall score out of 100, with a plain account of what worked and what didn't.",
+    icon: "briefcase",
+    motion: "lift",
+    title: "Job matches",
+    body: "Upload your resume and get open roles in your city, each scored against it.",
   },
   {
-    icon: "target",
-    title: "Four ratings to work on",
-    body: "Relevance, specificity, structure and depth, each out of 10, so you know which habit to fix first.",
+    icon: "fileText",
+    motion: "tilt",
+    title: "Resume builder",
+    body: "Describe your experience in a chat and an ATS-friendly resume fills in beside it.",
   },
   {
-    icon: "mic",
-    title: "Delivery, when you speak",
-    body: "In speak mode your pace, pauses and eye contact are measured in the browser and covered in the feedback.",
+    icon: "trendingUp",
+    motion: "rise",
+    title: "Progress",
+    body: "Scores for each role over time, and the feedback that keeps coming up.",
+  },
+  {
+    icon: "kanban",
+    motion: "slide",
+    title: "Applications",
+    body: "A board for every role you're chasing, from saved to accepted.",
   },
 ];
 
@@ -160,13 +139,11 @@ export default function LandingScreen() {
   const firstScrollRef = useRef(true);
 
   // Scroll to the section named by the path. Keyed on `location.key`, not the
-  // pathname, so clicking "Features" again after scrolling away still scrolls
+  // pathname, so clicking a nav link again after scrolling away still scrolls
   // back. The first run (a deep link or a refresh) jumps; later ones glide,
   // unless the user prefers reduced motion.
   useEffect(() => {
-    const instant =
-      firstScrollRef.current ||
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const instant = firstScrollRef.current || prefersReducedMotion();
     firstScrollRef.current = false;
     const behavior = instant ? "auto" : "smooth";
 
@@ -206,6 +183,62 @@ export default function LandingScreen() {
     main.setAttribute("data-reveal-ready", "");
     return () => io.disconnect();
   }, []);
+
+  // --- the interactive hero ---------------------------------------------
+  // What the mascot shows comes from three things, strongest first: "Start
+  // free" hovered or focused (thumbs-up), a click step (MASCOT_CLICKS), and
+  // otherwise the base: asking the picked role's sample question, or waving.
+  const [pick, setPick] = useState(null); // { id, q } once a role is chosen
+  const [clickStep, setClickStep] = useState(0); // 0 = none
+  const [ctaHover, setCtaHover] = useState(false);
+  const heroArtRef = useRef(null);
+  // Half a turn of the refresh icon per "Another question" (it only ever adds,
+  // so the icon keeps turning the same way).
+  const [spins, setSpins] = useState(0);
+  // The closing mascot hops again when hovered or tapped (once per hop).
+  const [hopping, setHopping] = useState(false);
+
+  const role = pick ? SAMPLE_ROLES.find((r) => r.id === pick.id) : null;
+  const clicked = clickStep ? MASCOT_CLICKS[clickStep - 1] : null;
+  const base = role
+    ? { pose: "interviewing", line: role.questions[pick.q] }
+    : { pose: "welcome", line: HELLO };
+  const heroLine = clicked ? clicked.line : base.line;
+  const heroPose = ctaHover ? "positive" : clicked ? clicked.pose : base.pose;
+
+  // On a phone the mascot sits under the buttons; bring his answer into view.
+  function revealBubble() {
+    const el = heroArtRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.top >= 0 && r.bottom <= window.innerHeight) return;
+    el.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }
+
+  function pickRole(id) {
+    setClickStep(0);
+    setPick((p) => (p?.id === id ? p : { id, q: 0 }));
+    revealBubble();
+  }
+
+  function anotherQuestion() {
+    setSpins((n) => n + 1);
+    setClickStep(0);
+    setPick((p) => p && { ...p, q: (p.q + 1) % role.questions.length });
+    revealBubble();
+  }
+
+  // The press after the last step goes back to the base pose.
+  function poke() {
+    setClickStep((s) => (s + 1) % (MASCOT_CLICKS.length + 1));
+  }
+
+  const ctaHoverProps = {
+    onPointerEnter: () => setCtaHover(true),
+    onPointerLeave: () => setCtaHover(false),
+    onFocus: () => setCtaHover(true),
+    onBlur: () => setCtaHover(false),
+  };
 
   // One label per intent across the whole page: "Start free" for a visitor,
   // "Open dashboard" for someone already signed in.
@@ -254,111 +287,200 @@ export default function LandingScreen() {
       <PublicHeader />
 
       <main id="main-content" ref={mainRef} tabIndex={-1} className={styles.page}>
-        {/* --- hero: the promise, then the product ----------------------- */}
+        {/* --- hero: the mascot says hello ------------------------------------ */}
         <section className={styles.hero} aria-labelledby="hero-heading">
-          <div className={styles.inner}>
+          <div className={`${styles.inner} ${styles.heroInner}`}>
             <div className={styles.heroCopy}>
-              <h1 id="hero-heading" className={styles.title}>
-                Walk into your next interview{" "}
-                <span className={styles.accentWord}>already practised</span>
-              </h1>
+              <KineticText
+                as="h1"
+                id="hero-heading"
+                trigger="load"
+                className={styles.title}
+                accentClassName={styles.accentWord}
+                parts={["Practise with a buddy who's", { text: "read the job posting", accent: true }]}
+              />
               <p className={styles.heroLede}>
-                Interview questions written from the job you want, scored on what you said
-                and how you said it.
+                Jobuddy interviews you for the exact role you want, then tells you what to
+                fix before the real one.
               </p>
               <div className={styles.heroActions}>
-                <Link to={primaryCta.to} className={`btn-primary btn-lg ${styles.ctaLink}`}>
+                <Link
+                  to={primaryCta.to}
+                  className={`btn-primary btn-lg ${styles.ctaLink}`}
+                  {...ctaHoverProps}
+                >
                   {primaryCta.label}
                   <Icon name="chevronRight" />
                 </Link>
-                <Link to={PATHS.howItWorks} className={`btn-ghost btn-lg ${styles.ctaLink}`}>
-                  See how it works
-                </Link>
+                {!user && <span className={styles.heroNote}>Free plan. No card needed.</span>}
+              </div>
+              <div className={styles.departures}>
+                <span className={`mono ${styles.departuresLabel}`} aria-hidden="true">
+                  Now interviewing
+                </span>
+                <SplitFlap
+                  sequence={BOARD_INTRO}
+                  value={role?.board ?? null}
+                  width={BOARD_WIDTH}
+                  hold={1000}
+                  delay={900}
+                  settleAccent
+                />
+                <span className="sr-only">
+                  Practise for any role, from engineering to nursing.
+                </span>
+              </div>
+
+              <div className={styles.try} role="group" aria-labelledby="try-label">
+                <span id="try-label" className={styles.tryLabel}>
+                  Try a sample question:
+                </span>
+                <div className={styles.tryRoles}>
+                  {SAMPLE_ROLES.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className={`btn-ghost btn-sm ${styles.chip}`}
+                      aria-pressed={role?.id === r.id}
+                      onClick={() => pickRole(r.id)}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                {role && (
+                  <p className={styles.tryNote}>
+                    <button
+                      type="button"
+                      className={`link-btn ${styles.another}`}
+                      onClick={anotherQuestion}
+                    >
+                      <span
+                        className={styles.anotherIcon}
+                        style={{ transform: `rotate(${spins * 180}deg)` }}
+                      >
+                        <Icon name="refresh" />
+                      </span>
+                      Another question
+                    </button>
+                    <span>
+                      Samples only. Paste a real posting after you sign up and yours are
+                      written for it.
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 
-            <Shot image={SHOTS.hero} className={styles.heroShot} priority />
-          </div>
-        </section>
-
-        {/* --- at a glance --------------------------------------------------- */}
-        <section className={styles.proof} aria-label="At a glance">
-          <ul className={`${styles.inner} ${styles.stats}`}>
-            {STATS.map((s) => (
-              <li key={s.label} className={styles.stat}>
-                <span className={`mono ${styles.statValue}`}>{s.value}</span>
-                <span className={styles.statLabel}>{s.label}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* --- features: one tab per tool --------------------------------- */}
-        <section id="features" className={styles.band} aria-labelledby="features-heading">
-          <div className={styles.inner}>
-            <div className={styles.sectionHead} data-reveal="">
-              <h2 id="features-heading" className={styles.sectionTitle} tabIndex={-1}>
-                Everything you need before the interview
-              </h2>
-              <p className={styles.sectionLede}>
-                Practise for a specific job, find roles that fit your resume, write the
-                resume itself, and watch your scores climb.
-              </p>
-            </div>
-            <div data-reveal="">
-              <FeatureTabs features={FEATURES} />
+            <div className={styles.heroArt} ref={heroArtRef}>
+              <span className={styles.halo} aria-hidden="true" />
+              <Bubble className={styles.heroBubble} text={heroLine} typed live />
+              <HeroBuddy pose={heroPose} onPoke={poke} />
             </div>
           </div>
         </section>
 
-        {/* --- feedback: what you get at the end --------------------------- */}
-        <section
-          id="feedback"
-          className={`${styles.band} ${styles.bandRaised}`}
-          aria-labelledby="feedback-heading"
-        >
+        {/* --- how a session goes: three beats -------------------------------- */}
+        <section id="how-it-works" className={styles.band} aria-labelledby="how-heading">
           <div className={styles.inner}>
-            <div className={styles.sectionHead} data-reveal="">
-              <h2 id="feedback-heading" className={styles.sectionTitle} tabIndex={-1}>
-                Feedback you can act on
-              </h2>
-              <p className={styles.sectionLede}>
-                Every interview ends with a report that says what to change, answer by
-                answer.
+            <div className={styles.sectionHead}>
+              <KineticText
+                id="how-heading"
+                className={styles.sectionTitle}
+                tabIndex={-1}
+                parts={["How a practice interview goes"]}
+              />
+              <p className={styles.sectionLede} data-reveal="" style={{ "--reveal-delay": "200ms" }}>
+                About ten minutes, start to finish. Here&apos;s what happens.
               </p>
             </div>
 
-            <div data-reveal="">
-              <Shot image={SHOTS.report} className={styles.reportShot} />
-            </div>
+            <ol className={styles.beats}>
+              {SESSION.map((beat, i) => (
+                <li key={beat.pose} className={`${styles.beat} ${i % 2 ? styles.beatFlip : ""}`}>
+                  <div className={styles.beatCopy} data-reveal="">
+                    <SplitFlap
+                      sequence={[String(i + 1).padStart(2, "0")]}
+                      size="sm"
+                      accent
+                      delay={150}
+                      className={styles.beatStep}
+                    />
+                    <span className="sr-only">Step {i + 1}.</span>
+                    <h3 className={styles.beatTitle}>{beat.title}</h3>
+                    <p className={styles.beatBody}>{beat.body}</p>
+                  </div>
+                  <div className={styles.stage} data-reveal="">
+                    <Bubble className={styles.stageBubble} text={beat.say} />
+                    <Mascot pose={beat.pose} className={styles.stageMascot} />
+                  </div>
+                </li>
+              ))}
+            </ol>
 
-            <ul className={styles.notes}>
-              {FEEDBACK_NOTES.map((n, i) => (
+            <figure className={styles.report} data-reveal="">
+              <picture>
+                <source
+                  media="(max-width: 680px)"
+                  srcSet={REPORT.mobile.src}
+                  width={REPORT.mobile.width}
+                  height={REPORT.mobile.height}
+                />
+                <img
+                  src={REPORT.src}
+                  width={REPORT.width}
+                  height={REPORT.height}
+                  alt={REPORT.alt}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
+              <figcaption className={styles.reportCaption}>
+                The top of a real feedback report, from a sample interview.
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+
+        {/* --- the other tools: one strip ------------------------------------- */}
+        <section className={styles.tools} aria-labelledby="tools-heading">
+          <div className={styles.inner}>
+            <KineticText
+              id="tools-heading"
+              className={styles.toolsTitle}
+              parts={["More than mock interviews"]}
+            />
+            <ul className={styles.toolList}>
+              {TOOLS.map((t, i) => (
                 <li
-                  key={n.title}
-                  className={styles.note}
+                  key={t.title}
+                  className={styles.tool}
+                  data-motion={t.motion}
                   data-reveal=""
-                  style={{ "--reveal-delay": `${i * 80}ms` }}
+                  style={{ "--reveal-delay": `${i * 70}ms` }}
                 >
-                  <span className={styles.noteIcon} aria-hidden="true">
-                    <Icon name={n.icon} />
+                  <span className={styles.toolIcon} aria-hidden="true">
+                    <Icon name={t.icon} />
                   </span>
-                  <h3 className={styles.noteTitle}>{n.title}</h3>
-                  <p className={styles.noteBody}>{n.body}</p>
+                  <h3 className={styles.toolName}>{t.title}</h3>
+                  <p className={styles.toolBody}>{t.body}</p>
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        {/* --- pricing ------------------------------------------------------- */}
+        {/* --- pricing: the three cards, nothing else ------------------------- */}
         <section id="pricing" className={styles.band} aria-labelledby="pricing-heading">
           <div className={styles.inner}>
-            <div className={styles.sectionHead} data-reveal="">
-              <h2 id="pricing-heading" className={styles.sectionTitle} tabIndex={-1}>
-                Free to start. Upgrade when it counts.
-              </h2>
-              <p className={styles.sectionLede}>
+            <div className={styles.sectionHead}>
+              <KineticText
+                id="pricing-heading"
+                className={styles.sectionTitle}
+                tabIndex={-1}
+                parts={["Free to start. Upgrade when it counts."]}
+              />
+              <p className={styles.sectionLede} data-reveal="" style={{ "--reveal-delay": "200ms" }}>
                 Every tool works on the free plan. Paid plans add more practice a day,
                 speaking on camera and deeper progress tracking.
               </p>
@@ -369,7 +491,7 @@ export default function LandingScreen() {
                 interval={interval}
                 onIntervalChange={setInterval_}
                 renderAction={planAction}
-                collapseTable
+                showTable={false}
               />
             </div>
             <p className={styles.pricingLegal}>
@@ -381,17 +503,27 @@ export default function LandingScreen() {
           </div>
         </section>
 
-        {/* --- closing call to action ---------------------------------------- */}
+        {/* --- closing: the mascot celebrates --------------------------------- */}
         <section className={styles.closing} aria-labelledby="closing-heading">
           <div className={`${styles.inner} ${styles.closingInner}`} data-reveal="">
-            <div>
-              <h2 id="closing-heading" className={styles.closingTitle}>
-                Ready for the real thing?
-              </h2>
-              <p className={styles.closingBody}>
-                Your first practice interview takes about ten minutes.
-              </p>
-            </div>
+            <span
+              className={`${styles.closingMascotWrap} ${hopping ? styles.hopAgain : ""}`}
+              onPointerEnter={(e) => e.pointerType === "mouse" && setHopping(true)}
+              onClick={() => setHopping(true)}
+              onAnimationEnd={(e) => {
+                if (e.animationName.includes("hopAgain")) setHopping(false);
+              }}
+            >
+              <Mascot pose="celebrate" className={styles.closingMascot} />
+            </span>
+            <KineticText
+              id="closing-heading"
+              className={styles.closingTitle}
+              startDelay={200}
+              parts={["Your next interview", { text: "starts here", accent: true }]}
+              accentClassName={styles.accentWord}
+            />
+            <p className={styles.closingBody}>Run your first practice now. It&apos;s free.</p>
             <Link to={primaryCta.to} className={`btn-primary btn-lg ${styles.ctaLink}`}>
               {primaryCta.label}
               <Icon name="chevronRight" />
@@ -405,124 +537,146 @@ export default function LandingScreen() {
   );
 }
 
-/**
- * The four tools as an ARIA tab set: a list of tabs on the left (a 2×2 grid
- * on narrow screens) and the selected tool's screenshot, or tutorial video,
- * with its three steps. Arrow keys, Home and End move between tabs, and
- * selection follows focus.
- *
- * Each tab carries its one-line summary on wide screens. On narrow ones the
- * tabs shrink to their titles and the summary shows in the panel instead; CSS
- * hides whichever copy isn't in use, so it's only ever read once.
- */
-function FeatureTabs({ features }) {
-  const location = useLocation();
-  const [active, setActive] = useState(() => {
-    const fromHash = features.findIndex((f) => `#${f.id}` === location.hash);
-    return fromHash === -1 ? 0 : fromHash;
-  });
-  const tabRefs = useRef([]);
+function prefersReducedMotion() {
+  return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+}
 
-  function onKeyDown(e) {
-    const last = features.length - 1;
-    const next = {
-      ArrowDown: active === last ? 0 : active + 1,
-      ArrowRight: active === last ? 0 : active + 1,
-      ArrowUp: active === 0 ? last : active - 1,
-      ArrowLeft: active === 0 ? last : active - 1,
-      Home: 0,
-      End: last,
-    }[e.key];
-    if (next === undefined) return;
-    e.preventDefault();
-    setActive(next);
-    tabRefs.current[next]?.focus();
-  }
-
+/** One pose of the mascot, as decoration (the words around it carry the meaning). */
+function Mascot({ pose, className = "" }) {
+  const art = POSES[pose];
   return (
-    <div className={styles.features}>
-      <div role="tablist" aria-label="Tools" className={styles.tabList} onKeyDown={onKeyDown}>
-        {features.map((f, i) => {
-          const selected = i === active;
-          return (
-            <button
-              key={f.id}
-              ref={(el) => (tabRefs.current[i] = el)}
-              type="button"
-              role="tab"
-              id={`tab-${f.id}`}
-              aria-selected={selected}
-              aria-controls={`panel-${f.id}`}
-              tabIndex={selected ? 0 : -1}
-              className={`${styles.tab} ${selected ? styles.tabActive : ""}`}
-              onClick={() => setActive(i)}
-            >
-              <span className={styles.tabIcon} aria-hidden="true">
-                <Icon name={f.icon} />
-              </span>
-              <span className={styles.tabText}>
-                <span className={styles.tabTitle}>{f.title}</span>
-                <span className={styles.tabSummary}>{f.summary}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {features.map((f, i) => (
-        <div
-          key={f.id}
-          role="tabpanel"
-          id={`panel-${f.id}`}
-          aria-labelledby={`tab-${f.id}`}
-          hidden={i !== active}
-          className={styles.tabPanel}
-        >
-          <p className={styles.panelSummary}>{f.summary}</p>
-          {f.video.src || f.video.embedUrl ? (
-            <VideoPlaceholder
-              label={`${f.title} tutorial`}
-              src={f.video.src}
-              embedUrl={f.video.embedUrl}
-              poster={f.video.poster}
-            />
-          ) : (
-            <Shot image={f.image} />
-          )}
-          <ul className={styles.steps}>
-            {f.steps.map((step) => (
-              <li key={step}>
-                <Icon name="check" />
-                <span>{step}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
+    <img
+      src={art.src}
+      width={art.width}
+      height={art.height}
+      alt=""
+      className={`${styles.mascot} ${className}`}
+      decoding="async"
+      loading="lazy"
+    />
   );
 }
 
-/** One screenshot in the page's frame, with its phone-width source. */
-function Shot({ image, className = "", priority = false }) {
+/**
+ * The mascot's speech bubble. With `typed`, the line types itself out:
+ * shortly after the page loads, and again whenever the line changes. The
+ * full line is laid out invisibly underneath so the bubble is its final size
+ * from the start, and screen readers get the whole line at once rather than
+ * a character at a time; with `live` they're told when it changes (the hero,
+ * where a visitor's click changes it). Reduced motion shows it whole.
+ */
+function Bubble({ text, typed = false, live = false, className = "" }) {
+  const shown = useTypewriter(text, typed);
   return (
-    <figure className={`${styles.shot} ${className}`}>
-      <picture>
-        <source
-          media="(max-width: 680px)"
-          srcSet={image.mobile.src}
-          width={image.mobile.width}
-          height={image.mobile.height}
-        />
-        <img
-          src={image.src}
-          width={image.width}
-          height={image.height}
-          alt={image.alt}
-          decoding="async"
-          {...(priority ? { fetchPriority: "high" } : { loading: "lazy" })}
-        />
-      </picture>
-    </figure>
+    <p className={`${styles.bubble} ${className}`} aria-live={live ? "polite" : undefined}>
+      {typed ? (
+        <>
+          <span className="sr-only">{text}</span>
+          <span className={styles.bubbleSizer} aria-hidden="true">
+            {text}
+          </span>
+          <span className={styles.bubbleTyped} aria-hidden="true">
+            {shown}
+            {shown.length < text.length && <span className={styles.caret} />}
+          </span>
+        </>
+      ) : (
+        text
+      )}
+    </p>
+  );
+}
+
+const TYPE_FIRST_MS = 700; // on page load, after the hero has settled in
+const TYPE_AGAIN_MS = 120; // after a click: answer promptly
+const TYPE_STEP_MS = 24;
+
+function useTypewriter(text, enabled) {
+  const [count, setCount] = useState(() =>
+    enabled && !prefersReducedMotion() ? 0 : text.length
+  );
+  const firstRef = useRef(true);
+  useEffect(() => {
+    if (!enabled || prefersReducedMotion()) {
+      setCount(text.length);
+      return undefined;
+    }
+    const startIn = firstRef.current ? TYPE_FIRST_MS : TYPE_AGAIN_MS;
+    firstRef.current = false;
+    setCount(0);
+    let timer = 0;
+    let n = 0;
+    const tick = () => {
+      n += 1;
+      setCount(n);
+      if (n < text.length) timer = window.setTimeout(tick, TYPE_STEP_MS);
+    };
+    timer = window.setTimeout(tick, startIn);
+    return () => window.clearTimeout(timer);
+  }, [text, enabled]);
+  return text.slice(0, count);
+}
+
+/**
+ * The hero mascot, as a button: pressing it steps through his expressions.
+ * Every pose is stacked in one square frame, anchored at the bottom (the
+ * poses have different shapes), and the active one fades in, so a change is
+ * a crossfade with nothing moving around it. Only "welcome" loads with the
+ * page; the rest are added once the page has finished loading, so they're
+ * ready before anyone hovers or clicks. The celebrate pose hops as it lands.
+ */
+function HeroBuddy({ pose, onPoke }) {
+  const [extras, setExtras] = useState(false);
+  useEffect(() => {
+    let idle = 0;
+    let timer = 0;
+    const queue = () => {
+      if ("requestIdleCallback" in window) {
+        idle = window.requestIdleCallback(() => setExtras(true), { timeout: 2000 });
+      } else {
+        timer = window.setTimeout(() => setExtras(true), 600);
+      }
+    };
+    if (document.readyState === "complete") queue();
+    else window.addEventListener("load", queue, { once: true });
+    return () => {
+      window.removeEventListener("load", queue);
+      if (idle) window.cancelIdleCallback?.(idle);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  return (
+    <button
+      type="button"
+      className={styles.buddy}
+      onClick={onPoke}
+      aria-label="Jobuddy, the mascot. Press to change the expression."
+    >
+      {HERO_POSES.map((p) => {
+        if (p !== "welcome" && !extras) return null;
+        const art = POSES[p];
+        const active = p === pose;
+        return (
+          <img
+            key={p}
+            src={art.src}
+            width={art.width}
+            height={art.height}
+            alt=""
+            draggable="false"
+            decoding="async"
+            className={[
+              styles.buddyPose,
+              active ? styles.buddyActive : "",
+              active && p === "celebrate" ? styles.buddyHop : "",
+            ].join(" ")}
+            // React 18 doesn't know the camelCase prop yet; the lowercase
+            // attribute passes straight through to the DOM.
+            {...(p === "welcome" ? { fetchpriority: "high" } : {})}
+          />
+        );
+      })}
+    </button>
   );
 }

@@ -13,8 +13,10 @@ import styles from "./PlanComparison.module.css";
 
 /**
  * The three plans side by side, then the full comparison table. Shared by the
- * landing page's "More features" section and the in-app Plans page; each
- * passes its own call to action through `renderAction(planId)`.
+ * landing page's Pricing section and the in-app Plans page; each passes its
+ * own call to action through `renderAction(planId)`. The landing page shows
+ * the cards only (`showTable={false}`): the table is reference material for
+ * someone already choosing, and it lives on the Plans page.
  *
  * Prices come from `catalog` (GET /api/billing/plans), i.e. from Stripe, so
  * what's shown is what Checkout charges. With billing off — or a price that
@@ -27,7 +29,7 @@ export default function PlanComparison({
   renderAction,
   currentPlan = null,
   headingLevel = 3,
-  collapseTable = false,
+  showTable = true,
 }) {
   const prices = catalog?.prices ?? {};
   const hasYearly = Boolean(prices.pro?.year || prices.ultimate?.year);
@@ -123,73 +125,57 @@ export default function PlanComparison({
         })}
       </ul>
 
-      <TableDisclosure collapsed={collapseTable}>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <caption className="sr-only">What each plan includes</caption>
-            <thead>
-              <tr>
-                <th scope="col">
-                  <span className="sr-only">Feature</span>
-                </th>
-                {PLAN_ORDER.map((id) => (
-                  <th key={id} scope="col">
-                    {PLAN_COPY[id].name}
+      {showTable && (
+        <>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <caption className="sr-only">What each plan includes</caption>
+              <thead>
+                <tr>
+                  <th scope="col">
+                    <span className="sr-only">Feature</span>
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  {PLAN_ORDER.map((id) => {
-                    const v = row.values[id];
-                    return (
-                      <td key={id}>
-                        {v === true ? (
-                          <span className={styles.yes}>
-                            <Icon name="check" />
-                            <span className="sr-only">Included</span>
-                          </span>
-                        ) : v === false ? (
-                          <span className={styles.no}>
-                            <Icon name="minus" />
-                            <span className="sr-only">Not included</span>
-                          </span>
-                        ) : (
-                          v
-                        )}
-                      </td>
-                    );
-                  })}
+                  {PLAN_ORDER.map((id) => (
+                    <th key={id} scope="col">
+                      {PLAN_COPY[id].name}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className={styles.footnote}>
-          Daily limits reset at midnight UTC. Downgrading or cancelling never deletes your data.
-        </p>
-      </TableDisclosure>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    {PLAN_ORDER.map((id) => {
+                      const v = row.values[id];
+                      return (
+                        <td key={id}>
+                          {v === true ? (
+                            <span className={styles.yes}>
+                              <Icon name="check" />
+                              <span className="sr-only">Included</span>
+                            </span>
+                          ) : v === false ? (
+                            <span className={styles.no}>
+                              <Icon name="minus" />
+                              <span className="sr-only">Not included</span>
+                            </span>
+                          ) : (
+                            v
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className={styles.footnote}>
+            Daily limits reset at midnight UTC. Downgrading or cancelling never deletes your data.
+          </p>
+        </>
+      )}
     </div>
-  );
-}
-
-/**
- * The full comparison table is reference material: on the Plans page it's
- * shown outright, on the landing page it folds behind a native <details> so
- * the three cards carry the section.
- */
-function TableDisclosure({ collapsed, children }) {
-  if (!collapsed) return children;
-  return (
-    <details className={styles.disclosure}>
-      <summary className={styles.disclosureSummary}>
-        <Icon name="chevronDown" />
-        Compare every feature
-      </summary>
-      <div className={styles.disclosureBody}>{children}</div>
-    </details>
   );
 }

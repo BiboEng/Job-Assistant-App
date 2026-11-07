@@ -5,8 +5,8 @@
  */
 export const PATHS = {
   home: "/",
-  // /about and /how-it-works both scroll to the landing page's Features
-  // section (About and How It Works were merged); both URLs still work.
+  // /about and /how-it-works both scroll to the landing page's "How a
+  // practice interview goes" section; both URLs still work.
   about: "/about",
   howItWorks: "/how-it-works",
   contact: "/contact",

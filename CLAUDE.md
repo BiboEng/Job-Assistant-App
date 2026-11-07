@@ -51,9 +51,9 @@ no link to mock interviews or Progress, and no reminders. See "Application
 Tracker" below.
 
 All five sit behind **sign-in** (Supabase email/password). Signed-out visitors
-get a public **landing page**: hero, an at-a-glance strip, **Features** (one tab
-per tool, with real screenshots and a tutorial-video slot each), **Feedback**,
-**Pricing** (the plans and prices) and a Contact footer.
+get a public **landing page** built around the Jobuddy mascot: a hero, how a
+practice interview goes (three beats and a real feedback report), the other
+tools in one strip, **Pricing** (the plan cards) and a Contact footer.
 See "Routing", "Authentication" and "Landing page" below.
 
 **Plans** — Regular (free), Pro and Ultimate — set daily limits (interviews,
@@ -129,7 +129,7 @@ mock-interview/
 │       └── prompts/index.js         interviewer + evaluator + job-match + resume + progress prompts
 │   └── test/                        node:test unit tests (`npm test`)
 └── client/
-    ├── public/landing/              the landing page's screenshots (real captures, desktop + m- phone twins)
+    ├── public/landing/              the feedback-report screenshot (+ m- phone twin) and mascot/ (the mascot poses as WebP)
     └── src/
         ├── main.jsx                 ErrorBoundary → BrowserRouter → AuthProvider → App
         ├── App.jsx                  the route table (public routes + one guarded layout route)
@@ -167,15 +167,18 @@ mock-interview/
         │                            Tracker (the Application Tracker board),
         │                            Survey (the optional career survey), Plans (plan,
         │                            usage, upgrade, billing), Legal (public /terms,
-        │                            /privacy, /refunds)
+        │                            /privacy, /refunds), NotFound (the public 404);
+        │                            landingSamples.js is the hero's sample questions
         ├── components/              Sidebar (app nav + AccountMenu), AccountMenu (avatar,
         │                            email, survey link, sign out), SurveyBanner (the one-time prompt),
         │                            PublicHeader (site nav + Sign In),
-        │                            SiteFooter (Contact), VideoPlaceholder,
+        │                            SiteFooter (Contact),
         │                            AppSkeleton (pre-render placeholder for protected pages),
         │                            ChatInput (voice/text), ChatMessage, FeedbackReport,
         │                            InterviewRow, JobRow, ScoreTrendChart (Progress's SVG lines),
         │                            PracticeAgainButton (repeat an interview's format),
+        │                            KineticText + SplitFlap (the landing page's kinetic
+        │                            headings and departures board),
         │                            KanbanColumn, ApplicationCard, ApplicationDialog (tracker),
         │                            CameraPreview (speak-mode self-view), ResumePreview,
         │                            ResumeChatPanel, EditableText, PlanComparison (plan cards +
@@ -193,6 +196,8 @@ mock-interview/
         ├── utils/rubric.js          pure: per-role answer-quality series + the weakest dimension
         ├── utils/readiness.js       pure: a role's "Overall readiness" 0–100, its stage and four factors
         ├── utils/repeatInterview.js pure: saved interview / session setup → "Practice again" settings
+        ├── utils/splitFlap.js       pure: split-flap frames (forward-only tile turns, staggered)
+        ├── consoleGreeting.js       the ASCII mascot logged to the browser console
         ├── hooks/useSpeechRecognition.js   Web Speech API wrapper, client-only
         └── hooks/useDeliveryCapture.js     owns the camera+mic stream, analyser and face tracker
     └── test/                        node:test unit tests for the pure utils (`npm test`)
@@ -227,7 +232,9 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
 - Tests: `cd server && npm test`, and `cd client && npm test` (node:test, no
   bundler — so it covers only what imports cleanly outside Vite: the pure utils
   (`utils/deliveryMetrics.js`, `utils/trendChart.js`, `utils/rubric.js`,
-  `utils/readiness.js`, `utils/repeatInterview.js`), the design-token contract, the survey's questions ↔
+  `utils/readiness.js`, `utils/repeatInterview.js`, `utils/splitFlap.js`), the console
+  greeting's ASCII art, the landing sample questions (`screens/landingSamples.js`),
+  the design-token contract, the survey's questions ↔
   migration ↔ row mapping, and the Application Tracker's model ↔ migration
   (`test/applications.test.js`). There is still no component/DOM test runner. Anything
   reading `import.meta.env` — the Supabase client, and so `survey/surveyApi.js`
@@ -243,7 +250,7 @@ Vite proxies `/api` → `localhost:3001`, so no CORS setup in dev.
 ## Design system
 
 **Jobuddy** is dark-only: an "instrument panel" look — a desaturated
-blue-grey ink base, Geist type, and one soft aqua accent used sparingly
+blue-grey ink base, Geist type, and one mint accent (the mascot's green) used sparingly
 (primary buttons, the active nav icon, focus rings, key numbers).
 
 `client/src/styles/tokens.css` is the single source of visual truth;
@@ -256,8 +263,8 @@ this: the brief's palette values, no custom properties declared outside
 declared (an undeclared token fails silently in the browser).
 
 - **Palette:** `--bg` #0a0e13, `--surface` #0f141b, `--surface-raised`
-  #151c25, `--border` #212a35, `--text`, `--text-muted`, `--accent` #5ccfc0,
-  `--accent-soft`, `--secondary` #b9c7d6 (links — a light steel, so aqua stays
+  #151c25, `--border` #212a35, `--text`, `--text-muted`, `--accent` #15dea7,
+  `--accent-soft`, `--secondary` #b9c7d6 (links — a light steel, so mint stays
   the only accent), and score colours
   `--good/--okay/--weak`. Everything else (`--surface-sunken`, `--border-strong`,
   `--text-subtle`, `--accent-border`, semantics, `--band-*`) derives from those.
@@ -275,10 +282,10 @@ declared (an undeclared token fails silently in the browser).
   `--shadow-*` is `none` except `--shadow-popover` (floating menus only).
   Raised surfaces (cards, the report, the active nav row, ghost buttons) carry
   `--inner-highlight`, a 1px inset top edge — not a shadow.
-  The one gradient is `--gradient-hero`, a faint teal pool in the page corner
+  The one gradient is `--gradient-hero`, a faint mint pool in the page corner
   (`body::before`); `--gradient-accent` is a flat colour under an old name. No
   gradient text, no blur/glass, no `backdrop-filter`.
-- **Buttons:** `.btn-primary` = solid aqua with dark text (`--accent-contrast`);
+- **Buttons:** `.btn-primary` = solid mint with dark text (`--accent-contrast`);
   `.btn-ghost` = surface fill with a border (the "secondary" button);
   `.btn-subtle`; `.btn-danger` (outlined red). 32px (`--control-height`);
   `.btn-lg` (40px) on public pages only. Every button presses to
@@ -292,7 +299,9 @@ declared (an undeclared token fails silently in the browser).
   `hooks/useCountUp.js`, the Progress line drawing in) `--dur-reveal`. Also:
   SegmentedControl's sliding highlight, directional survey steps, Kanban cards
   settling on a move, landing blocks revealing on scroll (`data-reveal`, only
-  hidden once the observer is attached). Keyframes live in each module —
+  hidden once the observer is attached), the landing headings rising word by
+  word (`KineticText`), its split-flap board (`SplitFlap`), and its
+  micro-interactions (see "Landing page"). Keyframes live in each module —
   CSS Modules hash keyframe names, so a module can't use one from `index.css`.
   The only perpetual loop is the mic's ring while recording (the landing page
   has none). The global reduced-motion rule also zeroes
@@ -301,8 +310,8 @@ declared (an undeclared token fails silently in the browser).
   `.field-label` / `.field-hint` / `.field-error` (label above, 8px gaps), and
   `.empty-state` (dashed box: icon, heading, one sentence, one action).
 - **Form controls** get one global look in `index.css` (raised fill, border,
-  aqua edge + soft ring on focus) through a zero-specificity `:where()`, so any
-  module class overrides it. Every interactive element gets the 2px aqua focus
+  mint edge + soft ring on focus) through a zero-specificity `:where()`, so any
+  module class overrides it. Every interactive element gets the 2px mint focus
   ring.
 - **Shared classes** in `index.css`: `.btn-*`, `.link-btn`, `.card`,
   `.page-head` (the title-left / primary-action-right row every app page opens
@@ -361,7 +370,7 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
 
 | Path | Access | Renders |
 | --- | --- | --- |
-| `/`, `/about`, `/how-it-works`, `/pricing`, `/contact` | public | `LandingScreen` (scrolls to the section; `/about` and `/how-it-works` both go to Features) |
+| `/`, `/about`, `/how-it-works`, `/pricing`, `/contact` | public | `LandingScreen` (scrolls to the section; `/about` and `/how-it-works` both go to "How a practice interview goes") |
 | `/terms`, `/privacy`, `/refunds` | public | `LegalScreen` (Stripe Checkout links to `/terms` and `/refunds`) |
 | `/sign-in` (`?mode=sign-up`, `?mode=forgot`) | public; a signed-in visitor is redirected on | `SignInScreen` |
 | `/reset-password` | public (arrives with a recovery session) | `ResetPasswordScreen` |
@@ -376,7 +385,7 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
 | `/applications` | protected | `TrackerScreen` (the Application Tracker's Kanban board) |
 | `/survey` | protected | `SurveyScreen` (the optional career survey) |
 | `/plans` (`?plan=`, `?interval=`, `?checkout=`, `?portal=`) | protected | `PlansScreen` (plan, usage, upgrade, Manage billing) |
-| `*` | — | redirect to `/` |
+| `*` | public | `NotFoundScreen` (the thinking mascot, "Hmm, I can't find that page", a way home; the host still answers 200) |
 
 - **One guard, one layout.** All protected paths are children of a single
   pathless layout route: `<RequireAuth><AppWorkspace/></RequireAuth>`.
@@ -495,55 +504,154 @@ visitor arrived on `?mode=sign-up` / `?mode=forgot`, or switches mode.
 
 ## Landing page
 
-`screens/LandingScreen.jsx`: `PublicHeader` → hero → at-a-glance strip →
-Features → Feedback → Pricing → closing CTA → `SiteFooter` (Contact). One
-scrolling page; the five public paths all render the same element, so React
-Router keeps it mounted and moving between them is a scroll. `/about` and
-`/how-it-works` both land on Features (About and How It Works said the same
-three things twice and were merged). The scroll effect keys on `location.key`
-(clicking the same link again still scrolls), jumps on first load and glides
-afterwards unless reduced motion is on, and moves focus to the section's `h2`
-(`tabIndex=-1`) so keyboard users land where they asked.
+`screens/LandingScreen.jsx`: `PublicHeader` → hero → "How a practice
+interview goes" → "More than mock interviews" → Pricing → closing CTA →
+`SiteFooter` (Contact). Simple on purpose: one story (a practice session),
+told by the **Jobuddy mascot** as the interviewer. One scrolling page; the
+five public paths all render the same element, so React Router keeps it
+mounted and moving between them is a scroll. `/about` and `/how-it-works`
+both land on the session section (`id="how-it-works"`). The scroll effect
+keys on `location.key` (clicking the same link again still scrolls), jumps on
+first load and glides afterwards unless reduced motion is on, and moves focus
+to the section's `h2` (`tabIndex=-1`) so keyboard users land where they asked.
 
+- **The mascot** is a friendly headset-wearing robot, drawn in poses. The
+  source kit (six transparent ~1 MB PNGs + a vanilla JS demo) is
+  `jobuddy-mascot-kit/`, untracked. All six poses are trimmed and resized to
+  WebP (40–80 kB each) in `client/public/landing/mascot/`: `welcome` (hero,
+  880px), `interviewing`, `thinking`, `feedback` (the three beats, and the
+  hero's other moods), `positive` (the hero's thumbs-up), `celebrate`
+  (closing, and the last mascot click); plus `head.webp`, a round crop of
+  the head used as the wordmark mark in `PublicHeader`. `POSES` in
+  `LandingScreen.jsx` holds each file's real pixel size so nothing shifts on
+  load. To add a pose, trim + resize the kit PNG the same way and add it to
+  `POSES`. The art is decorative (empty `alt`); the hero mascot is a labelled
+  button instead.
+- **Site icons and link previews** come from the same art:
+  `client/public/favicon.ico` (16/32/48, for anything that asks for it
+  directly), `favicon-32.png`, `icon-192.png` and `apple-touch-icon.png` (the
+  head on an ink rounded square; iOS gets an opaque one), and
+  `og-image.jpg` (1200×630: wordmark, headline and the waving mascot,
+  rendered from real Geist type in headless Chrome). `index.html` carries the
+  `og:*` / `twitter:card` tags; `og:image` must stay an **absolute** URL
+  (`https://www.jobuddy.ca/og-image.jpg`). Regenerate the card if the
+  headline changes. Vercel serves these files before its SPA rewrite.
+- **Speech bubbles** (`Bubble`) wear the chat's look: raised surface, mint
+  edge, a rotated-square tail. What the mascot says reads like a real
+  session (the questions match the sample report), never a product claim.
+  The hero bubble **types itself out** (`useTypewriter`): on load, and again
+  each time a click changes its line. The full line is laid out invisibly
+  underneath so nothing moves, screen readers get it whole from an `sr-only`
+  copy (`aria-live="polite"` in the hero, where clicks change it), and
+  reduced motion shows it whole at once.
 - **Layout:** full-width bands, each with a centred `.inner` column
-  (`--shell-width-public`, 1160px), alternating `--bg` / `--surface` with a 1px
-  rule between them. The landing `<main>` is **not** an `.app-shell` (the legal
-  pages still are). It reads at the public type scale in `tokens.css`:
-  `--fs-public-body/lede/h3/h2/stat`, `--text-secondary` for paragraphs
-  (brighter than `--text-muted`), `--public-section-pad`, `--public-measure`.
-- **PublicHeader:** text wordmark, **Features / Pricing / Contact** as
-  `NavLink`s (Features keeps the `/how-it-works` URL), and **Sign in as a
-  `.btn-primary`** ("Dashboard" when signed in). Under 680px the links drop to
-  a second row. `/sign-in` and `/reset-password` don't render it.
-- **Hero:** headline, one sentence, two buttons, then a real screenshot at full
-  width. No eyebrow, no facts line under the buttons; those numbers live in the
-  **at-a-glance strip** below (`STATS`: every number there is a real product
-  limit, so keep it that way).
-- **Features** (`id="features"`): `FEATURES` in `LandingScreen.jsx`, one ARIA tab
-  per tool (mock interviews, job matches, resume builder, progress): a vertical
-  tab list on the left (a 2×2 grid under 860px, where the summary moves into
-  the panel), the selected tool's screenshot and three steps on the right.
-  Arrow keys / Home / End move between tabs; the old How It Works anchors
-  (`/how-it-works#job-finder`) open the matching tab. **To add a tutorial** set
-  that entry's `video.src` (a file in `client/public/`) or `video.embedUrl`; the
-  video replaces the screenshot through `VideoPlaceholder`.
-- **Feedback** (`id="feedback"`): the top of a real feedback report at full
-  width, with three short notes under it.
+  (`--shell-width-public`, 1160px), separated by 1px rules. The landing
+  `<main>` is **not** an `.app-shell` (the legal pages still are). It reads at
+  the public type scale in `tokens.css`: `--fs-public-body/lede/h3/h2`,
+  `--text-secondary` for paragraphs, `--public-section-pad`, `--public-measure`.
+- **PublicHeader:** the mascot's head + "Jobuddy" wordmark, **How it works /
+  Pricing / Contact** as `NavLink`s, and **Sign in as a `.btn-primary`**
+  ("Dashboard" when signed in). Under 680px the links drop to a second row.
+  `/sign-in` and `/reset-password` don't render it.
+- **Hero:** headline, one sentence, one "Start free" button with "Free plan.
+  No card needed." beside it (visitors only), the split-flap "Now
+  interviewing" board, and "Try a sample question"; the mascot on the right
+  inside a flat mint disc and a dashed orbit (`.halo`), the typing bubble above
+  him. Under 860px it stacks: copy, then bubble, then mascot.
+- **Try a sample question** (`screens/landingSamples.js`, tested): five role
+  buttons (`aria-pressed`). Picking one flips the board to that role (the
+  board's `value` prop, cutting its intro short), switches the mascot to
+  `interviewing`, and his bubble types a sample question; "Another question"
+  cycles that role's 2–3. Hand-written data, **no model call**: the API needs
+  a signed-in user and visitors shouldn't spend model calls. The note beside
+  it says they're samples. On a phone, the mascot is scrolled into view if
+  the pick leaves him off-screen. Keep each `board` ≤ 17 characters and equal
+  to its label upper-cased; the test checks both and the copy rule.
+- **The hero mascot reacts** (`HeroBuddy`): it's a button ("Jobuddy, the
+  mascot. Press to change the expression."). Hovering or focusing the hero's
+  "Start free" shows `positive` (thumbs-up); each press steps through
+  `MASCOT_CLICKS` (thumbs-up, thinking, feedback, celebrate with a hop, each
+  with its own line) and the fifth goes back to waving, or to the question on
+  screen. Priority: CTA hover, then a click step, then the question or the
+  hello. All poses stack in one square frame anchored at the bottom and
+  crossfade; only `welcome` loads with the page, the rest after `load`, so
+  they're ready before anyone interacts.
+- **How a practice interview goes** (`SESSION`): three numbered beats,
+  alternating sides: copy, and a bordered "stage" card the mascot stands in,
+  cut off at the waist by its bottom edge, with what he says above him. Under
+  them, the **top of a real feedback report** (`feedback-report.webp`, with an
+  `m-` phone twin served through `<picture>` under 680px).
+- **More than mock interviews** (`TOOLS`): Job matches, Resume builder,
+  Progress, Applications as one ruled four-column strip, an icon and one line
+  each. No screenshots, no tabs.
 - **Pricing** (`id="pricing"`, `/pricing`): `PlanComparison` with
-  `collapseTable` (three cards; the full comparison table folds behind a native
-  `<details>`, "Compare every feature") and a one-line renewal / refund note.
-  Paid cards say "Coming soon" while billing is off. See "Plans & billing".
+  `showTable={false}`: the three cards only (the full comparison table lives
+  on `/plans`), and a one-line renewal / refund note. Paid cards say "Coming
+  soon" while billing is off. See "Plans & billing".
+- **Closing:** the celebrating mascot, one line, "Start free".
 - **Contact:** `SiteFooter` (`id="contact"`): wordmark and one line on the left,
   the Contact heading with plain `mailto:` and GitHub links on the right, legal
   row below. The email comes from `legal/business.js`.
-- **Screenshots are real.** `client/public/landing/*.webp` are captures of the
-  actual screens rendered with sample data (a fictional candidate, "Maya
-  Okafor", and fictional employers), taken in headless Chrome at 2×. Each has
-  an `m-` twin captured at phone width; `Shot` serves it through `<picture>`
-  under 680px, because a desktop screen shrunk to 360px is unreadable. The
-  `SHOTS` table holds each file's real pixel size so nothing shifts on load.
-  **Retake them when the screens they show change visibly.** No fake UI built
-  from divs on this page.
+- **Motion** is one-shot, never a loop: the hero headline rises word by word,
+  the lede and button follow, the mascot settles in, the bubble pops and
+  types. Below the fold `data-reveal` blocks rise in when first seen; a
+  stage's mascot hops into place and its bubble pops after it; the closing
+  mascot hops too.
+- **Kinetic headings** (`components/KineticText.jsx`): every landing `h1`/`h2`
+  is split into words, each rising out of its own mask, staggered via the
+  inline `--reveal-delay`. `trigger="load"` (the hero) plays on mount;
+  `trigger="view"` marks the heading `data-reveal="words"`, which the page's
+  scroll observer flags like any block but the block rule skips, so only the
+  words move. `parts` takes strings and `{ text, accent: true }` pieces.
+  Screen readers get one plain `sr-only` string; the split copy is
+  aria-hidden. Headings only: never body text.
+- **Split-flap board** (`components/SplitFlap.jsx`, logic in pure
+  `utils/splitFlap.js`, tested): a departures-board strip under the hero
+  button ("Now interviewing") turns through `BOARD_INTRO` once (the sample
+  roles), and settles on mint **YOUR NEXT JOB**. It starts when first on
+  screen and skips to the end if the tab is hidden. After that the page
+  drives it through `value` (a picked role); a new value cuts the intro
+  short. Tiles only turn forward through the drum
+  (`FLAP_CHARS`), at most six turns each, starting left to right; each
+  changed tile remounts and its bottom half falls from the hinge
+  (`--dur-flap`). Sizes are `--flap-*` tokens, shrunk under 680px so 17
+  characters fit a 360px phone; keep roles to 17 characters. The board is
+  aria-hidden with an `sr-only` sentence beside it, and reduced motion shows
+  the last entry at once. The step numbers (`01`–`03`) are small boards too.
+- **Micro-interactions** (small responses to hover, focus and press; hover
+  ones sit under `@media (hover: hover)` so nothing sticks on touch, and the
+  global reduced-motion rule flattens them):
+  1. arrow buttons (`.ctaLink`, and the header's Sign in / Dashboard): the
+     icon steps right on hover or keyboard focus;
+  2. split-flap **fidget**: at rest, a mouse passing over a tile turns it over
+     once (`nudges` in `SplitFlap` re-keys the tile, `.nudged` lets its flip
+     run outside `data-playing`). Mouse only; the step boards do it too;
+  3. a role button pops as it becomes `aria-pressed` (CSS animation keyed on
+     the attribute);
+  4. "Another question"'s refresh icon turns half a turn per press (`spins`);
+  5. step "stages": border brightens, the mascot leans in, the bubble lifts.
+     Their reveal is now an **animation with a backwards fill**, not a
+     transition and not `both`, so the hover isn't delayed or pinned;
+  6. the tools strip: the icon tile fills mint and the icon moves its own way
+     (`data-motion`: rise / tilt / lift / slide);
+  7. plan cards (`PlanComparison`, so `/plans` too): a 2px lift and a
+     brighter edge, full mint on the featured card;
+  8. header nav (`PublicHeader`, every public page): a 1px mint rule draws in
+     under the hovered / focused link and stays under the active one;
+  9. the closing mascot hops again on mouse hover or tap (`.hopAgain` on a
+     wrapper, a separately named keyframe so it always restarts).
+  The rule that keeps these working: an entrance animation on something that
+  also has a hover transform must use `backwards`, never `both`, or its last
+  keyframe pins the transform and the hover silently does nothing.
+- **Console hello** (`src/consoleGreeting.js`, called once from `main.jsx`):
+  the mascot in plain ASCII and one line, in the accent colour, for anyone
+  who opens DevTools. A test keeps the art pure ASCII so it lines up in any
+  console font.
+- **The one screenshot is real**: a capture of the actual feedback report
+  rendered with sample data (a fictional candidate, "Maya Okafor"), taken in
+  headless Chrome at 2×. **Retake it when the report changes visibly.** No
+  fake app UI built from divs on this page; the mascot and his bubbles are
+  illustration, not a mock-up of a screen.
 - **One label per intent:** "Start free" for every sign-up button (hero, the
   Regular plan card, the closing band), "Open dashboard" in their place when
   signed in.
@@ -1593,7 +1701,7 @@ nothing locks by mistake; the server decides anyway. Plan errors carry
 `UpgradeNotice` with "See plans" instead of an error with "Try again".
 `SegmentedControl` options take `disabled` + `locked` (padlock, skipped by
 arrow keys). The landing page's **Pricing** section and `/plans` share
-`PlanComparison` (the landing page passes `collapseTable`); paid CTAs go to `/plans?plan=…` (via sign-up with
+`PlanComparison` (the landing page passes `showTable={false}`: cards only); paid CTAs go to `/plans?plan=…` (via sign-up with
 `state.from` for visitors), where `CheckoutDialog` states price, renewal,
 cancellation and the 14-day refund before redirecting to Stripe.
 

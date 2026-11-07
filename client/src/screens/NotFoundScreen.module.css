@@ -1,0 +1,61 @@
+/* The 404 page: one centred column, the thinking mascot on top. */
+
+.page {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: var(--public-section-pad) var(--sp-4);
+  text-align: center;
+}
+
+.mascot {
+  width: 180px;
+  height: auto;
+  margin-bottom: var(--sp-6);
+  user-select: none;
+  animation: settle var(--dur-reveal) var(--ease) both;
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+.code {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  letter-spacing: var(--ls-wide);
+}
+
+.title {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-public-h2);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  text-wrap: balance;
+}
+
+.body {
+  margin: var(--sp-3) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--fs-public-lede);
+  line-height: var(--lh-relaxed);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-7);
+}
+
+.link {
+  text-decoration: none;
+}

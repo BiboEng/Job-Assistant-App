@@ -34,7 +34,7 @@
 
 /* A card mounts when the board loads, when it's added, and when it changes
    column (a new parent is a new element) — so this one entrance covers all
-   three. The card just moved also settles: a slight scale-up and an aqua edge
+   three. The card just moved also settles: a slight scale-up and an mint edge
    that fades back to the normal border. */
 .card {
   animation: card-in var(--dur-pop) var(--ease) both;

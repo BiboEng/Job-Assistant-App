@@ -151,7 +151,7 @@
   gap: var(--sp-3);
 }
 
-/* Google's mark must sit on white (its brand rules), so on the aqua button
+/* Google's mark must sit on white (its brand rules), so on the mint button
    it gets a small white tile of its own. */
 .providerBtn:global(.btn-primary) svg {
   box-sizing: content-box;

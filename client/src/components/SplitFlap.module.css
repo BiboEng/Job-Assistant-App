@@ -1,0 +1,112 @@
+/*
+ * Split-flap tiles: a row of small raised cards in mono type, each split
+ * across the middle by a 1px seam, the way the hinge on a real board is.
+ * Each tile is two halves showing the same character, clipped top and
+ * bottom. When a tile's character changes it remounts and the bottom half
+ * falls into place from the hinge (transform only), while the top half
+ * brightens in.
+ */
+
+.board {
+  display: inline-flex;
+  gap: var(--flap-gap);
+  font-family: var(--font-mono);
+  font-size: var(--flap-fs);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+  user-select: none;
+}
+
+.tile {
+  position: relative;
+  display: inline-block;
+  width: var(--flap-w);
+  height: var(--flap-h);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  box-shadow: var(--inner-highlight);
+  perspective: 160px;
+}
+
+/* The hinge. */
+.tile::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--bg);
+}
+
+.top,
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+}
+.top {
+  top: 0;
+}
+.bottom {
+  bottom: 0;
+}
+
+/* The character, full tile height, so each half shows its own half of it.
+   Line-height is the tile's height less its 1px borders. */
+.face {
+  display: block;
+  height: calc(var(--flap-h) - 2px);
+  line-height: calc(var(--flap-h) - 2px);
+  text-align: center;
+  white-space: pre;
+}
+.bottom .face {
+  transform: translateY(-50%);
+}
+
+/* A changed (remounted) tile turns over: while playing, or when the mouse
+   has nudged it at rest (the fidget; .nudged is set once a tile has been
+   touched, and an animation only runs when its element is created). */
+.board[data-playing] .bottom,
+.nudged .bottom {
+  transform-origin: 50% 0;
+  animation: fall var(--dur-flap) var(--ease-in) both;
+}
+.board[data-playing] .top,
+.nudged .top {
+  animation: catch var(--dur-flap) var(--ease) both;
+}
+
+@keyframes fall {
+  from {
+    transform: rotateX(90deg);
+  }
+}
+
+@keyframes catch {
+  from {
+    opacity: 0.35;
+  }
+}
+
+/* --- variants ------------------------------------------------------------- */
+
+.sm {
+  font-size: var(--flap-fs-sm);
+}
+.sm .tile {
+  width: var(--flap-w-sm);
+  height: var(--flap-h-sm);
+}
+.sm .face {
+  height: calc(var(--flap-h-sm) - 2px);
+  line-height: calc(var(--flap-h-sm) - 2px);
+}
+
+.accent {
+  color: var(--accent);
+}

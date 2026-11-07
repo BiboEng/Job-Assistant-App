@@ -17,9 +17,12 @@
   min-height: 56px;
 }
 
-/* --- wordmark: text only ---------------------------------------------------- */
+/* --- wordmark: the mascot's head, then the name -------------------------------- */
 
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
   font-size: var(--fs-lg);
   font-weight: var(--fw-semibold);
   letter-spacing: var(--ls-tighter);
@@ -32,6 +35,18 @@
   color: var(--accent);
 }
 
+.wordmarkMark {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-round);
+  background: var(--accent-softer);
+  transition: transform var(--dur) var(--ease);
+}
+.wordmark:hover .wordmarkMark {
+  transform: rotate(-8deg);
+}
+
 /* --- nav ------------------------------------------------------------------ */
 
 .nav {
@@ -42,6 +57,7 @@
 }
 
 .navItem {
+  position: relative;
   display: inline-flex;
   align-items: center;
   min-height: var(--control-height);
@@ -57,6 +73,26 @@
 .navItem:hover {
   background: var(--surface-raised);
   color: var(--text);
+}
+
+/* Micro-interaction: a thin mint rule draws in under the hovered or focused
+   link, from the left, and stays under the active one. */
+.navItem::after {
+  content: "";
+  position: absolute;
+  left: var(--sp-3);
+  right: var(--sp-3);
+  bottom: var(--sp-1);
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-slow) var(--ease);
+}
+.navItem:hover::after,
+.navItem:focus-visible::after,
+.navActive::after {
+  transform: scaleX(1);
 }
 
 .navActive {
@@ -78,6 +114,19 @@
 }
 .cta:hover {
   color: var(--accent-contrast);
+}
+
+/* Same nudge as the landing page's arrow buttons. */
+.cta svg {
+  transition: transform var(--dur) var(--ease);
+}
+.cta:focus-visible svg {
+  transform: translateX(2px);
+}
+@media (hover: hover) {
+  .cta:hover svg {
+    transform: translateX(2px);
+  }
 }
 
 /* Narrow: the section links drop to their own row under the wordmark. */

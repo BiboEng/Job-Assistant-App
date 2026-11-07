@@ -102,8 +102,8 @@
 }
 
 /* Active: a raised row in full-strength text, the icon and a 2px bar on the
-   left edge in aqua. Quieter than an aqua-tinted row, so the page's primary
-   button stays the loudest aqua on screen. */
+   left edge in mint. Quieter than an mint-tinted row, so the page's primary
+   button stays the loudest mint on screen. */
 .active,
 .active:hover:not(:disabled) {
   background: var(--surface-raised);

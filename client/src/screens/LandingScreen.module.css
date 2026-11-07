@@ -1,12 +1,15 @@
 /*
  * The landing page. Full-width bands, each with a centred .inner column, so a
- * section can carry its own background edge to edge. Bands alternate between
- * the page ink (--bg) and --surface with a 1px rule between them, which is
- * what tells one section from the next. Same dark theme throughout.
+ * section can carry its own background edge to edge. Same dark theme
+ * throughout; the mascot carries the colour, so the chrome around him stays
+ * quiet: 1px borders, flat fills, one mint accent.
  *
  * Type is the public reading layer from tokens.css (--fs-public-*,
  * --text-secondary): larger and brighter than the app's, because people read
  * paragraphs here rather than labels.
+ *
+ * Motion is one-shot only (nothing loops): the hero settles in and types one
+ * line, and below the fold each block rises in the first time it's seen.
  */
 
 .page {
@@ -31,12 +34,14 @@
 
 /* Scroll reveal: blocks rise in once as they enter the viewport. Hidden only
    once the observer is attached (data-reveal-ready), so nothing can be stuck
-   invisible. Staggered items set --reveal-delay inline. */
-.page[data-reveal-ready] [data-reveal] {
+   invisible. Staggered items set --reveal-delay inline. Kinetic headings
+   (data-reveal="words") are observed too, but animate word by word in
+   KineticText.module.css rather than as a block. */
+.page[data-reveal-ready] [data-reveal]:not([data-reveal="words"]) {
   transition: opacity var(--dur-enter) var(--ease) var(--reveal-delay),
     transform var(--dur-enter) var(--ease) var(--reveal-delay);
 }
-.page[data-reveal-ready] [data-reveal]:not([data-revealed]) {
+.page[data-reveal-ready] [data-reveal]:not([data-reveal="words"]):not([data-revealed]) {
   opacity: 0;
   transform: translateY(12px);
 }
@@ -47,33 +52,171 @@
   white-space: nowrap;
 }
 
-/* --- hero: copy, then the product at full width ---------------------------- */
-
-.hero {
-  padding-top: var(--sp-10);
-  scroll-margin-top: var(--public-header-offset);
+/* Micro-interaction: the chevron on an arrow button steps forward on hover
+   or keyboard focus ("this goes somewhere"). */
+.ctaLink svg {
+  transition: transform var(--dur) var(--ease);
 }
-
-@media (max-width: 680px) {
-  .hero {
-    padding-top: var(--sp-7);
+.ctaLink:focus-visible svg {
+  transform: translateX(3px);
+}
+@media (hover: hover) {
+  .ctaLink:hover svg {
+    transform: translateX(3px);
   }
-}
-
-.heroCopy {
-  animation: rise var(--dur-enter) var(--ease) both;
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(var(--pop-scale)) translateY(6px);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* A small hop when a mascot first appears: up past its spot, then down. */
+@keyframes hop {
+  0% {
+    transform: translateY(24px);
+  }
+  55% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* --- the mascot and his speech bubble ----------------------------------------- */
+
+.mascot {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* The bubble wears the chat's own look: a raised surface with a mint edge,
+   and a small tail pointing at whoever is speaking. */
+.bubble {
+  position: relative;
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--inner-highlight);
+  color: var(--text);
+  font-size: var(--fs-public-body);
+  line-height: var(--lh-normal);
+  text-wrap: pretty;
+}
+
+/* The tail: a square turned 45°, bordered on its two outer sides. */
+.bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-right: 1px solid var(--accent-border);
+  border-bottom: 1px solid var(--accent-border);
+  background: var(--surface-raised);
+  transform: rotate(45deg);
+}
+
+/* The typed line: the full text holds the bubble's final size invisibly, and
+   the typed text sits on top of it. */
+.bubbleSizer {
+  visibility: hidden;
+}
+
+.bubbleTyped {
+  position: absolute;
+  inset: var(--sp-3) var(--sp-4);
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+}
+
+/* A flat mint disc behind a mascot, with a dashed orbit around it. */
+.halo {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 88%;
+  aspect-ratio: 1;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-round);
+  background: var(--accent-softer);
+  transform: translate(-50%, -50%);
+  animation: fade var(--dur-reveal) var(--ease) 200ms both;
+}
+.halo::after {
+  content: "";
+  position: absolute;
+  inset: -9%;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-round);
+}
+
+/* --- hero: copy left, the mascot saying hello right ---------------------------- */
+
+.hero {
+  padding-block: var(--sp-10) var(--public-section-pad);
+  overflow: hidden;
+}
+
+.heroInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: var(--sp-9);
+}
+
+/* The headline rises word by word (KineticText); what's under it follows. */
+.heroLede {
+  animation: rise var(--dur-enter) var(--ease) 300ms both;
+}
+.heroActions {
+  animation: rise var(--dur-enter) var(--ease) 380ms both;
+}
+.departures {
+  animation: rise var(--dur-enter) var(--ease) 460ms both;
 }
 
 .title {
   margin: 0;
-  max-width: 21ch;
+  max-width: 16ch;
   font-size: var(--fs-display);
   font-weight: var(--fw-semibold);
   line-height: var(--lh-display);
@@ -88,7 +231,7 @@
 
 .heroLede {
   margin: var(--sp-5) 0 0;
-  max-width: 46ch;
+  max-width: 40ch;
   color: var(--text-secondary);
   font-size: var(--fs-public-lede);
   line-height: var(--lh-relaxed);
@@ -97,102 +240,215 @@
 .heroActions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-3);
+  align-items: center;
+  gap: var(--sp-3) var(--sp-5);
   margin-top: var(--sp-7);
 }
 
-/* Every screenshot sits in the same frame: the app's own card edge. */
-.shot {
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--inner-highlight);
-}
-.shot img {
-  display: block;
-  width: 100%;
-  height: auto;
+.heroNote {
+  color: var(--text-muted);
+  font-size: var(--fs-md);
 }
 
-.heroShot {
+/* The departures board: a mono label over a row of split-flap tiles. */
+.departures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
   margin-top: var(--sp-9);
-  border-color: var(--border-strong);
-  animation: rise var(--dur-enter) var(--ease) 140ms both;
 }
 
-/* --- at a glance: a strip of real numbers --------------------------------- */
-
-.proof {
-  margin-top: var(--public-section-pad);
-  border-block: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0 auto;
-  list-style: none;
-}
-
-.stat {
+/* "Try a sample question": a label, the role buttons, and once a role is
+   picked, "Another question" with the honest note beside it. */
+.try {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: var(--sp-7) var(--sp-6);
-}
-.stat + .stat {
-  border-left: 1px solid var(--border);
-}
-.stat:first-child {
-  padding-left: 0;
+  margin-top: var(--sp-5);
+  animation: rise var(--dur-enter) var(--ease) 540ms both;
 }
 
-.statValue {
-  font-size: var(--fs-public-stat);
-  font-weight: var(--fw-medium);
-  line-height: var(--lh-tight);
-  letter-spacing: var(--ls-tighter);
-  color: var(--text);
-}
-
-.statLabel {
-  max-width: 24ch;
+.tryLabel {
   color: var(--text-muted);
   font-size: var(--fs-md);
-  line-height: var(--lh-snug);
+}
+
+.tryRoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* The picked role reads as selected: the accent edge and ink, no fill. */
+/* Becoming selected gives the button a small pop. The animation starts
+   when the attribute starts to match, so it plays once per pick. */
+.chip[aria-pressed="true"] {
+  animation: chipPop var(--dur-pop) var(--ease);
+}
+@keyframes chipPop {
+  from {
+    transform: scale(0.92);
+  }
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent-border);
+  background: var(--accent-softer);
+  color: var(--accent);
+}
+
+/* A text button, but it should still look pressable: an icon and the
+   accent ink, so it doesn't read as a label. */
+.another {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--accent);
+}
+.another:hover {
+  color: var(--accent-hover);
+}
+
+/* The refresh icon turns half a turn per press (rotation set inline). */
+.anotherIcon {
+  display: inline-flex;
+  transition: transform var(--dur-reveal) var(--ease);
+}
+
+.tryNote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-3);
+  margin: var(--sp-1) 0 0;
+  max-width: 52ch;
+  color: var(--text-subtle);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  animation: fade var(--dur-pop) var(--ease) both;
+}
+
+.departuresLabel {
+  color: var(--text-subtle);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+}
+
+.heroArt {
+  position: relative;
+  justify-self: center;
+  width: min(100%, 440px);
+  padding-top: var(--sp-9);
+}
+
+/* The mascot is a button (pressing him changes his expression). Every pose
+   sits stacked in one square frame, anchored to the bottom so the different
+   pose shapes all stand on the same spot; the active one fades in. */
+.buddy {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  /* backwards, not both: once settled, :active's press scale must apply. */
+  animation: settle var(--dur-reveal) var(--ease) 100ms backwards;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.buddy:active {
+  transform: scale(var(--press-scale));
+}
+
+.buddyPose {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  opacity: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity var(--dur-slow) var(--ease), transform var(--dur) var(--ease);
+}
+
+.buddyActive {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .buddy:hover .buddyActive {
+    transform: translateY(-4px) rotate(-1.5deg);
+  }
+}
+
+.buddyHop {
+  /* backwards, so the hover lift still works once he's landed. */
+  animation: hop var(--dur-reveal) var(--ease) backwards;
+}
+
+/* Up and to the left of the mascot, its tail pointing back at him. */
+.heroBubble {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: -14%;
+  max-width: 290px;
+  transform-origin: 80% 100%;
+  animation: pop var(--dur-pop) var(--ease) 500ms both;
+}
+.heroBubble::after {
+  left: 78%;
 }
 
 @media (max-width: 860px) {
-  .stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .heroInner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-7);
   }
-  .stat {
-    padding: var(--sp-6) var(--sp-4);
+  .title {
+    max-width: 18ch;
   }
-  .stat:nth-child(odd) {
-    padding-left: 0;
-    border-left: none;
+  .heroArt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: min(100%, 340px);
+    padding-top: 0;
   }
-  .stat:nth-child(n + 3) {
-    border-top: 1px solid var(--border);
+  .heroBubble {
+    position: relative;
+    left: auto;
+    max-width: 100%;
+    margin-bottom: var(--sp-4);
+    transform-origin: 50% 100%;
+  }
+  .heroBubble::after {
+    left: 50%;
+  }
+  .buddy {
+    width: 82%;
+  }
+  .halo {
+    top: 66%;
+    width: 80%;
   }
 }
 
-/* --- section bands ----------------------------------------------------------- */
+/* --- section bands --------------------------------------------------------------- */
 
 .band {
   padding-block: var(--public-section-pad);
+  border-top: 1px solid var(--border);
   /* Land a nav jump with the heading a short step under the sticky header,
      not a whole section's padding below it. */
   scroll-margin-top: calc(var(--public-header-offset) - var(--public-section-pad) + var(--sp-9));
-}
-
-.bandRaised {
-  border-block: 1px solid var(--border);
-  background: var(--surface);
 }
 
 .sectionHead {
@@ -223,214 +479,291 @@
   line-height: var(--lh-relaxed);
 }
 
-/* --- features: tabs left, the selected tool right ----------------------------- */
+/* --- how a session goes: copy and a mascot "stage", sides alternating ------------ */
 
-.features {
-  display: grid;
-  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
-  align-items: start;
-  gap: var(--sp-7);
-}
-
-.tabList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-
-.tab {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-3);
-  width: 100%;
-  padding: var(--sp-4);
-  border: 1px solid transparent;
-  border-radius: var(--radius-lg);
-  background: none;
-  color: var(--text-muted);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease),
-    color var(--dur) var(--ease);
-}
-.tab:hover {
-  background: var(--surface);
-  color: var(--text);
-}
-
-.tabActive,
-.tabActive:hover {
-  border-color: var(--border);
-  background: var(--surface);
-  box-shadow: var(--inner-highlight);
-  color: var(--text);
-}
-
-.tabIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: var(--control-height);
-  height: var(--control-height);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text-muted);
-  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
-}
-.tabActive .tabIcon {
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-
-.tabText {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  min-width: 0;
-}
-
-.tabTitle {
-  font-size: var(--fs-public-body);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug);
-}
-
-.tabSummary {
-  font-size: var(--fs-md);
-  line-height: var(--lh-normal);
-  color: var(--text-muted);
-}
-.tabActive .tabSummary {
-  color: var(--text-secondary);
-}
-
-.tabPanel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-5);
-  min-width: 0;
-  animation: fade var(--dur-pop) var(--ease) both;
-}
-/* [hidden] loses to an explicit display; see Gotchas in CLAUDE.md. */
-.tabPanel[hidden] {
-  display: none;
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
-}
-
-/* Only shown when the tabs collapse to titles (narrow screens, below). */
-.panelSummary {
-  display: none;
+.beats {
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.beat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-9);
+}
+.beat + .beat {
+  margin-top: var(--sp-9);
+}
+
+.beatFlip .stage {
+  order: -1;
+}
+
+.beatCopy {
+  max-width: 44ch;
+}
+
+.beatStep {
+  display: inline-flex;
+}
+
+.beatTitle {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  text-wrap: balance;
+}
+
+.beatBody {
+  margin: var(--sp-3) 0 0;
   color: var(--text-secondary);
   font-size: var(--fs-public-body);
   line-height: var(--lh-relaxed);
 }
 
-.steps {
+/* A card the mascot stands in, cut off at the waist by its bottom edge like a
+   person behind a desk, with what he's saying above him. */
+.stage {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3) var(--sp-6);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.steps li {
-  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--sp-2);
-  color: var(--text-secondary);
-  font-size: var(--fs-md);
+  justify-content: flex-end;
+  gap: var(--sp-4);
+  padding: var(--sp-7) var(--sp-6) 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--inner-highlight);
 }
-.steps li > svg {
-  flex-shrink: 0;
-  color: var(--accent);
+
+.stage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -28%;
+  width: 72%;
+  aspect-ratio: 1;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-round);
+  background: var(--accent-softer);
+  transform: translateX(-50%);
+}
+
+.stageBubble {
+  max-width: 340px;
+  transform-origin: 50% 100%;
+}
+
+.stageMascot {
+  width: 230px;
+  /* Sink him a little below the card's edge, so he's cut off at the waist. */
+  margin-bottom: calc(-1 * var(--sp-9));
+}
+
+/* When a stage first scrolls into view: the mascot hops up into place, then
+   the bubble pops. Both are animations with a backwards fill (not
+   transitions, not `both`), so once they've played, the hover below is free
+   to move them with no delay and nothing pinned in place. */
+.page[data-reveal-ready] .stage[data-revealed] .stageMascot {
+  animation: hop var(--dur-reveal) var(--ease) 120ms backwards;
+}
+.page[data-reveal-ready] .stage[data-revealed] .stageBubble {
+  animation: pop var(--dur-pop) var(--ease) 420ms backwards;
+}
+.page[data-reveal-ready] .stage:not([data-revealed]) .stageBubble {
+  opacity: 0;
+}
+
+/* Micro-interaction: hovering a stage brightens its edge, the mascot leans
+   in and his bubble lifts. The reveal rule above owns the stage's
+   transition list, so the border's is added here with the same weight. */
+.stageMascot,
+.stageBubble {
+  transition: transform var(--dur-slow) var(--ease);
+}
+.page[data-reveal-ready] .stage[data-reveal] {
+  transition: opacity var(--dur-enter) var(--ease) var(--reveal-delay),
+    transform var(--dur-enter) var(--ease) var(--reveal-delay),
+    border-color var(--dur) var(--ease);
+}
+@media (hover: hover) {
+  .stage:hover {
+    border-color: var(--border-strong);
+  }
+  .stage:hover .stageMascot {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+  .stage:hover .stageBubble {
+    transform: translateY(-3px);
+  }
 }
 
 @media (max-width: 860px) {
-  .features {
+  .beat {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--sp-5);
   }
-  .tabList {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--sp-2);
+  .beat + .beat {
+    margin-top: var(--sp-9);
   }
-  .tab {
-    align-items: center;
-    padding: var(--sp-3);
-    border-color: var(--border);
+  .beatFlip .stage {
+    order: 0;
   }
-  .tabSummary {
-    display: none;
-  }
-  .panelSummary {
-    display: block;
-  }
-  .steps {
-    flex-direction: column;
+  .stageMascot {
+    width: 190px;
+    margin-bottom: calc(-1 * var(--sp-7));
   }
 }
 
-/* --- feedback: the report at full width, three notes under it --------------- */
+/* --- the sample report under the beats ------------------------------------------- */
 
-.reportShot {
-  border-color: var(--border-strong);
-}
-
-.notes {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sp-7);
+.report {
   margin: var(--sp-9) 0 0;
+}
+
+.report picture {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--inner-highlight);
+}
+
+.report img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.reportCaption {
+  margin-top: var(--sp-3);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* --- the other tools: one ruled strip -------------------------------------------- */
+
+.tools {
+  padding-block: var(--sp-9);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.toolsTitle {
+  margin: 0 0 var(--sp-6);
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tighter);
+}
+
+.toolList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.note {
+.tool {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  padding: 0 var(--sp-6);
+}
+.tool:first-child {
+  padding-left: 0;
+}
+.tool + .tool {
+  border-left: 1px solid var(--border);
 }
 
-.noteIcon {
+.toolIcon {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: var(--control-height);
   margin-bottom: var(--sp-1);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-softer);
   color: var(--accent);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.toolIcon svg {
+  transition: transform var(--dur-slow) var(--ease);
 }
 
-.noteTitle {
-  margin: 0;
-  font-size: var(--fs-public-h3);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug);
-  letter-spacing: var(--ls-tight);
-}
-
-.noteBody {
-  margin: 0;
-  max-width: 38ch;
-  color: var(--text-secondary);
-  font-size: var(--fs-public-body);
-  line-height: var(--lh-relaxed);
-}
-
-@media (max-width: 860px) {
-  .notes {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--sp-6);
+/* Micro-interaction: hovering an item fills its icon tile with mint, and the
+   icon moves its own way (data-motion on the item): the trend rises, the
+   resume tilts, the briefcase lifts, the board slides. */
+@media (hover: hover) {
+  .tool:hover .toolIcon {
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+  .tool[data-motion="rise"]:hover .toolIcon svg {
+    transform: translate(2px, -2px);
+  }
+  .tool[data-motion="tilt"]:hover .toolIcon svg {
+    transform: rotate(-10deg);
+  }
+  .tool[data-motion="lift"]:hover .toolIcon svg {
+    transform: translateY(-2px);
+  }
+  .tool[data-motion="slide"]:hover .toolIcon svg {
+    transform: translateX(2px);
   }
 }
 
-/* --- pricing ------------------------------------------------------------------ */
+.toolName {
+  margin: 0;
+  font-size: var(--fs-public-body);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+.toolBody {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+}
+
+@media (max-width: 860px) {
+  .toolList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-6) 0;
+  }
+  .tool:nth-child(odd) {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .toolList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tool {
+    padding-left: 0;
+  }
+  .tool + .tool {
+    padding-top: var(--sp-6);
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* --- pricing --------------------------------------------------------------------- */
 
 .pricingLegal {
   margin: var(--sp-6) 0 0;
@@ -444,19 +777,51 @@
   color: var(--secondary);
 }
 
-/* --- closing: one line and the action ------------------------------------------ */
+/* --- closing: the mascot celebrating, one line, the action ------------------------ */
 
 .closing {
-  padding-block: calc(var(--public-section-pad) * 0.75);
+  padding-block: var(--public-section-pad);
   border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .closingInner {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--sp-6);
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.closingMascot {
+  width: 200px;
+}
+.closingInner[data-revealed] .closingMascot {
+  animation: hop var(--dur-reveal) var(--ease) 120ms backwards;
+}
+
+/* Micro-interaction: hover (mouse) or tap and he hops again. The wrapper
+   carries this hop, so it can't fight the image's own reveal hop; it's a
+   separately named keyframe so re-adding the class always restarts it. */
+.closingMascotWrap {
+  display: block;
+  margin-bottom: var(--sp-6);
+}
+.hopAgain {
+  animation: hopAgain var(--dur-reveal) var(--ease);
+}
+@keyframes hopAgain {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-14px) rotate(-3deg);
+  }
+  70% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
 .closingTitle {
@@ -465,10 +830,11 @@
   font-weight: var(--fw-semibold);
   line-height: var(--lh-tight);
   letter-spacing: var(--ls-display);
+  text-wrap: balance;
 }
 
 .closingBody {
-  margin: var(--sp-3) 0 0;
+  margin: var(--sp-3) 0 var(--sp-7);
   color: var(--text-secondary);
   font-size: var(--fs-public-lede);
   line-height: var(--lh-relaxed);

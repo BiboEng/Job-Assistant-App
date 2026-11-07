@@ -1,11 +1,12 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Route, Routes } from "react-router";
 import RequireAuth from "./auth/RequireAuth.jsx";
 import AppSkeleton from "./components/AppSkeleton.jsx";
 import LandingScreen from "./screens/LandingScreen.jsx";
 import SignInScreen from "./screens/SignInScreen.jsx";
 import ResetPasswordScreen from "./screens/ResetPasswordScreen.jsx";
 import LegalScreen from "./screens/LegalScreen.jsx";
+import NotFoundScreen from "./screens/NotFoundScreen.jsx";
 import { PATHS } from "./routes.js";
 
 /**
@@ -73,7 +74,8 @@ export default function App() {
         <Route path={PATHS.plans} element={<PlansRoute />} />
       </Route>
 
-      <Route path="*" element={<Navigate to={PATHS.home} replace />} />
+      {/* Anything else: a friendly 404 (the host still sends a 200). */}
+      <Route path="*" element={<NotFoundScreen />} />
     </Routes>
   );
 }

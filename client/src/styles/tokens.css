@@ -1,9 +1,9 @@
 /*
  * Design tokens — the single source of every visual value in the app.
  *
- * Palette: "instrument panel" — a desaturated blue-grey ink base, with a soft aqua accent used
- * the way bioluminescence is: sparingly, for the one thing on screen that
- * matters (the primary action, the active nav item, focus, a key number).
+ * Palette: "instrument panel" — a desaturated blue-grey ink base, with one mint accent
+ * taken from the Jobuddy mascot, used sparingly: for the one thing on screen
+ * that matters (the primary action, the active nav item, focus, a key number).
  *
  * Rules the rest of the stylesheet follows:
  *   - Module CSS styles through these names. No hex, rgb(), font size, spacing
@@ -13,7 +13,7 @@
  *   - Separation is a 1px --border, never a drop shadow. The --shadow-* names
  *     survive only so older rules resolve; they're all `none`, bar the one
  *     popover shadow that lifts a floating menu off the page.
- *   - The only gradient is --gradient-hero, one faint teal pool in a corner of
+ *   - The only gradient is --gradient-hero, one faint mint pool in a corner of
  *     the page background. --gradient-accent is a flat colour under an old
  *     name so no button can grow a ramp.
  *
@@ -30,9 +30,9 @@
   --border: #212a35;
   --text: #e8edf2;
   --text-muted: #8d99a7;
-  --accent: #5ccfc0; /* aqua */
-  --accent-soft: rgba(92, 207, 192, 0.12);
-  --secondary: #b9c7d6; /* links: a light steel, so aqua stays the only accent */
+  --accent: #15dea7; /* mint: the mascot's green */
+  --accent-soft: rgba(21, 222, 167, 0.12);
+  --secondary: #b9c7d6; /* links: a light steel, so mint stays the only accent */
 
   --good: #5fcf97;
   --okay: #e0b45e;
@@ -49,16 +49,16 @@
   --text-secondary: #b4bfca;
 
   /* --- derived accent ----------------------------------------------------
-     --accent is both the fill and the ink: aqua is light enough to read as
-     text on the abyss, and dark text (--accent-contrast) reads on it as a
+     --accent is both the fill and the ink: mint is light enough to read as
+     text on the ink, and dark text (--accent-contrast) reads on it as a
      fill. --accent-text exists so older rules keep a name to point at. */
-  --accent-hover: #79dbce;
+  --accent-hover: #44e5b9;
   --accent-text: var(--accent);
-  --accent-text-hover: #97e4da;
-  --accent-softer: rgba(92, 207, 192, 0.06);
-  --accent-border: rgba(92, 207, 192, 0.3);
-  --accent-contrast: #05201c;
-  --accent-ring: rgba(92, 207, 192, 0.5);
+  --accent-text-hover: #67eac6;
+  --accent-softer: rgba(21, 222, 167, 0.06);
+  --accent-border: rgba(21, 222, 167, 0.3);
+  --accent-contrast: #032a1e;
+  --accent-ring: rgba(21, 222, 167, 0.5);
   --accent-2: var(--secondary);
   --secondary-hover: #e8edf2;
 
@@ -68,11 +68,10 @@
   --shadow-brand: none;
   --shadow-brand-hover: none;
 
-  /* The only gradient allowed: a faint teal pool, top-left, like light from
-     somewhere far above the water. */
+  /* The only gradient allowed: a faint mint pool, top-left of the page. */
   --gradient-hero: radial-gradient(
     900px 600px at 0% 0%,
-    rgba(60, 150, 140, 0.07),
+    rgba(21, 170, 128, 0.07),
     transparent 70%
   );
 
@@ -208,6 +207,22 @@
   --step-from: 12px;
   /* Landing scroll reveal: per-item stagger, set inline on the pillars. */
   --reveal-delay: 0ms;
+  /* Kinetic headings (landing): each word rises out of its own mask. The
+     mask is padded a touch below the line so descenders aren't clipped. */
+  --kinetic-descender: 0.14em;
+  /* One split-flap tile turning over (landing role board, step numbers). */
+  --dur-flap: 140ms;
+
+  /* --- split-flap tiles ----------------------------------------------------
+     The landing page's departures-board strip. Sized so the longest role
+     (17 characters) fits a 360px phone; smaller again for step numbers. */
+  --flap-w: 22px;
+  --flap-h: 32px;
+  --flap-fs: var(--fs-xl);
+  --flap-gap: 2px;
+  --flap-w-sm: 20px;
+  --flap-h-sm: 28px;
+  --flap-fs-sm: var(--fs-lg);
 
   /* --- layout ------------------------------------------------------------- */
   --sidebar-width: 240px;
@@ -226,5 +241,8 @@
 @media (max-width: 680px) {
   :root {
     --public-header-offset: 104px;
+    --flap-w: 16px;
+    --flap-h: 24px;
+    --flap-fs: var(--fs-md);
   }
 }

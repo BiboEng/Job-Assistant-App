@@ -34,7 +34,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* The one gradient: a faint teal pool in the top-left corner, fixed so it
+/* The one gradient: a faint mint pool in the top-left corner, fixed so it
    reads as ambient light rather than as part of the content. */
 body::before {
   content: "";
@@ -84,7 +84,7 @@ time {
   font-variant-numeric: tabular-nums;
 }
 
-/* One focus treatment for everything: a 2px aqua ring, offset so it never
+/* One focus treatment for everything: a 2px mint ring, offset so it never
    sits on top of the control's own border. */
 :where(button, a, input, textarea, select, summary, [tabindex], [contenteditable]):focus-visible {
   outline: 2px solid var(--accent);
@@ -319,7 +319,7 @@ time {
 }
 
 /* --- form controls -------------------------------------------------------
-   One look for every text field: raised fill, 1px border, aqua edge + ring on
+   One look for every text field: raised fill, 1px border, mint edge + ring on
    focus. Scoped with :where() so a module class always wins. */
 :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select) {
   background: var(--surface-raised);
@@ -343,7 +343,7 @@ input[type="radio"] {
 }
 
 /* --- buttons --------------------------------------------------------------
-   Primary: solid aqua, dark text. Secondary (.btn-ghost): transparent with a
+   Primary: solid mint, dark text. Secondary (.btn-ghost): transparent with a
    border. Subtle: no border until hovered. Colour moves on hover; nothing
    lifts, bounces or scales. */
 
@@ -493,7 +493,7 @@ input[type="radio"] {
   border: 1px solid var(--danger-border);
 }
 
-/* Amber, not aqua: a warning must not look like ordinary chrome. */
+/* Amber, not mint: a warning must not look like ordinary chrome. */
 .warn-banner {
   background: var(--warn-soft);
   color: var(--warn);
