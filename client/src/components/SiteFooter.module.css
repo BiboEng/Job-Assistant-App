@@ -119,6 +119,49 @@
   text-underline-offset: 3px;
 }
 
+/* The wordmark as a graphic. The box is a little shorter than the letters
+   (in em, so it scales with them) and clips, so the word runs off the bottom
+   of the page as if it carried on below. */
+.giant {
+  display: flex;
+  justify-content: center;
+  height: 0.62em;
+  overflow: clip;
+  font-size: var(--fs-giant);
+  user-select: none;
+  pointer-events: none;
+}
+
+.giantWord {
+  display: block;
+  font-weight: var(--fw-semibold);
+  line-height: 0.9;
+  letter-spacing: var(--ls-giant);
+  white-space: nowrap;
+  color: var(--surface-raised);
+}
+
+/* Rises into place over the last stretch of scrolling: it's the last thing
+   on the page, so the scroll ends as it lands. Static without support. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .giantWord {
+      animation: giantRise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+
+@keyframes giantRise {
+  from {
+    transform: translateY(45%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 680px) {
   .inner {
     padding: var(--sp-7) var(--sp-4) var(--sp-6);

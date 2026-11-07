@@ -137,6 +137,11 @@
   --fs-public-h2: clamp(1.75rem, 1.15rem + 1.9vw, 2.5rem); /* 28–40px */
   --fs-public-stat: clamp(1.75rem, 1.35rem + 1.3vw, 2.25rem); /* 28–36px */
   --public-measure: 60ch;
+  /* Type used as a graphic on the landing page: the outlined step numerals
+     behind "How it works", and the footer's wordmark running off the page. */
+  --fs-numeral: clamp(6rem, 3.5rem + 7vw, 10rem); /* 96–160px */
+  --fs-giant: clamp(4.5rem, 21vw, 15rem); /* 72–240px */
+  --ls-giant: -0.055em;
 
   --ls-tight: -0.011em;
   --ls-tighter: -0.018em;
@@ -212,6 +217,17 @@
   --kinetic-descender: 0.14em;
   /* One split-flap tile turning over (landing role board, step numbers). */
   --dur-flap: 140ms;
+  /* The landing page's few idle loops: the hero mascot's float and the slow
+     turn of his orbit. Sine-shaped, so a loop has no visible seam. Paused
+     off-screen, and stopped by the global reduced-motion rule. */
+  --ease-float: cubic-bezier(0.37, 0, 0.63, 1);
+  --dur-float: 5.5s;
+  --float-distance: 6px;
+  --dur-orbit: 90s;
+  /* The hero's pointer parallax: where the mouse is over the hero, from -1 to
+     1 on each axis (written inline by LandingScreen; 0 when it isn't there). */
+  --pointer-x: 0;
+  --pointer-y: 0;
 
   /* --- split-flap tiles ----------------------------------------------------
      The landing page's departures-board strip. Sized so the longest role
@@ -232,6 +248,15 @@
   --shell-width-public: 1160px;
   /* Vertical breathing room between landing sections. */
   --public-section-pad: clamp(64px, 8vw, 112px);
+  /* The pinned stage in the landing page's "How it works": as tall as fits
+     under the header with room to spare, up to 500px. */
+  --story-stage-height: min(500px, calc(100vh - var(--public-header-offset) - var(--sp-9)));
+  /* A landing section's own fill. Transparent (the page ink) unless the
+     section sets data-surface; see the surfaces at the end of this file. */
+  --band-bg: transparent;
+  /* The one ink a section can use for an accent word that isn't the accent
+     itself (on the mint section, where the accent is the background). */
+  --band-accent-ink: var(--accent);
   --control-height: 32px;
   --row-height: 44px;
   --public-header-offset: 72px;
@@ -263,4 +288,61 @@
   :root {
     --public-header-offset: 104px;
   }
+}
+
+/*
+ * Landing page surfaces. A section with data-surface re-points the neutral
+ * tokens for everything inside it, so its cards, bubbles, flap tiles and
+ * buttons take the section's tone with no per-element overrides; --band-bg is
+ * the section's own fill. They exist so the landing page reads as a run of
+ * distinct sections rather than one long dark sheet.
+ *
+ * A token derived from another with var() (--accent-text, --gradient-accent…)
+ * is resolved where it's declared, on :root, so it does NOT follow an
+ * override here. Every token a surface needs changed is listed in full.
+ *
+ * Contrast: --text-subtle stays at 4.5:1 or better on each surface, and the
+ * mint surface's ink is about 9:1 on its fill.
+ */
+
+/* Pine: a green-black, for the long "How it works" story. */
+[data-surface="pine"] {
+  --band-bg: #0b1814;
+  --surface: #0f1f1a;
+  --surface-raised: #142a23;
+  --border: #1c3229;
+  --border-strong: #2b4a3e;
+  --text-subtle: #7d8f88;
+}
+
+/* Slate: a lighter blue-grey, for the tools strip. */
+[data-surface="slate"] {
+  --band-bg: #121a24;
+  --surface: #17202c;
+  --surface-raised: #1c2633;
+  --border: #263243;
+  --border-strong: #364459;
+  --text-subtle: #808d9a;
+}
+
+/* Mint: the accent as a whole section, once, for the closing call to action.
+   Ink text, and the primary button turns ink with mint text. */
+[data-surface="mint"] {
+  --band-bg: #15dea7;
+  --band-accent-ink: #006b4c;
+  --surface: #12c896;
+  --surface-raised: #10b888;
+  --border: rgba(3, 42, 30, 0.22);
+  --border-strong: rgba(3, 42, 30, 0.4);
+  --text: #04140f;
+  --text-secondary: #0b3d2e;
+  --text-muted: #0f4636;
+  --text-subtle: #13513f;
+  --accent: #04140f;
+  --accent-hover: #0d2b22;
+  --accent-contrast: #15dea7;
+  --accent-border: rgba(3, 42, 30, 0.3);
+  --accent-soft: rgba(3, 42, 30, 0.12);
+  --accent-softer: rgba(3, 42, 30, 0.06);
+  --accent-ring: rgba(3, 42, 30, 0.5);
 }

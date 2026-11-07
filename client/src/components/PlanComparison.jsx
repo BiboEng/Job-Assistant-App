@@ -27,6 +27,10 @@ import styles from "./PlanComparison.module.css";
  * a table you have to swipe sideways loses its row labels. A switcher above
  * it picks the plan; the other plans' cells are hidden by CSS (`.offPlan`),
  * so desktop is untouched.
+ *
+ * `renderPeek(planId)` (optional, landing page only) adds a decoration to a
+ * card: whatever it returns is placed first inside the card, which is
+ * `position: relative`, so it can sit on the card's top edge.
  */
 export default function PlanComparison({
   catalog,
@@ -36,6 +40,7 @@ export default function PlanComparison({
   currentPlan = null,
   headingLevel = 3,
   showTable = true,
+  renderPeek,
 }) {
   const prices = catalog?.prices ?? {};
   const hasYearly = Boolean(prices.pro?.year || prices.ultimate?.year);
@@ -82,6 +87,7 @@ export default function PlanComparison({
                 isCurrent ? styles.current : ""
               }`}
             >
+              {renderPeek?.(id)}
               <div className={styles.cardHead}>
                 <H className={styles.name}>{PLAN_COPY[id].name}</H>
                 {isCurrent && <span className={styles.badge}>Your plan</span>}

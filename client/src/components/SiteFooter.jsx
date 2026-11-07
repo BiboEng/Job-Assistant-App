@@ -12,6 +12,11 @@ import styles from "./SiteFooter.module.css";
  *
  * Its bottom row carries the legal links and who operates the site, which
  * belong on every public page once the site sells anything.
+ *
+ * Under that, the wordmark again as a graphic: set huge, one tone up from the
+ * footer, and cut off by the bottom of the page. Decorative (aria-hidden);
+ * where scroll-driven animation is supported it rises into place as the
+ * page reaches its end.
  */
 
 const CONTACT_EMAIL = BUSINESS.contactEmail;
@@ -65,6 +70,10 @@ export default function SiteFooter() {
           <Link to={PATHS.privacy}>Privacy</Link>
           <Link to={PATHS.refunds}>Refunds &amp; cancellation</Link>
         </nav>
+      </div>
+
+      <div className={styles.giant} aria-hidden="true">
+        <span className={styles.giantWord}>{BUSINESS.tradeName}</span>
       </div>
     </footer>
   );

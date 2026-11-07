@@ -73,6 +73,27 @@ export const BOARD_INTRO = [...SAMPLE_ROLES.map((r) => r.board), BOARD_FINALE];
 export const BOARD_WIDTH = 17;
 
 /*
+ * After the intro, until a visitor picks a role, the board keeps turning
+ * through these a few seconds apart, the way a real departures board is never
+ * still. Wider than the sample roles on purpose (any posting works), with the
+ * finale coming round again between them. Same rules as every board line.
+ */
+export const BOARD_IDLE = [
+  "UX DESIGNER",
+  "TEACHER",
+  "DATA SCIENTIST",
+  BOARD_FINALE,
+  "SALES MANAGER",
+  "PHARMACIST",
+  "SOFTWARE ENGINEER",
+  BOARD_FINALE,
+  "MARKETING LEAD",
+  "ELECTRICIAN",
+  "PROJECT MANAGER",
+  BOARD_FINALE,
+];
+
+/*
  * What the hero mascot does when clicked: one step per click, and the click
  * after the last goes back to where he started (waving, or asking the
  * question on screen).

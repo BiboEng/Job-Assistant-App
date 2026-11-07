@@ -11,6 +11,7 @@ import { usePlanCatalog } from "../billing/usePlanCatalog.js";
 import { planName } from "../billing/plans.js";
 import { PATHS } from "../routes.js";
 import {
+  BOARD_IDLE,
   BOARD_INTRO,
   BOARD_WIDTH,
   MASCOT_CLICKS,
@@ -29,9 +30,21 @@ import styles from "./LandingScreen.module.css";
  * scroll to. React Router keeps the same element mounted across them, so a nav
  * click is a scroll, not a reload, and each section still has a URL.
  *
- * Playful, but one-shot: headings rise in word by word (KineticText), and a
- * split-flap board in the hero turns through a few roles once and lands on
- * "YOUR NEXT JOB" (SplitFlap). Nothing loops.
+ * Headings rise in word by word (KineticText), and a split-flap board in the
+ * hero turns through a few roles and lands on "YOUR NEXT JOB" (SplitFlap),
+ * then keeps turning to a new role every few seconds until a visitor picks
+ * one. Only the hero idles: the mascot floats, and his orbit (a dashed ring
+ * with five icon tiles riding it) turns slowly. Those loops pause when the
+ * hero is off-screen, and reduced motion stops them.
+ *
+ * Depth, on wide screens: the hero's layers move at different speeds as it
+ * scrolls away and shift a few pixels with the mouse (parallax), "How it
+ * works" is one pinned stage that changes as its three steps scroll past, and
+ * the sample report tilts flat as it arrives. Scroll effects use CSS
+ * scroll-driven animation, so a browser without it gets the static page.
+ *
+ * The page is a run of sections in different tones (data-surface: pine,
+ * slate, then a mint closing section), set up in tokens.css.
  *
  * The hero is interactive. "Try a sample question" buttons flip the board to
  * a role and have the mascot ask a sample question for it (landingSamples.js:
@@ -75,6 +88,14 @@ const REPORT = {
 };
 
 const HELLO = "Hi, I'm Jobuddy. Paste a job posting and I'll interview you for it.";
+
+/** The icon tiles riding the hero mascot's orbit: what a session involves. */
+const ORBIT = ["mic", "messageSquare", "sparkles", "target", "trendingUp"];
+
+/** How long the hero's board rests on a line before turning to the next. */
+const BOARD_IDLE_MS = 4500;
+
+const pad2 = (n) => String(n).padStart(2, "0");
 
 /*
  * The session, one beat per step. `say` is what the mascot says in that
@@ -198,6 +219,93 @@ export default function LandingScreen() {
   // The closing mascot hops again when hovered or tapped (once per hop).
   const [hopping, setHopping] = useState(false);
 
+  // While the hero is off-screen its idle loops pause (data-paused, read by
+  // the CSS) and the board stops turning. Written to the DOM directly: it
+  // changes nothing React renders.
+  const heroRef = useRef(null);
+  const heroVisibleRef = useRef(true);
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver(([entry]) => {
+      heroVisibleRef.current = entry.isIntersecting;
+      hero.toggleAttribute("data-paused", !entry.isIntersecting);
+    });
+    io.observe(hero);
+    return () => io.disconnect();
+  }, []);
+
+  // The board keeps turning after its intro: each time it comes to rest it
+  // asks for the next line, BOARD_IDLE_MS later. A picked role stops it for
+  // good (the board then shows that role), and it waits while the hero is
+  // off-screen or the tab is hidden. Reduced motion: it stays put.
+  const [idleBoard, setIdleBoard] = useState(null);
+  const idleRef = useRef({ timer: 0, next: 0, stopped: false });
+  useEffect(() => () => window.clearTimeout(idleRef.current.timer), []);
+  function onBoardSettle() {
+    const idle = idleRef.current;
+    if (idle.stopped || prefersReducedMotion()) return;
+    window.clearTimeout(idle.timer);
+    const tick = () => {
+      if (idle.stopped) return;
+      if (document.hidden || !heroVisibleRef.current) {
+        idle.timer = window.setTimeout(tick, 1000);
+        return;
+      }
+      const line = BOARD_IDLE[idle.next];
+      idle.next = (idle.next + 1) % BOARD_IDLE.length;
+      setIdleBoard(line);
+    };
+    idle.timer = window.setTimeout(tick, BOARD_IDLE_MS);
+  }
+
+  // Pointer parallax: the mouse's place over the hero, -1 to 1 per axis,
+  // written to the art as --pointer-x/-y once a frame. The CSS moves the
+  // layers by it (wide screens with a mouse only); touch is ignored.
+  const pointerRef = useRef({ frame: 0, x: 0, y: 0 });
+  function writePointer() {
+    const p = pointerRef.current;
+    p.frame = 0;
+    const art = heroArtRef.current;
+    if (!art) return;
+    art.style.setProperty("--pointer-x", p.x.toFixed(3));
+    art.style.setProperty("--pointer-y", p.y.toFixed(3));
+  }
+  function onHeroPointerMove(e) {
+    if (e.pointerType !== "mouse" || prefersReducedMotion()) return;
+    const r = heroRef.current.getBoundingClientRect();
+    const p = pointerRef.current;
+    p.x = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+    p.y = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+    if (!p.frame) p.frame = window.requestAnimationFrame(writePointer);
+  }
+  function onHeroPointerLeave() {
+    const p = pointerRef.current;
+    p.x = 0;
+    p.y = 0;
+    if (!p.frame) p.frame = window.requestAnimationFrame(writePointer);
+  }
+  useEffect(() => () => window.cancelAnimationFrame(pointerRef.current.frame), []);
+
+  // "How it works": which step is in the middle of the screen. On wide
+  // screens the pinned stage shows that step's pose and line, and the other
+  // steps dim; on a phone each step has its own stage and this is unused.
+  const [activeStep, setActiveStep] = useState(0);
+  const stepRefs = useRef([]);
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActiveStep(Number(entry.target.dataset.step));
+        }
+      },
+      { rootMargin: "-45% 0px -45% 0px" }
+    );
+    stepRefs.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
   const role = pick ? SAMPLE_ROLES.find((r) => r.id === pick.id) : null;
   const clicked = clickStep ? MASCOT_CLICKS[clickStep - 1] : null;
   const base = role
@@ -216,6 +324,8 @@ export default function LandingScreen() {
   }
 
   function pickRole(id) {
+    idleRef.current.stopped = true;
+    window.clearTimeout(idleRef.current.timer);
     setClickStep(0);
     setPick((p) => (p?.id === id ? p : { id, q: 0 }));
     revealBubble();
@@ -251,6 +361,14 @@ export default function LandingScreen() {
   // confirmation, through sign-up first for a visitor without an account.
   const catalog = usePlanCatalog();
   const [interval, setInterval_] = useState("month");
+
+  // The mascot peeks over a plan card's top edge: the Ultimate card on wide
+  // screens (the space above it is clear), the first card once they stack.
+  function planPeek(id) {
+    if (id === "ultimate") return <Peek pose="positive" className={styles.peekPlanWide} />;
+    if (id === "regular") return <Peek pose="positive" className={styles.peekPlanStacked} />;
+    return null;
+  }
 
   function planAction(id, { price }) {
     if (id === "regular") {
@@ -288,7 +406,13 @@ export default function LandingScreen() {
 
       <main id="main-content" ref={mainRef} tabIndex={-1} className={styles.page}>
         {/* --- hero: the mascot says hello ------------------------------------ */}
-        <section className={styles.hero} aria-labelledby="hero-heading">
+        <section
+          ref={heroRef}
+          className={styles.hero}
+          aria-labelledby="hero-heading"
+          onPointerMove={onHeroPointerMove}
+          onPointerLeave={onHeroPointerLeave}
+        >
           <div className={`${styles.inner} ${styles.heroInner}`}>
             <div className={styles.heroCopy}>
               <KineticText
@@ -320,11 +444,12 @@ export default function LandingScreen() {
                 </span>
                 <SplitFlap
                   sequence={BOARD_INTRO}
-                  value={role?.board ?? null}
+                  value={role?.board ?? idleBoard}
                   width={BOARD_WIDTH}
                   hold={1000}
                   delay={900}
                   settleAccent
+                  onSettle={onBoardSettle}
                 />
                 <span className="sr-only">
                   Practise for any role, from engineering to nursing.
@@ -372,16 +497,31 @@ export default function LandingScreen() {
               </div>
             </div>
 
+            {/* Two layers, for parallax: the halo and orbit behind (they move
+                least), the bubble and mascot in front (they move together, so
+                the bubble's tail stays on him). */}
             <div className={styles.heroArt} ref={heroArtRef}>
-              <span className={styles.halo} aria-hidden="true" />
-              <Bubble className={styles.heroBubble} text={heroLine} typed live />
-              <HeroBuddy pose={heroPose} onPoke={poke} />
+              <div className={styles.heroDepth} aria-hidden="true">
+                <span className={styles.halo} />
+                <Orbit />
+              </div>
+              <div className={styles.heroFront}>
+                <Bubble className={styles.heroBubble} text={heroLine} typed live />
+                <span className={styles.buddyFloat}>
+                  <HeroBuddy pose={heroPose} onPoke={poke} />
+                </span>
+              </div>
             </div>
           </div>
         </section>
 
         {/* --- how a session goes: three beats -------------------------------- */}
-        <section id="how-it-works" className={styles.band} aria-labelledby="how-heading">
+        <section
+          id="how-it-works"
+          className={styles.band}
+          data-surface="pine"
+          aria-labelledby="how-heading"
+        >
           <div className={styles.inner}>
             <div className={styles.sectionHead}>
               <KineticText
@@ -395,46 +535,74 @@ export default function LandingScreen() {
               </p>
             </div>
 
-            <ol className={styles.beats}>
-              {SESSION.map((beat, i) => (
-                <li key={beat.pose} className={`${styles.beat} ${i % 2 ? styles.beatFlip : ""}`}>
-                  <div className={styles.beatCopy} data-reveal="">
-                    <SplitFlap
-                      sequence={[String(i + 1).padStart(2, "0")]}
-                      size="sm"
-                      accent
-                      delay={150}
-                      className={styles.beatStep}
-                    />
-                    <span className="sr-only">Step {i + 1}.</span>
-                    <h3 className={styles.beatTitle}>{beat.title}</h3>
-                    <p className={styles.beatBody}>{beat.body}</p>
-                  </div>
-                  <div className={styles.stage} data-reveal="">
-                    <Bubble className={styles.stageBubble} text={beat.say} />
-                    <Mascot pose={beat.pose} className={styles.stageMascot} />
-                  </div>
-                </li>
-              ))}
-            </ol>
+            {/* Wide screens: the steps scroll past on the left while one stage
+                stays pinned on the right and follows them. Phones: each step
+                has its own stage under it (the .stage in each item). Either
+                way the stages are decoration; what the mascot says is in each
+                step's copy for screen readers. */}
+            <div className={styles.story}>
+              <ol className={styles.beats}>
+                {SESSION.map((beat, i) => (
+                  <li
+                    key={beat.pose}
+                    ref={(el) => {
+                      stepRefs.current[i] = el;
+                    }}
+                    data-step={i}
+                    data-active={activeStep === i ? "" : undefined}
+                    className={styles.beat}
+                  >
+                    <span className={styles.numeral} aria-hidden="true">
+                      {pad2(i + 1)}
+                    </span>
+                    <div className={styles.beatCopy} data-reveal="">
+                      <SplitFlap
+                        sequence={[pad2(i + 1)]}
+                        size="sm"
+                        accent
+                        delay={150}
+                        className={styles.beatStep}
+                      />
+                      <span className="sr-only">Step {i + 1}.</span>
+                      <h3 className={styles.beatTitle}>{beat.title}</h3>
+                      <p className={styles.beatBody}>{beat.body}</p>
+                      <p className="sr-only">Jobuddy says: {beat.say}</p>
+                    </div>
+                    <div className={styles.stage} data-reveal="" aria-hidden="true">
+                      <Bubble className={styles.stageBubble} text={beat.say} />
+                      <Mascot pose={beat.pose} className={styles.stageMascot} />
+                    </div>
+                  </li>
+                ))}
+              </ol>
 
+              <div className={styles.pinned} aria-hidden="true">
+                <StoryStage active={activeStep} />
+              </div>
+            </div>
+
+            {/* The stage hands over to the report: the mascot, holding his
+                chart, peeks over its top edge. */}
             <figure className={styles.report} data-reveal="">
-              <picture>
-                <source
-                  media="(max-width: 680px)"
-                  srcSet={REPORT.mobile.src}
-                  width={REPORT.mobile.width}
-                  height={REPORT.mobile.height}
-                />
-                <img
-                  src={REPORT.src}
-                  width={REPORT.width}
-                  height={REPORT.height}
-                  alt={REPORT.alt}
-                  loading="lazy"
-                  decoding="async"
-                />
-              </picture>
+              <div className={styles.reportFrame}>
+                <Peek pose="feedback" className={styles.peekReport} />
+                <picture>
+                  <source
+                    media="(max-width: 680px)"
+                    srcSet={REPORT.mobile.src}
+                    width={REPORT.mobile.width}
+                    height={REPORT.mobile.height}
+                  />
+                  <img
+                    src={REPORT.src}
+                    width={REPORT.width}
+                    height={REPORT.height}
+                    alt={REPORT.alt}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              </div>
               <figcaption className={styles.reportCaption}>
                 The top of a real feedback report, from a sample interview.
               </figcaption>
@@ -443,7 +611,7 @@ export default function LandingScreen() {
         </section>
 
         {/* --- the other tools: one strip ------------------------------------- */}
-        <section className={styles.tools} aria-labelledby="tools-heading">
+        <section className={styles.tools} data-surface="slate" aria-labelledby="tools-heading">
           <div className={styles.inner}>
             <KineticText
               id="tools-heading"
@@ -485,12 +653,13 @@ export default function LandingScreen() {
                 speaking on camera and deeper progress tracking.
               </p>
             </div>
-            <div data-reveal="">
+            <div className={styles.pricingCards} data-reveal="">
               <PlanComparison
                 catalog={catalog}
                 interval={interval}
                 onIntervalChange={setInterval_}
                 renderAction={planAction}
+                renderPeek={planPeek}
                 showTable={false}
               />
             </div>
@@ -504,24 +673,31 @@ export default function LandingScreen() {
         </section>
 
         {/* --- closing: the mascot celebrates --------------------------------- */}
-        <section className={styles.closing} aria-labelledby="closing-heading">
+        {/* The one mint section: the accent as the whole background, ink
+            type, an ink button (data-surface="mint" in tokens.css). The
+            mascot stands on an ink disc, because his own mint trim would
+            vanish against the background. */}
+        <section className={styles.closing} data-surface="mint" aria-labelledby="closing-heading">
           <div className={`${styles.inner} ${styles.closingInner}`} data-reveal="">
-            <span
-              className={`${styles.closingMascotWrap} ${hopping ? styles.hopAgain : ""}`}
-              onPointerEnter={(e) => e.pointerType === "mouse" && setHopping(true)}
-              onClick={() => setHopping(true)}
-              onAnimationEnd={(e) => {
-                if (e.animationName.includes("hopAgain")) setHopping(false);
-              }}
-            >
-              <Mascot pose="celebrate" className={styles.closingMascot} />
+            <span className={styles.closingMascotWrap}>
+              <span className={styles.closingDisc} aria-hidden="true" />
+              <span
+                className={`${styles.closingHopper} ${hopping ? styles.hopAgain : ""}`}
+                onPointerEnter={(e) => e.pointerType === "mouse" && setHopping(true)}
+                onClick={() => setHopping(true)}
+                onAnimationEnd={(e) => {
+                  if (e.animationName.includes("hopAgain")) setHopping(false);
+                }}
+              >
+                <Mascot pose="celebrate" className={styles.closingMascot} />
+              </span>
             </span>
             <KineticText
               id="closing-heading"
               className={styles.closingTitle}
               startDelay={200}
               parts={["Your next interview", { text: "starts here", accent: true }]}
-              accentClassName={styles.accentWord}
+              accentClassName={styles.closingAccent}
             />
             <p className={styles.closingBody}>Run your first practice now. It&apos;s free.</p>
             <Link to={primaryCta.to} className={`btn-primary btn-lg ${styles.ctaLink}`}>
@@ -554,6 +730,96 @@ function Mascot({ pose, className = "" }) {
       decoding="async"
       loading="lazy"
     />
+  );
+}
+
+/**
+ * The mascot peeking over the top edge of whatever he's placed on (a card,
+ * the report), as if standing behind it: a box sitting on that edge clips
+ * him at it. He rises into view the first time the surrounding block is
+ * revealed. Decorative. Placement and size come from `className`.
+ */
+function Peek({ pose, className = "" }) {
+  const art = POSES[pose];
+  return (
+    <span className={`${styles.peek} ${className}`} aria-hidden="true">
+      <img
+        src={art.src}
+        width={art.width}
+        height={art.height}
+        alt=""
+        className={styles.peekImg}
+        draggable="false"
+        decoding="async"
+        loading="lazy"
+      />
+    </span>
+  );
+}
+
+/**
+ * The hero mascot's orbit: a dashed ring that turns slowly, with an icon tile
+ * riding it at each of five evenly spaced points. Each tile turns back the
+ * other way at the same rate, so it stays upright as it goes round. The
+ * first tile starts a little past the top, clear of the speech bubble.
+ */
+function Orbit() {
+  return (
+    <span className={styles.orbit}>
+      {ORBIT.map((icon, i) => {
+        const angle = (i / ORBIT.length) * 2 * Math.PI - Math.PI / 2 + 0.5;
+        return (
+          <span
+            key={icon}
+            className={styles.orbitItem}
+            style={{
+              left: `${50 + 50 * Math.cos(angle)}%`,
+              top: `${50 + 50 * Math.sin(angle)}%`,
+              "--reveal-delay": `${900 + i * 90}ms`,
+            }}
+          >
+            <span className={styles.orbitTile}>
+              <Icon name={icon} />
+            </span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/**
+ * The pinned stage of "How it works" (wide screens): the step counter turning
+ * on a small split-flap board, the step's line typed in the bubble, and the
+ * mascot's poses stacked like the hero's, the active one fading in with a hop.
+ */
+function StoryStage({ active }) {
+  return (
+    <div className={styles.pinnedStage}>
+      <div className={styles.pinnedHead}>
+        <SplitFlap sequence={["01"]} value={pad2(active + 1)} size="sm" accent delay={150} />
+        <span className={`mono ${styles.pinnedOf}`}>of {pad2(SESSION.length)}</span>
+      </div>
+      <Bubble className={styles.pinnedBubble} text={SESSION[active].say} typed />
+      <div className={styles.pinnedBuddy}>
+        {SESSION.map((beat, i) => {
+          const art = POSES[beat.pose];
+          return (
+            <img
+              key={beat.pose}
+              src={art.src}
+              width={art.width}
+              height={art.height}
+              alt=""
+              draggable="false"
+              decoding="async"
+              loading="lazy"
+              className={`${styles.pinnedPose} ${i === active ? styles.pinnedPoseOn : ""}`}
+            />
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

@@ -270,6 +270,17 @@ declared (an undeclared token fails silently in the browser).
   `--text-subtle`, `--accent-border`, semantics, `--band-*`) derives from those.
   Score bands keep their own names because `utils/score.js` applies them inline.
   **A warning is amber** — `.warn-banner`, never the accent.
+- **Landing surfaces** (landing page only): `[data-surface="pine" | "slate" |
+  "mint"]` at the end of `tokens.css` re-point the neutral tokens (`--surface*`,
+  `--border*`, `--text*`, and on mint the accent set) for everything inside a
+  section, plus `--band-bg`, the section's own fill. Mint is the accent as a
+  whole section, once (the closing call to action): ink text, and
+  `.btn-primary` turns ink with mint text by itself. Two traps: a token
+  declared with `var()` on `:root` (`--accent-text`, `--gradient-accent`…) is
+  resolved there and does **not** follow a surface override, so a surface lists
+  every token it changes; and `color` inherits as a resolved value, so a
+  surfaced section must set `color: var(--text)` again or its text keeps the
+  page's light ink.
 - **Scales:** 4px spacing grid (4 · 8 · 12 · 16 · 24 · 32 · 48 — the older
   `--sp-5/8/10/11/12` names survive, snapped onto it); radii 6px for controls
   (`--radius-sm/md`), 10px for cards (`--radius-lg/xl`), nothing rounder —
@@ -303,9 +314,17 @@ declared (an undeclared token fails silently in the browser).
   word (`KineticText`), its split-flap board (`SplitFlap`), and its
   micro-interactions (see "Landing page"). Keyframes live in each module —
   CSS Modules hash keyframe names, so a module can't use one from `index.css`.
-  The only perpetual loop is the mic's ring while recording (the landing page
-  has none). The global reduced-motion rule also zeroes
-  delays, so staggered content doesn't arrive late.
+  Perpetual loops are few and deliberate: the mic's ring while recording, and
+  in the landing hero the mascot's float and his orbit's slow turn
+  (`--dur-float`, `--dur-orbit`, `--ease-float`), paused while the hero is
+  off-screen. Scroll-driven animation is landing-only (hero parallax, the
+  report's tilt, the footer wordmark) and sits behind
+  `@supports (animation-timeline: view())` **and** a
+  `prefers-reduced-motion: no-preference` query: the global reduced-motion rule
+  shortens durations, and a scroll timeline ignores duration. Loops and scroll
+  effects animate the individual `translate` / `rotate` properties so they
+  compose with an element's own `transform`. The global reduced-motion rule
+  also zeroes delays, so staggered content doesn't arrive late.
 - **Page furniture:** `.page-sub` (one line under a page title), `.field` /
   `.field-label` / `.field-hint` / `.field-error` (label above, 8px gaps), and
   `.empty-state` (dashed box: icon, heading, one sentence, one action).
@@ -576,7 +595,11 @@ to the section's `h2` (`tabIndex=-1`) so keyboard users land where they asked.
   copy (`aria-live="polite"` in the hero, where clicks change it), and
   reduced motion shows it whole at once.
 - **Layout:** full-width bands, each with a centred `.inner` column
-  (`--shell-width-public`, 1160px), separated by 1px rules. The landing
+  (`--shell-width-public`, 1160px), in different tones so the page reads as
+  sections rather than one dark sheet: hero on the page ink, "How it works" on
+  pine, the tools strip on slate, Pricing on ink, the closing on mint
+  (`data-surface`, see "Design system"), each with a 1px top rule in its own
+  border colour. The landing
   `<main>` is **not** an `.app-shell` (the legal pages still are). It reads at
   the public type scale in `tokens.css`: `--fs-public-body/lede/h3/h2`,
   `--text-secondary` for paragraphs, `--public-section-pad`, `--public-measure`.
@@ -590,8 +613,20 @@ to the section's `h2` (`tabIndex=-1`) so keyboard users land where they asked.
 - **Hero:** headline, one sentence, one "Start free" button with "Free plan.
   No card needed." beside it (visitors only), the split-flap "Now
   interviewing" board, and "Try a sample question"; the mascot on the right
-  inside a flat mint disc and a dashed orbit (`.halo`), the typing bubble above
-  him. Under 860px it stacks: copy, then bubble, then mascot.
+  inside a flat mint disc (`.halo`) and a dashed orbit (`Orbit`) that turns
+  once every 90s carrying five icon tiles (each counter-rotates, so it stays
+  upright), the typing bubble above him. He floats gently (`.buddyFloat`, a
+  wrapper of its own: the button and the active pose already move). Both
+  loops pause off-screen (`data-paused`, set by an observer on the hero).
+  The art is two layers for **parallax** on wide screens: `.heroDepth` (disc,
+  orbit) and `.heroFront` (bubble and mascot, moving together so the bubble's
+  tail stays on him). As the hero scrolls away the copy rises and fades, the
+  front sinks behind the hero's bottom edge and the back lags furthest (the
+  hero's own view timeline, `--hero`; the hero is `overflow: clip`, not
+  hidden, so it isn't a scroll container); with a mouse, the layers also lean
+  a few pixels toward / away from the pointer (`--pointer-x/-y`, written once
+  a frame). Under 860px it stacks: copy, then bubble, then mascot, with no
+  orbit and no parallax.
 - **Try a sample question** (`screens/landingSamples.js`, tested): five role
   buttons (`aria-pressed`). Picking one flips the board to that role (the
   board's `value` prop, cutting its intro short), switches the mascot to
@@ -610,27 +645,52 @@ to the section's `h2` (`tabIndex=-1`) so keyboard users land where they asked.
   hello. All poses stack in one square frame anchored at the bottom and
   crossfade; only `welcome` loads with the page, the rest after `load`, so
   they're ready before anyone interacts.
-- **How a practice interview goes** (`SESSION`): three numbered beats,
-  alternating sides: copy, and a bordered "stage" card the mascot stands in,
-  cut off at the waist by its bottom edge, with what he says above him. Under
-  them, the **top of a real feedback report** (`feedback-report.webp`, with an
-  `m-` phone twin served through `<picture>` under 680px).
-- **More than mock interviews** (`TOOLS`): Job matches, Resume builder,
-  Progress, Applications as one ruled four-column strip, an icon and one line
-  each. No screenshots, no tabs.
+- **How a practice interview goes** (`SESSION`), on pine. Wide screens
+  (above 860px) tell it as **one pinned stage**: the three steps are tall
+  (64vh each) and scroll past on the left, while `StoryStage` sticks on the
+  right, centred under the header (`--story-stage-height`), and shows the step
+  in the middle of the screen (an observer with a `-45%` root margin sets
+  `data-active`): its pose crossfades in with a hop, its line types into the
+  bubble, and a small split-flap counter turns ("02 of 03"). The other steps
+  dim, and each has a huge outlined numeral behind it (`--fs-numeral`) whose
+  outline turns mint while it's on stage. Phones keep the old layout, a
+  bordered stage card under each step (the per-step `.stage` and small step
+  board, hidden on wide screens). All the stages are aria-hidden; what the
+  mascot says is an `sr-only` line in each step's copy. Under the steps, the
+  **top of a real feedback report** (`feedback-report.webp`, with an `m-`
+  phone twin served through `<picture>` under 680px), which arrives tilted
+  back and flattens as it reaches the middle of the screen, with the mascot
+  (holding his chart) peeking over its top edge.
+- **Peeks** (`Peek`): the mascot standing behind an edge, his top half
+  showing. A box sitting on the edge clips him at it; he rises from below
+  when the block is first revealed, and a little more on hover. Two: over the
+  report, and a thumbs-up over a plan card (Ultimate on wide screens; once
+  the cards stack, the first card, with room made above it). The plan card
+  one goes through `PlanComparison`'s `renderPeek(planId)`, which `/plans`
+  doesn't pass.
+- **More than mock interviews** (`TOOLS`), on slate: Job matches, Resume
+  builder, Progress, Applications as one ruled four-column strip, an icon and
+  one line each. No screenshots, no tabs.
 - **Pricing** (`id="pricing"`, `/pricing`): `PlanComparison` with
   `showTable={false}`: the three cards only (the full comparison table lives
   on `/plans`), and a one-line renewal / refund note. Paid cards say "Coming
   soon" while billing is off. See "Plans & billing".
-- **Closing:** the celebrating mascot, one line, "Start free".
+- **Closing**, on mint: the celebrating mascot on an ink disc with a dashed
+  ring (his own mint trim would vanish on the mint), one line with its accent
+  words in a deep green (`--band-accent-ink`), and an ink "Start free".
 - **Contact:** `SiteFooter` (`id="contact"`): wordmark and one line on the left,
   the Contact heading with plain `mailto:` and GitHub links on the right, legal
-  row below. The email comes from `legal/business.js`.
-- **Motion** is one-shot, never a loop: the hero headline rises word by word,
-  the lede and button follow, the mascot settles in, the bubble pops and
-  types. Below the fold `data-reveal` blocks rise in when first seen; a
-  stage's mascot hops into place and its bubble pops after it; the closing
-  mascot hops too.
+  row below. The email comes from `legal/business.js`. Under it, on every
+  public page, the wordmark again as a graphic: `--fs-giant`, one tone up from
+  the footer, clipped so it runs off the bottom of the page, rising into place
+  over the last stretch of scroll.
+- **Motion:** the hero headline rises word by word, the lede and button
+  follow, the mascot settles in, the bubble pops and types. Below the fold
+  `data-reveal` blocks rise in when first seen; a phone stage's mascot hops
+  into place and its bubble pops after it; peeks rise; the closing disc pops
+  and its mascot hops. The only loops are in the hero (the float, the orbit,
+  and the board turning every few seconds); the depth effects are the hero
+  parallax, the pinned stage and the report's tilt.
 - **Kinetic headings** (`components/KineticText.jsx`): every landing `h1`/`h2`
   is split into words, each rising out of its own mask, staggered via the
   inline `--reveal-delay`. `trigger="load"` (the hero) plays on mount;
@@ -644,8 +704,14 @@ to the section's `h2` (`tabIndex=-1`) so keyboard users land where they asked.
   button ("Now interviewing") turns through `BOARD_INTRO` once (the sample
   roles), and settles on mint **YOUR NEXT JOB**. It starts when first on
   screen and skips to the end if the tab is hidden. After that the page
-  drives it through `value` (a picked role); a new value cuts the intro
-  short. Tiles only turn forward through the drum
+  drives it through `value`: every time the board comes to rest (`onSettle`)
+  the page schedules the next `BOARD_IDLE` line 4.5s later, so it keeps
+  turning like a real departures board, waiting while the hero is off-screen
+  or the tab hidden. A picked role stops that for good and shows the role; a
+  new value cuts the intro short. Reduced motion: it stays on the finale. The
+  component itself never loops. `BOARD_IDLE` must never repeat a line twice
+  running, wrap included (the board would have nothing to turn and the cycle
+  would stall); the test checks. Tiles only turn forward through the drum
   (`FLAP_CHARS`), at most six turns each, starting left to right; each
   changed tile remounts and its bottom half falls from the hinge
   (`--dur-flap`). Sizes are `--flap-*` tokens, shrunk under 680px so 17
@@ -663,9 +729,9 @@ to the section's `h2` (`tabIndex=-1`) so keyboard users land where they asked.
   3. a role button pops as it becomes `aria-pressed` (CSS animation keyed on
      the attribute);
   4. "Another question"'s refresh icon turns half a turn per press (`spins`);
-  5. step "stages": border brightens, the mascot leans in, the bubble lifts.
-     Their reveal is now an **animation with a backwards fill**, not a
-     transition and not `both`, so the hover isn't delayed or pinned;
+  5. a peeking mascot rises a little further over his edge on hover. His
+     entrance is an **animation with a backwards fill**, not a transition and
+     not `both`, so the hover isn't delayed or pinned;
   6. the tools strip: the icon tile fills mint and the icon moves its own way
      (`data-motion`: rise / tilt / lift / slide);
   7. plan cards (`PlanComparison`, so `/plans` too): a 2px lift and a

@@ -21,6 +21,10 @@ import styles from "./SplitFlap.module.css";
  *
  * `accent` inks every tile mint; `settleAccent` only while the board is at
  * rest (the hero's "YOUR NEXT JOB", or a role a visitor picked).
+ *
+ * `onSettle` is called each time a run comes to rest (the intro, a driven
+ * turn, or a skip to the end). The board itself still never loops: the hero
+ * uses this to feed it its next `value` a few seconds later.
  */
 
 const TICK_MS = 60;
@@ -38,6 +42,7 @@ export default function SplitFlap({
   size = "md",
   accent = false,
   settleAccent = false,
+  onSettle,
   className = "",
 }) {
   const w = width ?? Math.max(...sequence.map((s) => s.length));
@@ -62,10 +67,14 @@ export default function SplitFlap({
     setBoard(line);
   }, []);
 
+  const onSettleRef = useRef(onSettle);
+  onSettleRef.current = onSettle;
+
   const setRunning = useCallback((running) => {
     playingRef.current = running;
     setPlaying(running);
     setSettled(!running);
+    if (!running) onSettleRef.current?.();
   }, []);
 
   const finish = useCallback(() => {

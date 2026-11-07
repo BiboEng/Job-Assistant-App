@@ -1,15 +1,24 @@
 /*
  * The landing page. Full-width bands, each with a centred .inner column, so a
- * section can carry its own background edge to edge. Same dark theme
- * throughout; the mascot carries the colour, so the chrome around him stays
- * quiet: 1px borders, flat fills, one mint accent.
+ * section can carry its own background edge to edge. The sections run through
+ * different tones (data-surface on the section: pine, slate, then mint for
+ * the closing; tokens.css re-points the neutral tokens inside each), so the
+ * page reads as distinct sections rather than one long dark sheet. Inside a
+ * section the chrome stays quiet: 1px borders, flat fills, one accent.
  *
  * Type is the public reading layer from tokens.css (--fs-public-*,
  * --text-secondary): larger and brighter than the app's, because people read
  * paragraphs here rather than labels.
  *
- * Motion is one-shot only (nothing loops): the hero settles in and types one
- * line, and below the fold each block rises in the first time it's seen.
+ * Motion. One-shot entrances: the hero settles in and types one line, and
+ * below the fold each block rises in the first time it's seen. A few idle
+ * loops, in the hero only: the mascot floats and his orbit turns slowly
+ * (paused while the hero is off-screen, [data-paused]). Depth on wide
+ * screens: hero parallax (scroll and mouse), a pinned "How it works" stage,
+ * the report tilting flat as it arrives. Scroll-driven pieces sit behind
+ * @supports (animation-timeline) and a prefers-reduced-motion check: the
+ * global reduced-motion rule shortens time-based animations, but a scroll
+ * timeline ignores duration, so those must be switched off explicitly.
  */
 
 .page {
@@ -106,6 +115,36 @@
   }
 }
 
+/* The idle loops. They animate the individual `rotate` / `translate`
+   properties, so they compose with any `transform` the same element has. */
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes float {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 calc(-1 * var(--float-distance));
+  }
+}
+
+/* --- section surfaces --------------------------------------------------------- */
+
+/* A section with data-surface fills with its own tone (--band-bg) and sets
+   its text colour again: `color` is inherited as a resolved value, so text
+   would otherwise keep the page's light ink on the mint section. */
+.hero,
+.band,
+.tools,
+.closing {
+  background: var(--band-bg);
+  color: var(--text);
+}
+
 /* --- the mascot and his speech bubble ----------------------------------------- */
 
 .mascot {
@@ -168,7 +207,7 @@
   background: var(--accent);
 }
 
-/* A flat mint disc behind a mascot, with a dashed orbit around it. */
+/* A flat mint disc behind the hero mascot. */
 .halo {
   position: absolute;
   left: 50%;
@@ -181,19 +220,65 @@
   transform: translate(-50%, -50%);
   animation: fade var(--dur-reveal) var(--ease) 200ms both;
 }
-.halo::after {
-  content: "";
+
+/* His orbit: a dashed ring around the disc that turns once every
+   --dur-orbit, carrying five icon tiles. Each tile turns back the other way
+   at the same rate (spin, reversed), so it stays upright as it travels. */
+.orbit {
   position: absolute;
-  inset: -9%;
+  left: 50%;
+  top: 58%;
+  width: 104%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-round);
+  animation: fade var(--dur-reveal) var(--ease) 200ms both,
+    spin var(--dur-orbit) linear infinite;
+}
+
+.orbitItem {
+  position: absolute;
+  translate: -50% -50%;
+  animation: spin var(--dur-orbit) linear infinite reverse;
+}
+
+.orbitTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  box-shadow: var(--inner-highlight);
+  color: var(--accent);
+  /* Pop onto the ring one after another once the mascot has settled. */
+  animation: tilePop var(--dur-pop) var(--ease) var(--reveal-delay) backwards;
+}
+
+@keyframes tilePop {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
 }
 
 /* --- hero: copy left, the mascot saying hello right ---------------------------- */
 
 .hero {
   padding-block: var(--sp-10) var(--public-section-pad);
-  overflow: hidden;
+  /* clip, not hidden: hidden would make the hero a scroll container, and the
+     scroll-driven parallax below needs the page to be the scroller. */
+  overflow: clip;
+}
+
+/* Off-screen, the idle loops hold still (LandingScreen sets data-paused). */
+.hero[data-paused] .orbit,
+.hero[data-paused] .orbitItem,
+.hero[data-paused] .buddyFloat {
+  animation-play-state: paused;
 }
 
 .heroInner {
@@ -336,11 +421,32 @@
   text-transform: uppercase;
 }
 
+/* The art is two layers, so they can move at different depths: behind, the
+   disc and orbit (.heroDepth, absolutely filling the art); in front, the
+   bubble and the mascot (.heroFront, which sets the art's size). */
 .heroArt {
   position: relative;
   justify-self: center;
   width: min(100%, 440px);
+}
+
+.heroDepth {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.heroFront {
+  position: relative;
   padding-top: var(--sp-9);
+}
+
+/* Idle: the mascot floats up and down, gently and forever. A wrapper of its
+   own, because the button inside already moves (its entrance and press) and
+   so does the active pose (its hover lift). */
+.buddyFloat {
+  display: block;
+  animation: float var(--dur-float) var(--ease-float) 1.4s infinite alternate both;
 }
 
 /* The mascot is a button (pressing him changes his expression). Every pose
@@ -407,6 +513,68 @@
   left: 78%;
 }
 
+/* Pointer parallax (wide screens, a mouse): the front layer leans a few
+   pixels toward the pointer and the back layer away from it, easing after
+   it. --pointer-x/-y are written inline, once a frame. */
+@media (min-width: 861px) and (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .heroDepth,
+  .heroFront {
+    transition: transform var(--dur-reveal) var(--ease);
+  }
+  .heroDepth {
+    transform: translate3d(calc(var(--pointer-x) * -10px), calc(var(--pointer-y) * -8px), 0);
+  }
+  .heroFront {
+    transform: translate3d(calc(var(--pointer-x) * 8px), calc(var(--pointer-y) * 6px), 0);
+  }
+}
+
+/* Scroll parallax (wide screens): as the hero scrolls away, the copy rises
+   a little faster than the page and fades, the mascot and his bubble sink
+   behind the hero's bottom edge, and the disc and orbit lag furthest. Driven
+   by the hero's own view timeline, over the part of the scroll where it
+   leaves the screen. Animates `translate`, so it adds to the mouse's
+   `transform` rather than replacing it. */
+@supports (animation-timeline: view()) {
+  @media (min-width: 861px) and (prefers-reduced-motion: no-preference) {
+    .hero {
+      view-timeline: --hero block;
+    }
+    .heroCopy {
+      animation: driftCopy linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+    .heroFront {
+      animation: driftFront linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+    .heroDepth {
+      animation: driftDepth linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+  }
+}
+
+@keyframes driftCopy {
+  to {
+    translate: 0 -56px;
+    opacity: 0.2;
+  }
+}
+@keyframes driftFront {
+  to {
+    translate: 0 72px;
+  }
+}
+@keyframes driftDepth {
+  to {
+    translate: 0 150px;
+  }
+}
+
 @media (max-width: 860px) {
   .heroInner {
     grid-template-columns: minmax(0, 1fr);
@@ -416,10 +584,12 @@
     max-width: 18ch;
   }
   .heroArt {
+    width: min(100%, 340px);
+  }
+  .heroFront {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: min(100%, 340px);
     padding-top: 0;
   }
   .heroBubble {
@@ -432,12 +602,16 @@
   .heroBubble::after {
     left: 50%;
   }
-  .buddy {
+  .buddyFloat {
     width: 82%;
   }
   .halo {
     top: 66%;
     width: 80%;
+  }
+  /* Stacked, the art is small and sits under the buttons: no orbit. */
+  .orbit {
+    display: none;
   }
 }
 
@@ -479,7 +653,17 @@
   line-height: var(--lh-relaxed);
 }
 
-/* --- how a session goes: copy and a mascot "stage", sides alternating ------------ */
+/* --- how a session goes: the steps scroll past a pinned stage ------------------ */
+
+/* Wide screens: two columns. The steps (left) are tall, so each takes its
+   turn in the middle of the screen; the stage (right) sticks there and shows
+   whichever step is in the middle ([data-active] on that step). The other
+   steps dim. Phones get a stage under each step instead (further down). */
+.story {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-9);
+}
 
 .beats {
   margin: 0;
@@ -488,25 +672,56 @@
 }
 
 .beat {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: var(--sp-9);
+  min-height: 64vh;
+  opacity: 0.4;
+  transition: opacity var(--dur-enter) var(--ease);
 }
-.beat + .beat {
-  margin-top: var(--sp-9);
+.beat[data-active] {
+  opacity: 1;
 }
 
-.beatFlip .stage {
-  order: -1;
+/* Each step's own stage is the phone layout; here the pinned one stands in. */
+.beat .stage {
+  display: none;
 }
 
 .beatCopy {
+  position: relative;
   max-width: 44ch;
+}
+
+/* Type as a graphic: the step's number, huge and outlined, behind its copy.
+   Its outline turns mint while the step is the one on stage. */
+.numeral {
+  position: absolute;
+  top: 50%;
+  left: calc(-1 * var(--sp-3));
+  translate: 0 -118%;
+  font-size: var(--fs-numeral);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  letter-spacing: var(--ls-display);
+  color: transparent;
+  -webkit-text-stroke: 1px var(--border-strong);
+  user-select: none;
+  pointer-events: none;
+  transition: -webkit-text-stroke-color var(--dur-enter) var(--ease);
+}
+.beat[data-active] .numeral {
+  -webkit-text-stroke-color: var(--accent-border);
 }
 
 .beatStep {
   display: inline-flex;
+}
+
+/* Wide screens already number the step twice (the numeral behind it, the
+   counter on the stage), so its own small board is for phones only. */
+.beat .beatStep {
+  display: none;
 }
 
 .beatTitle {
@@ -525,8 +740,97 @@
   line-height: var(--lh-relaxed);
 }
 
+/* The pinned stage: the right column runs the full height of the steps, and
+   the stage inside it sticks, centred in the space under the header. */
+.pinned {
+  position: relative;
+}
+
+.pinnedStage {
+  position: sticky;
+  top: calc((100vh + var(--public-header-offset) - var(--story-stage-height)) / 2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-4);
+  height: var(--story-stage-height);
+  padding: var(--sp-9) var(--sp-6) 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--inner-highlight);
+}
+
+/* The mint disc he stands in front of, sunk below the stage's bottom edge. */
+.pinnedStage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -26%;
+  width: 76%;
+  aspect-ratio: 1;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-round);
+  background: var(--accent-softer);
+  transform: translateX(-50%);
+}
+
+/* Top left: which step is on stage, on a small split-flap board. */
+.pinnedHead {
+  position: absolute;
+  top: var(--sp-4);
+  left: var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pinnedOf {
+  color: var(--text-subtle);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+}
+
+.pinnedBubble {
+  max-width: 360px;
+  transform-origin: 50% 100%;
+}
+
+/* The poses stacked in one square frame, anchored at the bottom (they're
+   different shapes), sunk below the edge so he's cut off at the waist. */
+.pinnedBuddy {
+  position: relative;
+  flex-shrink: 0;
+  width: min(330px, 78%);
+  aspect-ratio: 1;
+  margin-bottom: calc(-1 * var(--sp-9));
+}
+
+.pinnedPose {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  opacity: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+
+/* The incoming pose fades in with a hop. */
+.pinnedPoseOn {
+  opacity: 1;
+  animation: hop var(--dur-reveal) var(--ease);
+}
+
 /* A card the mascot stands in, cut off at the waist by its bottom edge like a
-   person behind a desk, with what he's saying above him. */
+   person behind a desk, with what he's saying above him (phones: one per
+   step). */
 .stage {
   position: relative;
   display: flex;
@@ -561,14 +865,14 @@
 }
 
 .stageMascot {
-  width: 230px;
+  width: 190px;
   /* Sink him a little below the card's edge, so he's cut off at the waist. */
-  margin-bottom: calc(-1 * var(--sp-9));
+  margin-bottom: calc(-1 * var(--sp-7));
 }
 
 /* When a stage first scrolls into view: the mascot hops up into place, then
    the bubble pops. Both are animations with a backwards fill (not
-   transitions, not `both`), so once they've played, the hover below is free
+   transitions, not `both`), so once they've played, the press below is free
    to move them with no delay and nothing pinned in place. */
 .page[data-reveal-ready] .stage[data-revealed] .stageMascot {
   animation: hop var(--dur-reveal) var(--ease) 120ms backwards;
@@ -580,54 +884,46 @@
   opacity: 0;
 }
 
-/* Micro-interaction: hovering a stage brightens its edge, the mascot leans
-   in and his bubble lifts. The reveal rule above owns the stage's
-   transition list, so the border's is added here with the same weight. */
-.stageMascot,
-.stageBubble {
-  transition: transform var(--dur-slow) var(--ease);
-}
-.page[data-reveal-ready] .stage[data-reveal] {
-  transition: opacity var(--dur-enter) var(--ease) var(--reveal-delay),
-    transform var(--dur-enter) var(--ease) var(--reveal-delay),
-    border-color var(--dur) var(--ease);
-}
-@media (hover: hover) {
-  .stage:hover {
-    border-color: var(--border-strong);
-  }
-  .stage:hover .stageMascot {
-    transform: translateY(-6px) rotate(-2deg);
-  }
-  .stage:hover .stageBubble {
-    transform: translateY(-3px);
-  }
-}
-
 @media (max-width: 860px) {
+  .story {
+    display: block;
+  }
+  .pinned {
+    display: none;
+  }
   .beat {
+    display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: var(--sp-5);
+    min-height: 0;
+    opacity: 1;
   }
   .beat + .beat {
     margin-top: var(--sp-9);
   }
-  .beatFlip .stage {
-    order: 0;
+  .beat .stage {
+    display: flex;
   }
-  .stageMascot {
-    width: 190px;
-    margin-bottom: calc(-1 * var(--sp-7));
+  .beat .beatStep {
+    display: inline-flex;
+  }
+  .numeral {
+    display: none;
   }
 }
 
-/* --- the sample report under the beats ------------------------------------------- */
+/* --- the sample report under the steps ------------------------------------------ */
 
+/* Room above it for the mascot peeking over its top edge. */
 .report {
-  margin: var(--sp-9) 0 0;
+  margin: calc(var(--sp-9) * 2.5) 0 0;
 }
 
-.report picture {
+.reportFrame {
+  position: relative;
+}
+
+.reportFrame picture {
   display: block;
   overflow: hidden;
   border: 1px solid var(--border-strong);
@@ -636,10 +932,33 @@
   box-shadow: var(--inner-highlight);
 }
 
-.report img {
+.reportFrame img {
   display: block;
   width: 100%;
   height: auto;
+}
+
+/* The report arrives tilted back, its top edge away from you, and flattens
+   as it reaches the middle of the screen: scroll-linked, so it's as fast or
+   slow as the reader. Static without support or with reduced motion. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reportFrame {
+      transform-origin: 50% 100%;
+      animation: reportTilt linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 45%;
+    }
+  }
+}
+
+@keyframes reportTilt {
+  from {
+    transform: perspective(1600px) rotateX(20deg) scale(0.92);
+  }
+  to {
+    transform: perspective(1600px) rotateX(0deg) scale(1);
+  }
 }
 
 .reportCaption {
@@ -648,12 +967,103 @@
   font-size: var(--fs-sm);
 }
 
+@media (max-width: 860px) {
+  .report {
+    margin-top: calc(var(--sp-9) * 2);
+  }
+}
+
+/* --- the mascot peeking over an edge -------------------------------------------- */
+
+/* A clipping box sitting on top of an edge (a card's, the report's): the
+   mascot inside stands behind that edge, so only his top half shows. A
+   little headroom above him, so he can rise on hover without losing his
+   hair. He comes up from below the edge when the block is first revealed. */
+.peek {
+  position: absolute;
+  bottom: 100%;
+  overflow: clip;
+}
+
+.peekImg {
+  position: absolute;
+  left: 0;
+  top: var(--sp-3);
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: translate var(--dur-slow) var(--ease);
+}
+
+.page[data-reveal-ready] [data-reveal]:not([data-revealed]) .peekImg {
+  translate: 0 110%;
+}
+.page[data-reveal-ready] [data-revealed] .peekImg {
+  animation: peekUp var(--dur-reveal) var(--ease) 350ms backwards;
+}
+
+@keyframes peekUp {
+  from {
+    translate: 0 110%;
+  }
+}
+
+@media (hover: hover) {
+  .peek:hover .peekImg {
+    translate: 0 calc(-1 * var(--sp-2));
+  }
+}
+
+/* Over the report: holding his chart. */
+.peekReport {
+  right: var(--sp-9);
+  width: 168px;
+  height: 108px;
+}
+
+/* Over a plan card: a thumbs-up. The Ultimate card on wide screens; once the
+   cards stack, the first card (the space above the others is another
+   card's button). */
+.peekPlanWide {
+  right: var(--sp-6);
+  width: 112px;
+  height: 100px;
+}
+
+.peekPlanStacked {
+  display: none;
+  right: var(--sp-5);
+  width: 96px;
+  height: 86px;
+}
+
+@media (max-width: 880px) {
+  .peekPlanWide {
+    display: none;
+  }
+  .peekPlanStacked {
+    display: block;
+  }
+  /* Room above the first card for him. */
+  .pricingCards {
+    padding-top: var(--sp-9);
+  }
+}
+
+@media (max-width: 860px) {
+  .peekReport {
+    right: var(--sp-4);
+    width: 110px;
+    height: 72px;
+  }
+}
+
 /* --- the other tools: one ruled strip -------------------------------------------- */
 
 .tools {
   padding-block: var(--sp-9);
   border-top: 1px solid var(--border);
-  background: var(--surface);
 }
 
 .toolsTitle {
@@ -777,12 +1187,10 @@
   color: var(--secondary);
 }
 
-/* --- closing: the mascot celebrating, one line, the action ------------------------ */
+/* --- closing: the mint section, the mascot celebrating, one line, the action ----- */
 
 .closing {
   padding-block: var(--public-section-pad);
-  border-top: 1px solid var(--border);
-  background: var(--surface);
 }
 
 .closingInner {
@@ -790,6 +1198,36 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+}
+
+/* He stands on an ink disc with a dashed ring round it (the hero's orbit,
+   still): on the mint background his own mint trim would disappear. */
+.closingMascotWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--sp-7);
+}
+
+.closingDisc {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 236px;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: var(--radius-round);
+  background: var(--bg);
+}
+.closingDisc::after {
+  content: "";
+  position: absolute;
+  inset: -8%;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-round);
+}
+.closingInner[data-revealed] .closingDisc {
+  animation: pop var(--dur-reveal) var(--ease) backwards;
 }
 
 .closingMascot {
@@ -802,9 +1240,9 @@
 /* Micro-interaction: hover (mouse) or tap and he hops again. The wrapper
    carries this hop, so it can't fight the image's own reveal hop; it's a
    separately named keyframe so re-adding the class always restarts it. */
-.closingMascotWrap {
+.closingHopper {
+  position: relative;
   display: block;
-  margin-bottom: var(--sp-6);
 }
 .hopAgain {
   animation: hopAgain var(--dur-reveal) var(--ease);
@@ -831,6 +1269,11 @@
   line-height: var(--lh-tight);
   letter-spacing: var(--ls-display);
   text-wrap: balance;
+}
+
+/* On mint the accent can't be mint: a deep green ink instead. */
+.closingAccent {
+  color: var(--band-accent-ink);
 }
 
 .closingBody {

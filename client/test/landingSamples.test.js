@@ -4,6 +4,7 @@ import {
   SAMPLE_ROLES,
   BOARD_INTRO,
   BOARD_FINALE,
+  BOARD_IDLE,
   BOARD_WIDTH,
   MASCOT_CLICKS,
 } from "../src/screens/landingSamples.js";
@@ -20,6 +21,20 @@ test("every board line fits the board and uses only characters it can show", () 
     for (const ch of line) assert.ok(FLAP_CHARS.includes(ch), `"${line}" has "${ch}"`);
   }
   assert.equal(BOARD_INTRO.at(-1), BOARD_FINALE);
+});
+
+test("the idle cycle fits the board and never shows the same line twice running", () => {
+  assert.ok(BOARD_IDLE.length >= 2);
+  BOARD_IDLE.forEach((line, i) => {
+    assert.ok(line.length <= BOARD_WIDTH, `"${line}" is wider than ${BOARD_WIDTH} tiles`);
+    for (const ch of line) assert.ok(FLAP_CHARS.includes(ch), `"${line}" has "${ch}"`);
+    // The cycle wraps, so the last line is followed by the first. A repeat
+    // would leave the board with nothing to turn, and the cycle would stall.
+    const next = BOARD_IDLE[(i + 1) % BOARD_IDLE.length];
+    assert.notEqual(line, next, `"${line}" twice in a row`);
+  });
+  // The intro ends on the finale, so the cycle mustn't start on it either.
+  assert.notEqual(BOARD_IDLE[0], BOARD_FINALE);
 });
 
 test("each role's board line is its label, upper-cased", () => {
