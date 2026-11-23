@@ -135,7 +135,9 @@ export default function ProgressScreen({
       {error && (
         <div className="error-banner" role="alert">
           <Icon name="alert" />
-          <span>Couldn't load your progress: {error}</span>
+          <span>
+            <strong>Couldn't load your progress.</strong> {error}
+          </span>
           <button type="button" className="btn-ghost btn-sm" onClick={() => setReloadKey((k) => k + 1)}>
             Try again
           </button>
@@ -822,7 +824,9 @@ function Themes({ role }) {
       {state.status === "error" && (
         <div className="error-banner" role="alert">
           <Icon name="alert" />
-          <span>Couldn't summarise feedback for this role: {state.message}</span>
+          <span>
+            <strong>Couldn't summarize the feedback for this role.</strong> {state.message}
+          </span>
           <button type="button" className="btn-ghost btn-sm" onClick={() => setAttempt((a) => a + 1)}>
             Try again
           </button>

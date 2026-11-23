@@ -34,7 +34,7 @@ export async function getInterviewsList(req, res, next) {
 export async function getInterviewDetail(req, res, next) {
   try {
     const record = await getInterview(req.params.id, req.clientId);
-    if (!record) return res.status(404).json({ error: "Interview not found." });
+    if (!record) return res.status(404).json({ error: "We couldn't find that interview. It may have been deleted." });
     const limit = req.plan?.historyVisible ?? null;
     if (!(await isWithinNewest(record.id, req.clientId, limit))) {
       return denyFeature(res, {
@@ -57,21 +57,21 @@ export async function getInterviewDetail(req, res, next) {
 export async function createInterview(req, res, next) {
   try {
     if (!req.clientId) {
-      return res.status(400).json({ error: "A client id is required to save history." });
+      return res.status(400).json({ error: "We couldn't save this interview. Sign in again and retry." });
     }
 
     const { sessionId } = req.body ?? {};
     if (typeof sessionId !== "string" || !sessionId) {
-      return res.status(400).json({ error: "sessionId is required." });
+      return res.status(400).json({ error: "We couldn't save this interview. Please try again." });
     }
 
     const session = getSession(sessionId, { touch: false });
     if (!session) {
-      return res.status(404).json({ error: "Session not found or expired." });
+      return res.status(404).json({ error: "This interview has expired, so it can't be saved anymore." });
     }
     assertOwner(session, req);
     if (!session.feedback) {
-      return res.status(400).json({ error: "This interview has no feedback yet." });
+      return res.status(400).json({ error: "This interview hasn't been scored yet, so it can't be saved." });
     }
 
     if (session.savedInterviewId) {
@@ -107,7 +107,7 @@ export async function createInterview(req, res, next) {
 export async function removeInterview(req, res, next) {
   try {
     const removed = await deleteInterview(req.params.id, req.clientId);
-    if (!removed) return res.status(404).json({ error: "Interview not found." });
+    if (!removed) return res.status(404).json({ error: "We couldn't find that interview. It may have been deleted." });
     res.status(204).end();
   } catch (err) {
     next(err);

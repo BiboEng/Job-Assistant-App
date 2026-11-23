@@ -90,7 +90,7 @@ export async function withModelBudget(fn, { kind = "interview" } = {}) {
 
   if (modelCallsPerDay > 0 && callsThisWindow >= modelCallsPerDay) {
     throw budgetError(
-      "The service has hit its daily capacity. Please try again later.",
+      "Jobuddy is at capacity for today. Please try again later.",
       503
     );
   }

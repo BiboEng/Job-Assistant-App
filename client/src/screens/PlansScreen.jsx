@@ -241,7 +241,9 @@ export default function PlansScreen({
       {plan.status === "error" && (
         <div className="error-banner" role="alert">
           <Icon name="alert" />
-          <span>Couldn't load your plan: {plan.error}</span>
+          <span>
+            <strong>Couldn't load your plan.</strong> {plan.error}
+          </span>
           <button type="button" className="btn-ghost" onClick={plan.refresh}>
             Try again
           </button>

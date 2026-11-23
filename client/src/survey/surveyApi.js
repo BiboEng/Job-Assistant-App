@@ -1,4 +1,5 @@
 import { supabase } from "../auth/supabaseClient.js";
+import { supabaseMessage } from "../api/errors.js";
 import { answersToRow, emptyAnswers, rowToAnswers } from "./surveyMapping.js";
 
 /**
@@ -55,7 +56,8 @@ export async function fetchSurvey(userId) {
     if (isMissingTable(error)) {
       return { available: false, status: "none", answers: emptyAnswers() };
     }
-    throw new Error(error.message || "Could not load your survey answers.");
+    console.error("[survey]", error);
+    throw new Error(supabaseMessage(error, "Couldn't load your survey answers. Please try again."));
   }
 
   return {
@@ -96,7 +98,8 @@ export async function saveSurvey(userId, answers, status = "completed") {
         "The survey table hasn't been created yet. Apply supabase/migrations/ to your project and try again."
       );
     }
-    throw new Error(error.message || "Could not save your answers.");
+    console.error("[survey]", error);
+    throw new Error(supabaseMessage(error, "Couldn't save your answers. Please try again."));
   }
 }
 

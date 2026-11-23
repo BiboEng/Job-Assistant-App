@@ -156,7 +156,7 @@ app.use(
 
 // 404
 app.use((_req, res) => {
-  res.status(404).json({ error: "Not found" });
+  res.status(404).json({ error: "We couldn't find that." });
 });
 
 // Central error handler. 4xx messages (and errors explicitly marked safe) are
@@ -170,14 +170,14 @@ app.use((err, _req, res, _next) => {
   // A malformed JSON body is a 400 from body-parser whose message is the raw
   // parser output — say it plainly instead of echoing that.
   if (err?.type === "entity.parse.failed") {
-    return res.status(400).json({ error: "The request body is not valid JSON." });
+    return res.status(400).json({ error: "Something went wrong sending that. Please try again." });
   }
 
   const message =
     err && typeof err.message === "string" ? err.message : "";
   const safe = status < 500 || (err && err.expose === true);
   res.status(status).json({
-    error: safe && message ? message : "Something went wrong. Please try again.",
+    error: safe && message ? message : "Something went wrong on our end. Please try again.",
   });
 });
 

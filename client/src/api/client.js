@@ -1,6 +1,7 @@
 import { REQUEST_TIMEOUT_MS } from "../constants.js";
 import { getClientId } from "../identity.js";
 import { supabase } from "../auth/supabaseClient.js";
+import { NETWORK_MESSAGE, TIMEOUT_MESSAGE, responseMessage } from "./errors.js";
 
 const BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_TOKEN = import.meta.env.VITE_API_TOKEN || "";
@@ -64,12 +65,12 @@ export async function request(path, options = {}) {
     });
   } catch (err) {
     if (err?.name === "AbortError") {
-      if (timedOut) throw new Error("The request timed out. Please try again.");
+      if (timedOut) throw new Error(TIMEOUT_MESSAGE);
       const aborted = new Error("Request cancelled.");
       aborted.aborted = true;
       throw aborted;
     }
-    throw new Error("Could not reach the server. Check your connection and try again.");
+    throw new Error(NETWORK_MESSAGE);
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener("abort", onCallerAbort);
@@ -83,7 +84,7 @@ export async function request(path, options = {}) {
   }
 
   if (!res.ok) {
-    const err = new Error(data?.error || `Request failed (${res.status})`);
+    const err = new Error(responseMessage(res.status, data));
     err.status = res.status;
     // Plan limits come back with a machine-readable code ("plan_feature",
     // "plan_quota") so a screen can offer "See plans" next to the message

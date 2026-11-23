@@ -141,7 +141,8 @@ export default function TrackerScreen({ onFindJobs, cardLimit = null, onOpenPlan
 
       {status === "error" && (
         <div className="error-banner" role="alert">
-          {error}{" "}
+          <Icon name="alert" />
+          <span>{error}</span>
           <button type="button" className="btn-ghost" onClick={reload}>
             Try again
           </button>

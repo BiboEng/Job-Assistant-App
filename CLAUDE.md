@@ -1989,7 +1989,14 @@ Other guards already in place:
 - Controllers validate and return `res.status(4xx).json({ error })` directly for
   input problems; they call `next(err)` for thrown/unexpected errors.
 - The client `request()` wrapper normalizes every failure to an `Error` with an
-  optional `.status` and a user-readable `.message`.
+  optional `.status` and a user-readable `.message`. The wording for failures
+  with nothing readable attached (network, timeout, a proxy's HTML error page,
+  any 401, Supabase's Postgres errors) lives in `api/errors.js` (pure, tested):
+  a user never sees a status code or a database message. Server `error`
+  strings are shown as-is, so write them for the user ("Paste a job
+  description…"), never as field names ("jobDescription is required").
+  Banners that prefix context put it in a `<strong>` lead sentence:
+  "**Couldn't load your history.** {reason}".
 - Keep `client/src/constants.js` in sync with `server/src/config.js`: length
   limits (job description, answer, resume `MIN/MAX_RESUME_LENGTH`,
   `MAX_INTERVIEW_RESUME_LENGTH`), the question-count range, `INTERVIEW_FOCUSES` ↔

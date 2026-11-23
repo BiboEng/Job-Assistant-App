@@ -258,6 +258,9 @@
      itself (on the mint section, where the accent is the background). */
   --band-accent-ink: var(--accent);
   --control-height: 32px;
+  /* A banner's action button: smaller than a control so it sits on the
+     message's first line (see .error-banner in index.css). */
+  --banner-action-height: 28px;
   --row-height: 44px;
   --public-header-offset: 72px;
 

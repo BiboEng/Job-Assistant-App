@@ -1,4 +1,5 @@
 import { supabase } from "../auth/supabaseClient.js";
+import { supabaseMessage } from "../api/errors.js";
 import { applicationToRow, rowToApplication } from "./applicationModel.js";
 
 /**
@@ -40,7 +41,8 @@ function fail(error, fallback) {
     err.missingTable = true;
     return err;
   }
-  const err = new Error(error?.message || fallback);
+  if (error) console.error("[applications]", error);
+  const err = new Error(supabaseMessage(error, fallback));
   err.code = error?.code;
   return err;
 }

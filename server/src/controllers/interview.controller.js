@@ -35,30 +35,30 @@ export async function startInterview(req, res, next) {
       req.body ?? {};
 
     if (typeof jobDescription !== "string") {
-      return res.status(400).json({ error: "jobDescription is required." });
+      return res.status(400).json({ error: "Paste a job description to start the interview." });
     }
     const jd = jobDescription.trim();
     if (jd.length < config.minJobDescriptionLength) {
       return res.status(400).json({
-        error: `jobDescription must be at least ${config.minJobDescriptionLength} characters.`,
+        error: `That job description is too short. Paste at least ${config.minJobDescriptionLength} characters so the questions can be tailored to it.`,
       });
     }
     if (jd.length > config.maxJobDescriptionLength) {
       return res.status(400).json({
-        error: `jobDescription must be at most ${config.maxJobDescriptionLength} characters.`,
+        error: `That job description is too long. Trim it to ${config.maxJobDescriptionLength.toLocaleString("en-US")} characters or fewer.`,
       });
     }
 
     if (focus != null && !config.interviewFocuses.includes(focus)) {
-      return res.status(400).json({ error: "Unknown interview focus." });
+      return res.status(400).json({ error: "Pick an interview focus from the list." });
     }
     if (mode != null && !config.interviewModes.includes(mode)) {
-      return res.status(400).json({ error: "Unknown interview mode." });
+      return res.status(400).json({ error: "Choose whether you'll type or speak your answers." });
     }
     let resume = "";
     if (resumeText != null) {
       if (typeof resumeText !== "string") {
-        return res.status(400).json({ error: "resumeText must be text." });
+        return res.status(400).json({ error: "Your resume couldn't be read. Paste it as plain text." });
       }
       resume = resumeText.trim().slice(0, config.maxInterviewResumeLength);
     }
@@ -160,13 +160,13 @@ function isReplay(session, questionNumber) {
 export async function submitAnswer(req, res, next) {
   try {
     const session = getSession(req.params.sessionId);
-    if (!session) return res.status(404).json({ error: "Session not found or expired." });
+    if (!session) return res.status(404).json({ error: "This interview has expired. Start a new one to keep practicing." });
     assertOwner(session, req);
 
     const { answer, questionNumber, timedOut, delivery } = req.body ?? {};
     const qn = questionNumber == null ? null : Number(questionNumber);
     if (qn != null && (!Number.isInteger(qn) || qn < 1)) {
-      return res.status(400).json({ error: "questionNumber must be a positive integer." });
+      return res.status(400).json({ error: "The interview got out of sync. Refresh the page to continue." });
     }
 
     if (qn != null && isReplay(session, qn)) {
@@ -188,16 +188,16 @@ export async function submitAnswer(req, res, next) {
     }
 
     if (typeof answer !== "string") {
-      return res.status(400).json({ error: "answer is required." });
+      return res.status(400).json({ error: "Write or say an answer before sending, or skip the question." });
     }
     // A normal submit needs content; a timed-out submit may be empty (the
     // question is then treated as skipped, like ending the interview early).
     if (answer.trim().length === 0 && !timedOut) {
-      return res.status(400).json({ error: "answer is required." });
+      return res.status(400).json({ error: "Write or say an answer before sending, or skip the question." });
     }
     if (answer.length > config.maxAnswerLength) {
       return res.status(400).json({
-        error: `answer must be at most ${config.maxAnswerLength} characters.`,
+        error: `That answer is too long. Keep it under ${config.maxAnswerLength.toLocaleString("en-US")} characters.`,
       });
     }
 
@@ -246,7 +246,7 @@ export async function generateFeedback(req, res, next) {
   let session;
   try {
     session = getSession(req.params.sessionId);
-    if (!session) return res.status(404).json({ error: "Session not found or expired." });
+    if (!session) return res.status(404).json({ error: "This interview has expired. Start a new one to keep practicing." });
     assertOwner(session, req);
 
     if (session.feedback) {
@@ -259,7 +259,7 @@ export async function generateFeedback(req, res, next) {
     const askedPairs = session.qaPairs.filter((p) => p.question);
     const answeredCount = askedPairs.filter((p) => p.answer && p.answer.trim()).length;
     if (answeredCount === 0) {
-      return res.status(400).json({ error: "No answers to evaluate yet." });
+      return res.status(400).json({ error: "Answer at least one question to get feedback." });
     }
 
     if (!beginProcessing(session)) {
@@ -319,7 +319,7 @@ export async function generateFeedback(req, res, next) {
  */
 export function getSessionState(req, res) {
   const session = getSession(req.params.sessionId, { touch: false });
-  if (!session) return res.status(404).json({ error: "Session not found or expired." });
+  if (!session) return res.status(404).json({ error: "This interview has expired. Start a new one to keep practicing." });
   assertOwner(session, req);
   return res.status(200).json(publicSession(session));
 }

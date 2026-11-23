@@ -15,7 +15,7 @@ import { withModelBudget } from "./modelBudget.js";
  */
 export async function chatCompletion(messages, options = {}) {
   if (!config.openRouter.apiKey) {
-    throw expose(new Error("The server is missing its AI API key."), 500);
+    throw expose(new Error("The AI service isn't available right now. Please try again later."), 500);
   }
 
   return withModelBudget(() => callOpenRouter(messages, options), {
@@ -68,7 +68,7 @@ async function callOpenRouter(messages, options) {
         429
       );
     }
-    const err = expose(new Error("The AI service returned an error. Please try again."), 502);
+    const err = expose(new Error("The AI service ran into a problem. Please try again."), 502);
     // Some models reject response_format. Flag it so the JSON caller can retry
     // in plain mode and lean on the prompt + tolerant parser instead.
     if (res.status === 400 && /structured|response_format|json_schema|json mode/i.test(detail)) {

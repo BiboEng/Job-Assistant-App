@@ -260,7 +260,8 @@ export default function ApplicationDialog({ mode, application, onCreate, onUpdat
 
         {formError && (
           <div className="error-banner" role="alert">
-            {formError}
+            <Icon name="alert" />
+            <span>{formError}</span>
           </div>
         )}
 

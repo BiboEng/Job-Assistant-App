@@ -135,11 +135,11 @@ export async function scoreJobs(req, res, next) {
     if (resume === null) return;
 
     if (!Array.isArray(jobs) || jobs.length === 0) {
-      return res.status(400).json({ error: "No jobs to score." });
+      return res.status(400).json({ error: "There are no roles to score." });
     }
     if (jobs.length > config.jobMatch.scoreBatchMax) {
       return res.status(400).json({
-        error: `Score at most ${config.jobMatch.scoreBatchMax} jobs per request.`,
+        error: "Too many roles to score at once. Please try again.",
       });
     }
 
@@ -154,7 +154,7 @@ export async function scoreJobs(req, res, next) {
       .filter((j) => j.id && j.title);
 
     if (clean.length === 0) {
-      return res.status(400).json({ error: "No usable jobs to score." });
+      return res.status(400).json({ error: "There are no roles to score." });
     }
 
     const scores = await mapWithConcurrency(
@@ -186,7 +186,7 @@ function validateResume(resumeText, res) {
   }
   if (resume.length > config.maxResumeLength) {
     res.status(400).json({
-      error: `Resume text must be at most ${config.maxResumeLength} characters.`,
+      error: "That resume is too long to match on. Upload a shorter version (a page or two).",
     });
     return null;
   }

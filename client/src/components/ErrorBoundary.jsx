@@ -1,5 +1,6 @@
 import { Component } from "react";
 import { STORAGE_KEY } from "../constants.js";
+import Icon from "./Icon.jsx";
 
 /**
  * Catches render/lifecycle errors anywhere below it so one broken screen shows a
@@ -36,8 +37,8 @@ export default class ErrorBoundary extends Component {
     return (
       <div className="app-shell">
         <div className="error-banner" role="alert">
-          Something broke while showing this page. Your saved interviews are safe.
-          <br />
+          <Icon name="alert" />
+          <span>Something broke while showing this page. Your saved interviews are safe.</span>
           <button className="btn-ghost" onClick={this.handleReset}>
             Reload and start over
           </button>

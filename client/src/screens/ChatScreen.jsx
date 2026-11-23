@@ -322,7 +322,7 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
     ? total
     : Math.min(Math.max(questionsAsked, 1), total);
   const canEndNow = !interviewDone && !busy && !scoring;
-  const sessionLost = /not found or expired/i.test(error);
+  const sessionLost = /interview has expired|not found or expired/i.test(error);
 
   const urgency =
     secondsLeft == null
@@ -405,7 +405,9 @@ export default function ChatScreen({ session, messages, setMessages, onFinished,
       {feedbackError && (
         <div className="error-banner" role="alert">
           <Icon name="alert" />
-          <span>Couldn't generate feedback: {feedbackError}</span>
+          <span>
+            <strong>Couldn't generate your feedback.</strong> {feedbackError}
+          </span>
           <button className="btn-ghost" onClick={runFeedback} disabled={scoring}>
             Try again
           </button>

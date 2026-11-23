@@ -44,16 +44,16 @@ export async function getProgressThemes(req, res, next) {
 
     const { roleKey } = req.body ?? {};
     if (typeof roleKey !== "string" || !roleKey.trim() || roleKey.length > MAX_ROLE_KEY_LENGTH) {
-      return res.status(400).json({ error: "roleKey is required." });
+      return res.status(400).json({ error: "Pick a role to see its feedback." });
     }
     if (!req.clientId) {
-      return res.status(404).json({ error: "No interviews found for that role." });
+      return res.status(404).json({ error: "There are no interviews for that role yet." });
     }
 
     const themes = await getRoleThemes(req.clientId, roleKey, {
       historyLimit: req.plan?.historyVisible ?? null,
     });
-    if (!themes) return res.status(404).json({ error: "No interviews found for that role." });
+    if (!themes) return res.status(404).json({ error: "There are no interviews for that role yet." });
     res.status(200).json(themes);
   } catch (err) {
     next(err);

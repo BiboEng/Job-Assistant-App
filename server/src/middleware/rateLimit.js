@@ -12,7 +12,7 @@
 export function rateLimit({
   windowMs,
   max,
-  message = "Too many requests. Please slow down.",
+  message = "You're going a little fast. Wait a moment and try again.",
   key = (req) => req.ip || req.socket?.remoteAddress || "unknown",
 }) {
   const hits = new Map(); // key -> number[] (hit timestamps, ascending)

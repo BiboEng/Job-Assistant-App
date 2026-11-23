@@ -185,7 +185,9 @@ export default function HomeScreen({
         {error && (
           <div className="error-banner" role="alert">
             <Icon name="alert" />
-            <span>Couldn't load your history: {error}</span>
+            <span>
+              <strong>Couldn't load your history.</strong> {error}
+            </span>
           </div>
         )}
 

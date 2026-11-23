@@ -24,6 +24,7 @@ import { useSurvey } from "./survey/useSurvey.js";
 import { usePlan } from "./billing/usePlan.js";
 import { isPlanError } from "./billing/planErrors.js";
 import Toast from "./components/Toast.jsx";
+import Icon from "./components/Icon.jsx";
 import { getInterview, saveInterview } from "./api/historyApi.js";
 import { startInterview } from "./api/interviewApi.js";
 import { STORAGE_KEY, nextId } from "./constants.js";
@@ -544,7 +545,8 @@ export function ChatRoute() {
   if (!w.session?.sessionId) {
     return (
       <div className="error-banner" role="alert">
-        Your session could not be restored.{" "}
+        <Icon name="alert" />
+        <span>Your session could not be restored.</span>
         <button className="btn-ghost" onClick={w.goHome}>
           Start over
         </button>

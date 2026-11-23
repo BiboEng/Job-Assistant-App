@@ -35,7 +35,7 @@ export function requireApiToken(req, res, next) {
   const token = (req.get("x-api-token") || "").trim() || (userAuthEnabled() ? "" : bearer(req));
   if (token && safeEqual(token, config.apiToken)) return next();
 
-  return res.status(401).json({ error: "Missing or invalid API token." });
+  return res.status(401).json({ error: "Jobuddy couldn't verify this request. Refresh the page and try again." });
 }
 
 /**
@@ -89,9 +89,10 @@ export function authenticate(req, res, next) {
       return proceed();
     })
     .catch((err) => {
-      res.status(401).json({
-        error: err?.expose ? err.message : "Sign in to continue.",
-      });
+      // The verifier's reasons ("Malformed token.", "Unknown signing key.")
+      // are for the log, not the user: to them it's always a stale sign-in.
+      if (!err?.expose) console.error("[auth] token check failed:", err);
+      res.status(401).json({ error: "Your sign-in has expired. Sign in again to continue." });
     });
 }
 
@@ -106,7 +107,7 @@ export function assertOwner(session, req) {
   if (!session?.ownerId) return; // un-owned (e.g. created without a client id)
   if (req.clientId && session.ownerId === req.clientId) return;
 
-  const err = new Error("Session not found or expired.");
+  const err = new Error("This interview has expired. Start a new one to keep practicing.");
   err.status = 404;
   err.expose = true;
   throw err;

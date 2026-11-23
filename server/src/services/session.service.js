@@ -51,7 +51,7 @@ export function createSession(jobDescription, ownerId = null, opts = {}) {
     pruneExpired();
   }
   if (sessions.size >= config.limits.maxLiveSessions) {
-    const err = new Error("The interview service is at capacity. Please try again shortly.");
+    const err = new Error("Lots of people are practicing right now. Please try again in a minute.");
     err.status = 503;
     err.expose = true;
     throw err;

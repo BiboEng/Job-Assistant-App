@@ -498,46 +498,98 @@ input[type="radio"] {
 
 /* --- banners -------------------------------------------------------------- */
 
+/* One row: icon · message · actions. The tone lives in the fill, the border
+   and the icon; the message itself is ordinary text, because a whole paragraph
+   in red (or amber) on the dark base is hard to read and reads as shouting.
+   The message takes the free space, so the actions sit at the right edge and
+   drop under it only when the row is too narrow. Everything aligns to the
+   message's first line, so a two-line message doesn't drag the icon or the
+   button down to its middle. */
 .error-banner,
 .warn-banner,
 .info-banner {
   display: flex;
   align-items: flex-start;
   flex-wrap: wrap;
-  gap: var(--sp-3);
+  column-gap: var(--sp-3);
+  row-gap: var(--sp-2);
   border-radius: var(--radius-sm);
   padding: var(--sp-3) var(--sp-4);
   font-size: var(--fs-md);
-  line-height: var(--lh-snug);
+  line-height: var(--lh-normal);
+  color: var(--text);
+  text-wrap: pretty;
+}
+
+.error-banner > :is(span, div, p),
+.warn-banner > :is(span, div, p),
+.info-banner > :is(span, div, p) {
+  /* Never narrower than 16rem (so the actions wrap first), but never wider
+     than the room beside the icon either, so the text can't fall under it. */
+  flex: 1 1 0;
+  min-width: min(16rem, 100% - 16px - var(--sp-3));
+  margin: 0;
+}
+
+/* "Couldn't load your history." leads, the reason follows in plain text. */
+.error-banner strong,
+.warn-banner strong,
+.info-banner strong {
+  font-weight: var(--fw-semibold);
+}
+
+/* The icon: the banner's tone, centred on the first line. */
+.error-banner > svg,
+.warn-banner > svg,
+.info-banner > svg {
+  flex: none;
+  margin-top: calc((1lh - 16px) / 2);
 }
 
 .error-banner {
   background: var(--danger-soft);
-  color: var(--danger);
   border: 1px solid var(--danger-border);
+}
+.error-banner > svg {
+  color: var(--danger);
 }
 
 /* Amber, not mint: a warning must not look like ordinary chrome. */
 .warn-banner {
   background: var(--warn-soft);
-  color: var(--warn);
   border: 1px solid var(--warn-border);
+}
+.warn-banner > svg {
+  color: var(--warn);
 }
 
 .info-banner {
   background: var(--accent-softer);
-  color: var(--text);
   border: 1px solid var(--accent-border);
 }
+.info-banner > svg {
+  color: var(--accent);
+}
 
+/* Actions: a compact ghost button, pulled up so its middle lines up with the
+   message's first line instead of making the whole banner taller. */
+.error-banner > button,
+.warn-banner > button,
+.info-banner > button {
+  flex: none;
+  margin-block: calc((1lh - var(--banner-action-height)) / 2);
+}
 .error-banner .btn-ghost,
 .warn-banner .btn-ghost,
 .info-banner .btn-ghost {
-  min-height: 24px;
-  padding: 0 var(--sp-2);
+  min-height: var(--banner-action-height);
+  padding: 0 var(--sp-3);
   font-size: var(--fs-sm);
-  color: inherit;
-  border-color: currentColor;
+}
+.error-banner > .link-btn,
+.warn-banner > .link-btn,
+.info-banner > .link-btn {
+  margin-block: 0;
 }
 
 /* --- loading skeletons ----------------------------------------------------- */
@@ -621,6 +673,13 @@ input[type="radio"] {
   .warn-banner .btn-ghost,
   .info-banner .btn-ghost {
     min-height: 36px;
+  }
+  /* A fingertip-sized button no longer fits beside the first line; on a
+     phone the message wraps anyway, so let the button sit under it. */
+  .error-banner > button,
+  .warn-banner > button,
+  .info-banner > button {
+    margin-block: 0;
   }
 
   /* iOS Safari zooms the page into any text field under 16px and leaves it
