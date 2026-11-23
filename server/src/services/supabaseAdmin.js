@@ -1,8 +1,9 @@
 import { config } from "../config.js";
 
 /**
- * Server-side access to `public.user_subscriptions`, the one Supabase table the
- * API server reads and writes. Dependency-free: PostgREST over fetch.
+ * Server-side access to the Supabase tables the API server owns:
+ * `public.user_subscriptions` (plans) and `public.interview_history` (see
+ * history.supabase.js). Dependency-free: PostgREST over fetch.
  *
  * It authenticates with the SERVICE-ROLE key, which bypasses row-level
  * security, and that is the point: the table has RLS on with no policies at
@@ -17,6 +18,11 @@ import { config } from "../config.js";
 
 const TABLE = "user_subscriptions";
 const TIMEOUT_MS = 8000;
+
+/** True when the server holds what it needs to reach Supabase as the service role. */
+export function supabaseAdminConfigured() {
+  return Boolean(config.supabase.url && config.billing.supabaseServiceRoleKey);
+}
 
 let fetchImpl = (...args) => fetch(...args);
 
@@ -37,8 +43,8 @@ function headers(extra = {}) {
   };
 }
 
-function restUrl(query) {
-  return `${config.supabase.url}/rest/v1/${TABLE}${query}`;
+function restUrl(query, table = TABLE) {
+  return `${config.supabase.url}/rest/v1/${table}${query}`;
 }
 
 async function call(url, init) {
@@ -46,13 +52,13 @@ async function call(url, init) {
   try {
     res = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
   } catch (cause) {
-    const err = new Error("Could not reach the subscriptions database.");
+    const err = new Error("Could not reach the Supabase database.");
     err.cause = cause;
     throw err;
   }
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    const err = new Error(`Subscriptions database responded ${res.status}`);
+    const err = new Error(`Supabase database responded ${res.status}`);
     err.status = res.status;
     err.detail = detail.slice(0, 300);
     // A missing table is its own case: the migration hasn't been applied.
@@ -61,6 +67,20 @@ async function call(url, init) {
   }
   const text = await res.text();
   return text ? JSON.parse(text) : null;
+}
+
+/**
+ * One PostgREST call against `table` as the service role: `query` is the
+ * part after the table name ("?owner_id=eq.x&select=*"), `init` the fetch
+ * options minus headers (`prefer` sets the Prefer header). Resolves to the
+ * parsed JSON body, or null for an empty one; throws on a non-2xx, with
+ * `missingTable` set when the migration hasn't been applied.
+ */
+export function supabaseRest(table, query, { prefer, ...init } = {}) {
+  return call(restUrl(query, table), {
+    ...init,
+    headers: headers(prefer ? { Prefer: prefer } : {}),
+  });
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

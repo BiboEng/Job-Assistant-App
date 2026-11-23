@@ -110,7 +110,10 @@ mock-interview/
 │       │   ├── modelBudget.js         4 model-call pools (interview/jobs/resume/progress) + daily caps (global, per user)
 │       │   ├── supabaseAuth.js        verifies Supabase access tokens (JWKS / HS256), owner id from `sub`
 │       │   ├── session.service.js     in-memory live sessions (Map), 1h TTL
-│       │   ├── history.service.js     flat-file completed-interview store
+│       │   ├── history.service.js     completed-interview history: picks the store below
+│       │   ├── history.supabase.js    …in Supabase (interview_history, service role) — deployed
+│       │   ├── history.file.js        …in <DATA_DIR>/interviews.json — local dev / tests / fallback
+│       │   ├── historyRecord.js       pure: the record shape, dashboard summary, row ↔ record
 │       │   ├── jobs.service.js        Adzuna fetcher + normalizer
 │       │   ├── resume.service.js      resume doc shape: normalize + model-turn interpreter
 │       │   ├── roleLabel.js           pure: role title → grouping key, first-line fallback, groupByRole
@@ -1954,19 +1957,28 @@ Other guards already in place:
   1-hour inactivity TTL. The client mirrors an in-progress interview to
   `sessionStorage`, so a browser refresh resumes it *if* the server hasn't
   restarted.
-- **Completed interviews:** a single JSON file, `<DATA_DIR>/interviews.json`
-  (default `server/data/`), loaded into memory once, mutations serialized through
-  a queue with atomic temp-file+rename writes. Set `DATA_DIR` to a mounted volume
-  on hosts with an ephemeral filesystem, or the history vanishes on redeploy.
+- **Completed interviews:** Supabase, `public.interview_history`
+  (`supabase/migrations/20261123120000_interview_history.sql`, applied by hand),
+  whenever `SUPABASE_URL` **and** `SUPABASE_SERVICE_ROLE_KEY` are set in
+  `server/.env`. Server-only like `user_subscriptions`: RLS on, no policies;
+  `history.supabase.js` filters every query on the verified `owner_id`, and
+  `user_id` (derived from a `u-…` owner) cascades on account deletion.
+  Otherwise — local dev, tests, or the table not created yet (logged loudly at
+  boot) — a single JSON file, `<DATA_DIR>/interviews.json` (default
+  `server/data/`), loaded into memory once, mutations serialized through a queue
+  with atomic temp-file+rename writes; that file vanishes on a redeploy of a
+  host with no disk (Render free). `HISTORY_STORE=file|supabase` forces one.
+  `history.service.js` keeps one set of signatures over both, and both return
+  the same record shape (`historyRecord.js`). To move an existing file over:
+  `cd server && node scripts/importHistoryToSupabase.js` (idempotent).
   Records also keep `mode`, `focus` and each answer's speak-mode `delivery`.
   Each record may carry a Progress `role` label (`{ title, source, labelledAt }`)
   — the only thing Progress writes. Its aggregated themes are an in-memory cache,
   lost on restart and recomputed on demand.
-- **Single process only.** Sessions, the rate limiter, the model budget and the
-  Progress theme cache / labelling locks are all in-process. Do not run more than one instance without swapping these for
-  shared stores. `history.service.js` is deliberately isolated behind the same
-  function signatures so it can be replaced with a DB module without touching
-  controllers — that's the intended next step for a real deployment.
+- **Single process only.** Sessions, the rate limiter, the model budget, usage
+  counters and the Progress theme cache / labelling locks are all in-process. Do
+  not run more than one instance without swapping these for shared stores
+  (history, in Supabase, already is one).
 - **The exceptions are the career survey and the Application Tracker**, which
   are real Postgres tables in Supabase (`user_survey_responses`,
   `user_applications`), written from the client and protected by RLS. The

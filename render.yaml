@@ -3,10 +3,10 @@
 # prompted for on first deploy and never stored in git.
 #
 # Free plan caveats: the service sleeps after ~15 min idle (first request then
-# takes ~30–60s), and there's no persistent disk, so interviews.json and
-# usage.json are wiped on every restart/deploy. Live interviews are lost if it
-# sleeps mid-session. Fine for a demo; move to a paid plan + disk (and set
-# DATA_DIR to the mount path) before real users depend on history.
+# takes ~30–60s), and live interviews are lost if it sleeps mid-session. There's
+# no persistent disk, so interview history lives in Supabase
+# (SUPABASE_SERVICE_ROLE_KEY below + the interview_history migration); only
+# today's usage counters (usage.json) still reset on a restart.
 services:
   - type: web
     name: jobuddy-api
@@ -30,6 +30,9 @@ services:
       - key: OPENROUTER_MODEL
         sync: false
       - key: SUPABASE_URL
+        sync: false
+      # Server-only secret: interview history (and plans) in Supabase.
+      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       # Your Vercel URL, e.g. https://jobuddy.vercel.app (comma-separate several).
       - key: CLIENT_ORIGIN

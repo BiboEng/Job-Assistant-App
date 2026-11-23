@@ -1,257 +1,95 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { config } from "../config.js";
-import { DATA_DIR } from "./dataDir.js";
+import * as fileStore from "./history.file.js";
+import * as supabaseStore from "./history.supabase.js";
+import { supabaseAdminConfigured } from "./supabaseAdmin.js";
 
 /**
- * Flat-file interview history. One JSON array in <dataDir>/interviews.json.
- * Loaded into memory once, then every mutation goes through a serial queue and
- * an atomic write (temp file + rename) so concurrent saves can't corrupt it.
+ * Completed-interview history. Controllers and Progress import from here; the
+ * records live in one of two stores with identical signatures:
  *
- * Records are scoped to an `ownerId` (the caller's client id) so one browser
- * can't list, open, or delete another's interviews.
+ *   supabase  public.interview_history, via the service-role key. Survives
+ *             deploys and restarts. Used whenever SUPABASE_URL and
+ *             SUPABASE_SERVICE_ROLE_KEY are both set.
+ *   file      <DATA_DIR>/interviews.json. Local development and tests, or a
+ *             server without the service-role key.
  *
- * NOTE: this is process-local and lives on the local disk. It does not survive
- * an ephemeral filesystem (many PaaS hosts) unless DATA_DIR points at a mounted
- * volume, and it can't be shared across instances. Swap this module for a
- * DB-backed one to deploy for real — the controllers don't need to change.
+ * HISTORY_STORE=file|supabase forces one. If the Supabase table doesn't exist
+ * yet (migration not applied), the server falls back to the file and says so
+ * in the log, rather than failing every history request.
  */
 
-const DATA_FILE = join(DATA_DIR, "interviews.json");
-const TMP_FILE = `${DATA_FILE}.tmp`;
+function chooseStore() {
+  const forced = (process.env.HISTORY_STORE || "").trim().toLowerCase();
+  if (forced === "file") return "file";
+  if (forced === "supabase" || supabaseAdminConfigured()) return "supabase";
+  return "file";
+}
 
-/** @type {Array<object>|null} */
-let cache = null;
-let writeQueue = Promise.resolve();
+let storePromise = null;
 
-async function ensureLoaded() {
-  if (cache) return cache;
+function store() {
+  if (!storePromise) storePromise = pickStore();
+  return storePromise;
+}
 
-  await mkdir(dirname(DATA_FILE), { recursive: true });
-
-  try {
-    const raw = await readFile(DATA_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    cache = Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      cache = [];
-    } else {
-      // Corrupt / unreadable file: preserve it for inspection, start fresh.
-      console.error("[history] could not read interviews.json:", err.message);
-      try {
-        await rename(DATA_FILE, `${DATA_FILE}.corrupt-${Date.now()}`);
-      } catch {
-        /* ignore */
-      }
-      cache = [];
-    }
+async function pickStore() {
+  if (chooseStore() === "file") {
+    await fileStore.ready();
+    console.log("[history] storing interviews in the local file (DATA_DIR)");
+    return fileStore;
   }
-  return cache;
-}
-
-function enqueueWrite(fn) {
-  const run = writeQueue.then(fn, fn);
-  writeQueue = run.catch(() => {});
-  return run;
-}
-
-async function persist() {
-  await writeFile(TMP_FILE, JSON.stringify(cache, null, 2), "utf8");
-  await rename(TMP_FILE, DATA_FILE);
-}
-
-/** Called on boot so a corrupt file is surfaced early rather than on first request. */
-export async function ensureHistoryReady() {
-  await ensureLoaded();
-}
-
-function titleOf(jd) {
-  const firstLine =
-    jd.split("\n").map((l) => l.trim()).find(Boolean) || jd.trim();
-  return firstLine.slice(0, 80);
-}
-
-/**
- * The body of the posting, minus the line already used as the title — starting
- * at character zero made every history card read "<role> / <role> We're looking
- * for…". Falls back to the whole text for a single-line job description.
- */
-function snippetOf(jd) {
-  const lines = jd.split("\n");
-  const firstIndex = lines.findIndex((l) => l.trim());
-  const rest = firstIndex === -1 ? "" : lines.slice(firstIndex + 1).join(" ");
-  const body = rest.trim() || jd.trim();
-  return body.replace(/\s+/g, " ").slice(0, 140);
-}
-
-/**
- * Lightweight list for the home screen, newest first, scoped to one owner.
- * `limit` (the plan's visible history) keeps only the newest N; older records
- * stay stored — a downgrade hides them, it never deletes them.
- */
-export async function listInterviews(ownerId, { limit = null } = {}) {
-  if (!ownerId) return [];
-  const all = await ensureLoaded();
-  const mine = all
-    .filter((it) => it.ownerId === ownerId)
-    .sort((a, b) => b.createdAt - a.createdAt);
-  return (limit == null ? mine : mine.slice(0, Math.max(0, limit)))
-    .map((it) => ({
-      id: it.id,
-      createdAt: it.createdAt,
-      title: titleOf(it.jobDescription),
-      snippet: snippetOf(it.jobDescription),
-      overallScore: it.feedback?.overallScore ?? 0,
-      mode: it.mode ?? null,
-      totalQuestions: it.totalQuestions ?? it.qaPairs?.length ?? 0,
-      answeredCount: (it.qaPairs ?? []).filter((p) => p.answer && p.answer.trim())
-        .length,
-    }));
-}
-
-/** How many interviews an owner has stored (visible or not). */
-export async function countInterviews(ownerId) {
-  if (!ownerId) return 0;
-  const all = await ensureLoaded();
-  return all.filter((it) => it.ownerId === ownerId).length;
-}
-
-/**
- * Is this record among the owner's newest `limit`? (`limit` null = all are.)
- * Used to keep a hidden interview hidden when it's opened by id.
- */
-export async function isWithinNewest(id, ownerId, limit) {
-  if (limit == null) return true;
-  const all = await ensureLoaded();
-  return all
-    .filter((it) => it.ownerId === ownerId)
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, Math.max(0, limit))
-    .some((it) => it.id === id);
-}
-
-/** Full record by id, or null if missing or owned by someone else. */
-export async function getInterview(id, ownerId) {
-  if (!ownerId) return null;
-  const all = await ensureLoaded();
-  const record = all.find((it) => it.id === id);
-  if (!record || record.ownerId !== ownerId) return null;
-  return record;
-}
-
-/**
- * Append a completed interview and return the stored record.
- *
- * `mode` ("type" | "speak") and `focus` are kept so a saved interview can say
- * how it was taken, and each answer keeps its speak-mode `delivery` metrics
- * (null in type mode). Those were validated and clamped by normalizeDelivery
- * on the way in, so they're stored as-is.
- */
-export async function saveInterview({
-  jobDescription,
-  qaPairs,
-  feedback,
-  totalQuestions,
-  mode = null,
-  focus = null,
-  ownerId = null,
-}) {
-  await ensureLoaded();
-
-  const record = {
-    id: randomUUID(),
-    ownerId,
-    createdAt: Date.now(),
-    jobDescription,
-    mode,
-    focus,
-    totalQuestions: totalQuestions ?? (qaPairs ?? []).length,
-    qaPairs: (qaPairs ?? []).map((p) => ({
-      questionNumber: p.questionNumber,
-      question: p.question,
-      answer: p.answer || "",
-      timeLimitSeconds: p.timeLimitSeconds ?? null,
-      delivery: p.delivery ?? null,
-    })),
-    feedback,
-  };
-
-  await enqueueWrite(async () => {
-    cache.push(record);
-    enforceOwnerCap(ownerId);
-    await persist();
-  });
-
-  return record;
-}
-
-/** Keep only the newest N records for an owner. */
-function enforceOwnerCap(ownerId) {
-  const max = config.limits.maxInterviewsPerOwner;
-  if (!ownerId || max <= 0) return;
-  const mine = cache
-    .map((it, idx) => ({ it, idx }))
-    .filter(({ it }) => it.ownerId === ownerId)
-    .sort((a, b) => b.it.createdAt - a.it.createdAt);
-  const drop = new Set(mine.slice(max).map(({ idx }) => idx));
-  if (drop.size) cache = cache.filter((_, idx) => !drop.has(idx));
-}
-
-/** Remove a stored interview owned by `ownerId`. Returns true if one was deleted. */
-export async function deleteInterview(id, ownerId) {
-  await ensureLoaded();
-
-  if (!ownerId) return false;
-
-  let removed = false;
-  await enqueueWrite(async () => {
-    const idx = cache.findIndex((it) => it.id === id && it.ownerId === ownerId);
-    if (idx === -1) return;
-    cache.splice(idx, 1);
-    removed = true;
-    await persist();
-  });
-
-  return removed;
-}
-
-/**
- * Every full record an owner has, oldest first — for the Progress section,
- * which needs job descriptions (to name roles) and feedback (for themes).
- * Callers must treat the records as read-only; mutations go through the write
- * queue below.
- */
-export async function listOwnerRecords(ownerId) {
-  if (!ownerId) return [];
-  const all = await ensureLoaded();
-  return all
-    .filter((it) => it.ownerId === ownerId)
-    .sort((a, b) => a.createdAt - b.createdAt);
-}
-
-/**
- * Stamps role labels onto an owner's records: `rolesById` maps interview id →
- * `{ title, source, labelledAt }`. Records that belong to someone else, or
- * were deleted meanwhile, are skipped. Returns how many were updated.
- * @param {string} ownerId
- * @param {Map<string, { title: string, source: string, labelledAt: number }>} rolesById
- */
-export async function setInterviewRoles(ownerId, rolesById) {
-  await ensureLoaded();
-  if (!ownerId || !rolesById?.size) return 0;
-
-  let updated = 0;
-  await enqueueWrite(async () => {
-    for (const record of cache) {
-      if (record.ownerId !== ownerId) continue;
-      const role = rolesById.get(record.id);
-      if (!role) continue;
-      record.role = role;
-      updated += 1;
+  try {
+    await supabaseStore.ready();
+    console.log("[history] storing interviews in Supabase (interview_history)");
+  } catch (err) {
+    if (err.missingTable) {
+      console.error(
+        "[history] the interview_history table doesn't exist. Apply " +
+          "supabase/migrations/20261123120000_interview_history.sql. Until then, " +
+          "history is kept in the local file and is lost on every redeploy."
+      );
+      await fileStore.ready();
+      return fileStore;
     }
-    if (updated) await persist();
-  });
-  return updated;
+    // Anything else (a network blip on boot) isn't a reason to abandon the
+    // database for the life of the process; requests will surface it.
+    console.error("[history] couldn't reach Supabase on startup:", err.message);
+  }
+  return supabaseStore;
+}
+
+/** Called on boot so the store is chosen (and a problem logged) before the first request. */
+export async function ensureHistoryReady() {
+  await store();
+}
+
+export async function listInterviews(ownerId, opts) {
+  return (await store()).listInterviews(ownerId, opts);
+}
+
+export async function countInterviews(ownerId) {
+  return (await store()).countInterviews(ownerId);
+}
+
+export async function isWithinNewest(id, ownerId, limit) {
+  return (await store()).isWithinNewest(id, ownerId, limit);
+}
+
+export async function getInterview(id, ownerId) {
+  return (await store()).getInterview(id, ownerId);
+}
+
+export async function saveInterview(input) {
+  return (await store()).saveInterview(input);
+}
+
+export async function deleteInterview(id, ownerId) {
+  return (await store()).deleteInterview(id, ownerId);
+}
+
+export async function listOwnerRecords(ownerId) {
+  return (await store()).listOwnerRecords(ownerId);
+}
+
+export async function setInterviewRoles(ownerId, rolesById) {
+  return (await store()).setInterviewRoles(ownerId, rolesById);
 }

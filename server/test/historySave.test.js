@@ -8,6 +8,7 @@ import { join } from "node:path";
 // directory before loading it (each test file runs in its own process).
 const dir = await mkdtemp(join(tmpdir(), "mi-history-"));
 process.env.DATA_DIR = dir;
+process.env.HISTORY_STORE = "file";
 const { saveInterview, listInterviews, getInterview } = await import(
   "../src/services/history.service.js"
 );

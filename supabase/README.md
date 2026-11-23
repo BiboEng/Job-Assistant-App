@@ -1,7 +1,8 @@
 # Supabase schema
 
-The app's auth is Supabase; so are the few tables it stores data in. Everything
-else (interviews, resumes, job matches) lives in the Express server — see
+The app's auth is Supabase; so are the few tables it stores data in. Interview history
+is one of them (written by the API server); resumes and job matches stay in
+the browser and the Express server — see
 `CLAUDE.md` → "Storage".
 
 **Apply the migrations in filename order.** The ratings migration reads
@@ -32,6 +33,7 @@ exists`), so re-running one is safe.
 | `20260922090000_website_ratings.sql` | `public.website_ratings` + `public.rating_requests`, and the two `security definer` functions the n8n rating email calls. Service-role only: RLS is on with **no** policies, so the anon key in the client bundle can't reach either table — and in particular can't read live invite tokens. See `n8n/README.md`. |
 | `20260927100000_user_applications.sql` | `public.user_applications` — the Application Tracker's cards, many rows per user (uuid `id`), with the same four `auth.uid() = user_id` policies as the survey and a partial unique index so one Job Matches listing can only be tracked once. |
 | `20260930120000_user_subscriptions.sql` | Plans & billing. `public.user_subscriptions` — each account's plan and Stripe ids, written only by the API server (service-role key) from Stripe's record; RLS on with **no** policies, so the browser can't read or forge a plan. Also a trigger capping Regular accounts at 15 `user_applications` cards. Apply it when you switch billing on (see `BILLING.md`); it needs the applications migration first. |
+| `20261123120000_interview_history.sql` | `public.interview_history` — every completed interview (answers, feedback, Progress role label), written only by the API server with the service-role key; RLS on with **no** policies. The server uses it once `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set in its env; until the table exists it falls back to its local file and logs why. Existing file history: `server/scripts/importHistoryToSupabase.js`. |
 
 Until a migration is applied, the feature that needs it stays switched off in
 the UI rather than erroring: the client reads a missing table as "not
