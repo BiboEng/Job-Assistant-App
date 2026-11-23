@@ -25,6 +25,7 @@ import { usePlan } from "./billing/usePlan.js";
 import { isPlanError } from "./billing/planErrors.js";
 import Toast from "./components/Toast.jsx";
 import Icon from "./components/Icon.jsx";
+import WakingNotice from "./components/WakingNotice.jsx";
 import { getInterview, saveInterview } from "./api/historyApi.js";
 import { startInterview } from "./api/interviewApi.js";
 import { STORAGE_KEY, nextId } from "./constants.js";
@@ -496,6 +497,8 @@ export default function AppWorkspace() {
         duration={6000}
         onDismiss={dismissRepeatError}
       />
+      {/* "Waking up Jobuddy…" while a sleeping API server starts. */}
+      <WakingNotice />
     </div>
   );
 }

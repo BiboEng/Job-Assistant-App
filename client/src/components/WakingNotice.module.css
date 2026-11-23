@@ -1,0 +1,54 @@
+/* Same placement and surface as Toast, so the two read as one family. Sits
+   above the toast if both show (a toast is a reply to something the user did;
+   this explains why nothing has replied yet). */
+.wrap {
+  position: fixed;
+  left: 50%;
+  bottom: var(--sp-6);
+  transform: translateX(-50%);
+  z-index: 201;
+  pointer-events: none;
+  width: max-content;
+  max-width: 100%;
+  padding: 0 var(--sp-4);
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  max-width: 30rem;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--accent-border);
+  box-shadow: var(--shadow-popover);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  animation: notice-in var(--dur-pop) var(--ease) both;
+}
+
+.notice strong {
+  font-weight: var(--fw-semibold);
+}
+
+.spin {
+  display: inline-flex;
+  flex: none;
+  margin-top: calc((1lh - 16px) / 2);
+  color: var(--accent);
+  animation: notice-spin 900ms linear infinite;
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(var(--pop-scale));
+  }
+}
+@keyframes notice-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

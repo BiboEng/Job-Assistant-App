@@ -2,6 +2,7 @@ import { REQUEST_TIMEOUT_MS } from "../constants.js";
 import { getClientId } from "../identity.js";
 import { supabase } from "../auth/supabaseClient.js";
 import { NETWORK_MESSAGE, TIMEOUT_MESSAGE, responseMessage } from "./errors.js";
+import { ensureAwake, markAwake } from "./wake.js";
 
 const BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_TOKEN = import.meta.env.VITE_API_TOKEN || "";
@@ -33,6 +34,10 @@ async function accessToken() {
  */
 export async function request(path, options = {}) {
   const { headers: extraHeaders, timeoutMs, signal, ...rest } = options;
+
+  // A sleeping server (Render's free plan) takes 30–60s to start. Wait for it
+  // here, before this request's own timeout starts counting (see wake.js).
+  await ensureAwake(BASE);
 
   const controller = new AbortController();
   let timedOut = false;
@@ -75,6 +80,9 @@ export async function request(path, options = {}) {
     clearTimeout(timer);
     signal?.removeEventListener("abort", onCallerAbort);
   }
+
+  // The server answered (a 502–504 may be the host's proxy, not the server).
+  if (res.status < 502 || res.status > 504) markAwake();
 
   let data = null;
   try {

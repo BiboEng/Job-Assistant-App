@@ -465,6 +465,15 @@ React 19 / Node 22, so it's pinned to 7.x). `App.jsx` is the whole route table;
   declarative mode; going Back from a
   live interview unmounts `ChatScreen` (camera released as on any unmount) but
   keeps the session in workspace state until "Start an interview" clears it.
+- **A sleeping API** (Render's free plan sleeps after ~15 idle minutes; the
+  next request waits 30–60s): `api/wake.js` pings `/api/health` on page load
+  (`main.jsx`, every page, so it starts while the visitor reads or signs in),
+  and `request()` awaits `ensureAwake()` before starting its own timeout, so
+  a cold start can't time a request out. One shared ping; skipped for 10
+  minutes after any answer; 502–504 from the host's proxy are retried. If the
+  wait passes 2.5s, `components/WakingNotice` (in `AppWorkspace`) shows
+  "Waking up Jobuddy…" until the server answers. On an always-on host it
+  never appears. Tested in `client/test/wake.test.js`.
 - **Deploying:** it's a client-side router — the static host must rewrite
   unknown paths to `index.html` (SPA fallback) or a refresh on `/jobs` 404s.
   Vite's dev and preview servers already do this.
