@@ -1,123 +1,154 @@
-# Mock Interview App
+<p align="center">
+  <img src="client/public/landing/mascot/welcome.webp" alt="The Jobuddy mascot, a friendly robot in a headset, waving" width="220">
+</p>
 
-AI-powered mock interview practice. Paste a job description, answer 3 tailored
-interview questions in a chat, then get scored feedback.
+<h1 align="center">Jobuddy</h1>
 
-- **Frontend:** React + Vite, plain CSS Modules
-- **Backend:** Node.js + Express (ESM)
-- **AI:** OpenRouter (called only from the backend)
+<p align="center">
+  AI mock interviews tailored to the job you actually want, with scored feedback after every session.
+  <br>
+  <a href="https://www.jobuddy.ca"><strong>www.jobuddy.ca</strong></a>
+</p>
 
-## Structure
+---
 
-```
-mock-interview/
-├── server/   Express API + OpenRouter integration + in-memory sessions
-└── client/   React (Vite) UI: job description -> chat -> results
-```
+Paste a job description and Jobuddy interviews you for that role. It asks
+tailored questions in a chat, lets you answer by typing or out loud on camera,
+then scores every answer and tells you what to fix. Around the interviews sit
+the other parts of a job search: finding roles, writing the resume, tracking
+applications, and watching your scores improve.
 
-## Setup
+<p align="center">
+  <img src="client/public/landing/feedback-report.webp" alt="A Jobuddy feedback report: an overall score, a summary, four answer-quality bars and a per-question breakdown" width="760">
+</p>
 
-### 1. Backend
+## Features
 
-```bash
-cd server
-npm install
-cp .env.example .env      # then edit .env and add your OpenRouter key
-npm run dev
-```
+- **Mock interviews.** Paste a job description, pick 2 to 6 questions and a
+  focus (mixed, behavioral, technical or system design), and optionally add
+  your resume. Each question is timed. You finish with an overall score, a
+  rubric (relevance, specificity, structure, depth), and feedback on every
+  answer.
+- **Speak mode.** Answer out loud on camera. The browser measures your speaking
+  pace, hesitation pauses and how much of the time you faced the camera, and
+  the feedback covers delivery as well as content. Nothing is recorded: only
+  those few numbers go to the server with your transcript.
+- **Practice again.** Repeat any finished interview with the same settings and
+  new questions, in one click.
+- **Progress.** Interviews are grouped by role (the model recognises that
+  "Frontend Engineer" and "UI Engineer" are the same job), with a score trend,
+  one chart per rubric dimension, an overall readiness score, and the
+  strengths and weaknesses that keep coming up.
+- **Job Matches.** Upload a resume and pick a city to get real open roles from
+  [Adzuna](https://www.adzuna.com), each scored against your resume with an
+  explanation of why it fits and what would make you a stronger candidate.
+- **Resume Builder.** Chat on the left, a live ATS-friendly resume on the
+  right. You and the AI edit the same document. Export to a text-based PDF,
+  an exact-preview PDF, PNG, JPG or plain text.
+- **Application Tracker.** A Kanban board (Saved, Applied, Interviewing,
+  Accepted / Rejected). Add roles by hand or straight from Job Matches.
+- **Plans.** A free tier plus Pro and Ultimate subscriptions through Stripe.
+  With no Stripe keys configured, billing is off and nothing is limited.
 
-`.env` (see `server/.env.example` for the full list):
+## Tech stack
 
-```
-OPENROUTER_API_KEY=sk-or-...          # required
-OPENROUTER_MODEL=openai/gpt-4o-mini   # optional, overrides the default in src/config.js
-PORT=3001                             # optional
-API_TOKEN=long-random-string          # optional locally, REQUIRED for any real deployment
-CLIENT_ORIGIN=https://app.example.com # optional, extra CORS origin(s), comma-separated
-TRUST_PROXY=1                         # optional, set to match your proxy layer
-FORCE_HTTPS=true                      # optional, send HSTS (HTTPS only)
-RATE_LIMIT_MAX=30                     # optional, per-IP requests/min on interview routes
-OPENROUTER_TIMEOUT_MS=30000           # optional, upstream call timeout
-DATA_DIR=/var/data/mock-interview     # optional, history location (use a volume in prod)
-```
+| Layer | |
+| --- | --- |
+| Frontend | React 18, Vite, React Router 7, CSS Modules over a design-token layer, lucide icons |
+| Backend | Node.js 20, Express (ESM) |
+| AI | [OpenRouter](https://openrouter.ai) chat completions, called only from the server |
+| Auth and data | Supabase (email, Google and GitHub sign-in; Postgres with row-level security) |
+| Jobs | Adzuna API |
+| Payments | Stripe Checkout, Customer Portal and webhooks |
+| In the browser | Web Speech API, Web Audio, MediaPipe face landmarks, pdf.js, jsPDF |
+| Hosting | Vercel (client), Render (API) |
 
-**Access control.** With no `API_TOKEN` the API is open to anyone who can reach
-it — fine on `localhost`, not fine deployed. When set, all `/api` routes except
-`/api/health` need `Authorization: Bearer <API_TOKEN>`; the client reads it from
-`VITE_API_TOKEN`. Saved history is additionally scoped per browser via an
-`X-Client-Id` header the client generates, so one browser can't see or delete
-another's interviews.
+## Getting started
 
-To try a different model, either edit `OPENROUTER_MODEL` in `.env` or change
-`MODEL` in `server/src/config.js`. Prefer a paid model — `:free` models are
-rate limited and may not support JSON output, which the app falls back around
-but slower and less reliably.
-
-**Keep `OPENROUTER_API_KEY` secret.** If it's ever exposed (commit, screenshot,
-shared folder), rotate it at https://openrouter.ai/keys.
-
-### 2. Frontend
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-Vite serves on http://localhost:5173 and proxies `/api` to the backend on 3001,
-so no CORS setup is needed in development.
-
-### Run both at once (optional)
-
-From the repo root:
+You need Node.js 20+ and an [OpenRouter API key](https://openrouter.ai/keys).
+Sign-in needs a free [Supabase](https://supabase.com) project.
 
 ```bash
-npm install
-npm run dev
+git clone https://github.com/BiboEng/Job-Assistant-App.git
+cd Job-Assistant-App
+npm run install:all          # installs root, server and client
+
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+# fill in the values below, then:
+
+npm run dev                  # API on :3001, app on http://localhost:5173
 ```
 
-## API
+Vite proxies `/api` to the server, so there's no CORS setup in development.
 
-| Method | Path                                | Purpose                                  |
-|--------|-------------------------------------|------------------------------------------|
-| POST   | `/api/interview/start`              | Create session from a job description    |
-| POST   | `/api/interview/:sessionId/answer`  | Submit an answer, get the next question  |
-| POST   | `/api/interview/:sessionId/feedback`| Generate final scoring                   |
-| GET    | `/api/interview/:sessionId`         | Inspect session state (debug; off unless `ENABLE_DEBUG_ROUTES=true`) |
-| GET    | `/api/interviews`                   | List saved interviews (home screen)      |
-| GET    | `/api/interviews/:id`               | One saved interview's full detail        |
-| POST   | `/api/interviews`                   | Save a completed session `{ sessionId }` |
-| DELETE | `/api/interviews/:id`               | Delete a saved interview                 |
-| GET    | `/api/health`                       | Health check                             |
+### Environment
 
-Each question comes with a `timeLimitSeconds` (60–300, estimated server-side from
-the question text in `src/timeLimit.js`). The chat screen counts it down and
-auto-submits whatever's typed when it hits zero; an empty auto-submit skips that
-question. Answers may be posted with `{ answer, timedOut: true }` to allow an
-empty body.
+**`server/.env`**
 
-Live sessions live in memory only and are lost on server restart. The client
-mirrors an in-progress interview to `sessionStorage`, so a browser refresh
-resumes where you left off (as long as the server hasn't restarted and the
-1-hour session TTL hasn't elapsed).
+| Variable | |
+| --- | --- |
+| `OPENROUTER_API_KEY` | Required. |
+| `OPENROUTER_MODEL` | Optional. A paid model is more reliable than a `:free` one. |
+| `SUPABASE_URL` | Lets the server verify sign-ins. Set it for any real deployment. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Stores interview history in Supabase. Without it, history goes to a local JSON file. |
+| `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | Needed for Job Matches ([free keys](https://developer.adzuna.com)). |
+| `STRIPE_*`, `APP_URL` | Paid plans. See [`BILLING.md`](BILLING.md). |
 
-**Completed** interviews are persisted to `<DATA_DIR>/interviews.json` (a flat
-JSON file, gitignored, auto-created; default `server/data/`) and shown on the
-home screen, scoped to the saving browser. Each record holds the job
-description, timestamp, questions, answers, and feedback. The client saves
-automatically once feedback is generated and surfaces a retry if that fails.
-Swap `history.service.js` for a DB-backed module later without touching the
-controllers.
+**`client/.env`**
 
-This store is process-local and not durable on an ephemeral filesystem — point
-`DATA_DIR` at a mounted volume, and don't run more than one instance (sessions,
-rate limiter, and model budget are all in-process).
+| Variable | |
+| --- | --- |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Required to sign in. The anon key is public by design; never put the service-role key here. |
+| `VITE_API_BASE_URL` | Optional. The API origin when you aren't using the dev proxy. |
 
-Guards in place: optional bearer-token auth + per-browser history scoping, per-IP
-sliding-window rate limiting, a process-wide model-call concurrency/day budget,
-caps on live sessions and stored interviews, request-size and input-length caps,
-per-session locking so concurrent/duplicate requests can't corrupt a transcript
-or double-bill a model call, a strict CSP and the usual security headers, and
-upstream timeouts on both client and server.
+`server/.env.example` lists every tuning option (rate limits, model budgets,
+timeouts).
 
-Run `cd server && npm test` for the unit tests.
+### Database
+
+Supabase tables are created by the SQL files in
+[`supabase/migrations/`](supabase/migrations). Run them in filename order in the
+Supabase SQL Editor (see [`supabase/README.md`](supabase/README.md)). Features
+whose table is missing switch themselves off rather than erroring.
+
+### Tests
+
+```bash
+cd server && npm test
+cd client && npm test
+```
+
+## Project layout
+
+```
+├── client/      React app: screens, components, design tokens
+├── server/      Express API: routes, controllers, prompts, services
+├── supabase/    SQL migrations (applied by hand)
+├── n8n/         optional workflow for a follow-up rating email
+├── BILLING.md   Stripe, legal and go-live checklist
+└── render.yaml  Render blueprint for the API
+```
+
+[`CLAUDE.md`](CLAUDE.md) is the detailed engineering reference: architecture,
+routing, the design system, the security model and the reasoning behind
+specific decisions.
+
+## Security and privacy
+
+- Every API request carries the user's Supabase token, which the server
+  verifies, so history is tied to the account.
+- Model calls happen only on the server, behind per-IP rate limits, per-user
+  daily quotas and a global daily budget.
+- The camera never leaves the browser in Speak mode. There is no recording or
+  upload path; only the delivery numbers are sent. Spoken answers are
+  transcribed by the browser's speech service.
+- Resume PDFs are read in the browser. The server only receives the extracted
+  text.
+
+Deploying it yourself? Read the "Security model" section of
+[`CLAUDE.md`](CLAUDE.md) first.
+
+## License
+
+[MIT](LICENSE) © BiboEng
